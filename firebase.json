@@ -1,1 +1,2 @@
 {"flutter":{"platforms":{"android":{"default":{"projectId":"inkbattle0","appId":"1:810403540241:android:fe9166f48d4d979127b0b0","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"inkbattle0","configurations":{"android":"1:810403540241:android:fe9166f48d4d979127b0b0","ios":"1:810403540241:ios:a5c18bf7f8064dd127b0b0","macos":"1:810403540241:ios:060bf732ee3aa91a27b0b0","web":"1:810403540241:web:4d3ff543dfc1449f27b0b0","windows":"1:810403540241:web:e9844eade023cf7527b0b0"}}}}}}
+
