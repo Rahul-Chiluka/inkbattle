@@ -523,7 +523,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         });
       }
       
-    } catch (e, stackTrace) {
+    } catch (e) {
       
       
     }

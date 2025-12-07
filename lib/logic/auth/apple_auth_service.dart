@@ -33,7 +33,7 @@ class AppleAuthService {
       final displayName = [
         appleCredential.givenName,
         appleCredential.familyName
-      ].where((v) => v != null && v!.isNotEmpty).join(' ').trim();
+      ].where((v) => v != null && v.isNotEmpty).join(' ').trim();
 
       final resolvedName = displayName.isNotEmpty
           ? displayName

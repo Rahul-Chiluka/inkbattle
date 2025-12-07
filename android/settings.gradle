@@ -12,6 +12,9 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
+        // Alternative repositories in case of network issues
+        maven { url 'https://repo1.maven.org/maven2/' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
         gradlePluginPortal()
     }
 }
@@ -19,6 +22,9 @@ pluginManagement {
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
     id "com.android.application" version "8.6.0" apply false
+    // START: FlutterFire Configuration
+    id "com.google.gms.google-services" version "4.3.15" apply false
+    // END: FlutterFire Configuration
     id "org.jetbrains.kotlin.android" version "2.1.0" apply false
 }
 
