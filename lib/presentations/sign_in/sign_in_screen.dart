@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -348,7 +349,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         SizedBox(width: 30.w),
                         TextWidget(
                           text: Platform.isIOS
-                              ? (_isAppleLoading
+                              ? ( _isAppleLoading
                                   ? AppLocalizations.signingIn
                                   : 'Sign in with Apple')
                               : (_isGoogleLoading

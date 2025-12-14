@@ -48,7 +48,6 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone for voice chat in the game room.</string>
 	<key>NSCameraUsageDescription</key>
-<<<<<<< HEAD
 	<string>We need access to your camera to take photos for your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to select images for your profile picture.</string>
@@ -62,6 +61,20 @@
 	<string>This identifier will be used to deliver personalized ads to you.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2111477197639109~9891158883</string>
+	    <string>This app requires access to the camera for profile photo uploads.</string>
+
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>InkBattle needs to find local devices for multiplayer connections.</string>
+
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>InkBattle uses Bluetooth for audio accessories during voice chat.</string>
+	
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -88,32 +101,6 @@
 		<string>googlechrome</string>
 		<string>googlegmail</string>
 	</array>
-=======
-    <string>This app requires access to the camera for profile photo uploads.</string>
 
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
-
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>InkBattle needs to find local devices for multiplayer connections.</string>
-
-    <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>InkBattle uses Bluetooth for audio accessories during voice chat.</string>
-
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.googleusercontent.apps.810403540241-jn3ngisp6peftdoofqko3b3u9qfsk2g7</string>
-            </array>
-        </dict>
-    </array>
->>>>>>> 8b029bb (Configure Firebase and add initialization)
 </dict>
 </plist>
