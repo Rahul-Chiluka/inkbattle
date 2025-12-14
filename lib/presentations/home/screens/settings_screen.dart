@@ -11,6 +11,7 @@ import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/logic/auth/google_auth_service.dart';
@@ -37,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final youtubeUrl = Uri.parse('https://www.youtube.com/@RLCommunity-sx6mt');
 
   final twitterUrl = Uri.parse('https://x.com/RLCommunity0');
-
   final deleteAccountUrl = Uri.parse('https://forms.gle/wpY1drhr76rHwBGU7');
 
   @override
@@ -86,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isTablet = MediaQuery.of(context).size.width > 600;
     return BlocProvider(
       create: (context) => SettingsBloc()..add(SettingsInitialEvent()),
       child: Scaffold(
@@ -94,192 +93,179 @@ class _SettingsScreenState extends State<SettingsScreen> {
             .getCurrentLanguage()), // Force rebuild on language change
         backgroundColor: const Color(0xFF1A2A44),
         body: SafeArea(
-          bottom: false,
-          child: Center(
-            child: SizedBox(
-              width: isTablet ? 600 : MediaQuery.of(context).size.width,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: isTablet ? 30.w : 20.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: isTablet ? 20.h : 15.h,
-                                  horizontal: 8.w),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: CustomSvgImage(
-                                      imageUrl: AppImages.arrow_back,
-                                      height: isTablet ? 30 : 25,
-                                      width: isTablet ? 30 : 25,
+          child: Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 15.h, horizontal: 8.w),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const CustomSvgImage(
+                                  imageUrl: AppImages.arrow_back,
+                                  height: 25,
+                                  width: 25,
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    AppLocalizations.settings,
+                                    style: GoogleFonts.lato(
+                                      color: Colors.white,
+                                      fontSize: 30.sp,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        AppLocalizations.settings,
-                                        style: GoogleFonts.lato(
-                                          color: Colors.white,
-                                          fontSize: isTablet ? 34.sp : 30.sp,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )),
-                          SizedBox(height: isTablet ? 20.h : 15.h),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildButton(context, AppLocalizations.sound,
-                                    AppImages.soundfull, () {}, true, isTablet),
-                                _buildButton(
-                                    context,
-                                    AppLocalizations.profileAndAccounts,
-                                    AppImages.profile, () async {
-                                  final result = await context
-                                      .push(Routes.profileEditScreen);
-                                  // If language was changed, trigger rebuild
-                                  if (result == true && mounted) {
-                                    setState(() {});
-                                  }
-                                }, false, isTablet),
-                                _buildButton(
-                                    context,
-                                    AppLocalizations.privacyAndSafety,
-                                    AppImages.privacy, () {
-                                  context.push(Routes.privacySafetyScreen);
-                                }, false, isTablet),
-                                _buildButton(context, AppLocalizations.contact,
-                                    AppImages.contact, () {}, false, isTablet),
-                                _buildButton(
-                                    context,
-                                    AppLocalizations.deleteAccount,
-                                    AppImages.exitgame, () async {
-                                  if (await canLaunchUrl(deleteAccountUrl)) {
-                                    await launchUrl(deleteAccountUrl,
-                                        mode: LaunchMode.externalApplication);
-                                  }
-                                }, false, isTablet),
-                                _buildButton(context, AppLocalizations.logout,
-                                    AppImages.exitgame, () {
-                                  _handleLogout(context);
-                                }, false, isTablet),
-                              ],
+                                ),
+                              ),
+                            ],
+                          )),
+                      SizedBox(height: 15.h),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildButton(context, AppLocalizations.sound,
+                                AppImages.soundfull, () {}, true),
+                            _buildButton(
+                                context,
+                                AppLocalizations.profileAndAccounts,
+                                AppImages.profile, () async {
+                              final result =
+                                  await context.push(Routes.profileEditScreen);
+                              // If language was changed, trigger rebuild
+                              if (result == true && mounted) {
+                                setState(() {});
+                              }
+                            }, false),
+                            _buildButton(
+                                context,
+                                AppLocalizations.privacyAndSafety,
+                                AppImages.privacy, () {
+                              context.push(Routes.privacySafetyScreen);
+                            }, false),
+                            _buildButton(context, AppLocalizations.contact,
+                                AppImages.contact, () {}, false),
+                            _buildButton(context, AppLocalizations.deleteAccount,
+                                AppImages.exitgame, () async {
+                              if (await canLaunchUrl(deleteAccountUrl)) {
+                                await launchUrl(deleteAccountUrl,
+                                    mode: LaunchMode.externalApplication);
+                              }
+                            }, false),
+                            _buildButton(context, AppLocalizations.logout,
+                                AppImages.exitgame, () {
+                              _handleLogout(context);
+                            }, false),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        child: Column(
+                          children: [
+                            Text(
+                              AppLocalizations.connectUsAt,
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF90C1D6),
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: isTablet ? 15.h : 10.h),
-                            child: Column(
+                            SizedBox(height: 10.h),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                  AppLocalizations.connectUsAt,
-                                  style: GoogleFonts.lato(
-                                    color: const Color(0xFF90C1D6),
-                                    fontSize: isTablet ? 22.sp : 20.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                CustomSvgImage(
+                                  onTap: () async {
+                                    if (await canLaunchUrl(twitterUrl)) {
+                                      await launchUrl(twitterUrl,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  imageUrl: AppImages.twitterSvg,
+                                  width: 22.w,
+                                  height: 22.h,
+                                  color: Colors.white,
                                 ),
-                                SizedBox(height: isTablet ? 12.h : 10.h),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CustomSvgImage(
-                                      onTap: () async {
-                                        if (await canLaunchUrl(twitterUrl)) {
-                                          await launchUrl(twitterUrl,
-                                              mode: LaunchMode
-                                                  .externalApplication);
-                                        }
-                                      },
-                                      imageUrl: AppImages.twitterSvg,
-                                      width: isTablet ? 26.w : 22.w,
-                                      height: isTablet ? 26.h : 22.h,
-                                      color: Colors.white,
-                                    ),
-                                    SizedBox(width: isTablet ? 18.w : 15.w),
-                                    CustomSvgImage(
-                                      onTap: () async {
-                                        if (await canLaunchUrl(youtubeUrl)) {
-                                          await launchUrl(youtubeUrl,
-                                              mode: LaunchMode
-                                                  .externalApplication);
-                                        }
-                                      },
-                                      imageUrl: AppImages.youtubeSvg,
-                                      width: isTablet ? 26.w : 22.w,
-                                      height: isTablet ? 25.h : 21.h,
-                                      color: Colors.white,
-                                    ),
-                                    SizedBox(width: isTablet ? 18.w : 15.w),
-                                    CustomSvgImage(
-                                      onTap: () async {
-                                        if (await canLaunchUrl(instagramUrl)) {
-                                          await launchUrl(instagramUrl,
-                                              mode: LaunchMode
-                                                  .externalApplication);
-                                        }
-                                      },
-                                      imageUrl: AppImages.instaSvg,
-                                      width: isTablet ? 26.w : 22.w,
-                                      height: isTablet ? 26.h : 22.h,
-                                      color: Colors.white,
-                                    ),
-                                  ],
+                                SizedBox(width: 15.w),
+                                CustomSvgImage(
+                                  onTap: () async {
+                                    if (await canLaunchUrl(youtubeUrl)) {
+                                      await launchUrl(youtubeUrl,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  imageUrl: AppImages.youtubeSvg,
+                                  width: 22.w,
+                                  height: 21.h,
+                                  color: Colors.white,
                                 ),
-                                SizedBox(height: isTablet ? 12.h : 10.h),
-                                Text(
-                                  '${AppLocalizations.version} 1.0.0',
-                                  style: GoogleFonts.lato(
-                                    color: const Color(0xFF869998),
-                                    fontSize: isTablet ? 18.sp : 16.sp,
-                                  ),
+                                SizedBox(width: 15.w),
+                                CustomSvgImage(
+                                  onTap: () async {
+                                    if (await canLaunchUrl(instagramUrl)) {
+                                      await launchUrl(instagramUrl,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  imageUrl: AppImages.instaSvg,
+                                  width: 22.w,
+                                  height: 22.h,
+                                  color: Colors.white,
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 10.h),
+                            Text(
+                              '${AppLocalizations.version} 1.0.0',
+                              style: GoogleFonts.lato(
+                                color: const Color(0xFF869998),
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              if (_isBannerAdLoaded && _bannerAd != null)
+                Container(
+                  width: double.infinity,
+                  height: 60.h,
+                  color: Colors.black.withOpacity(0.3),
+                  child: AdWidget(ad: _bannerAd!),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  height: 60.h,
+                  color: Colors.grey.withOpacity(0.2),
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.loadingAds,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12.sp,
                       ),
                     ),
                   ),
-                  SizedBox(height: 10.h),
-                  if (_isBannerAdLoaded && _bannerAd != null)
-                    Container(
-                      width: double.infinity,
-                      height: 60.h,
-                      color: Colors.black.withOpacity(0.3),
-                      child: AdWidget(ad: _bannerAd!),
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      height: 60.h,
-                      color: Colors.grey.withOpacity(0.2),
-                      child: Center(
-                        child: Text(
-                          AppLocalizations.loadingAds,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                ),
+              SizedBox(height: 10.h),
+            ],
           ),
         ),
       ),
@@ -292,11 +278,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String imageUrl,
     VoidCallback onPressed,
     bool soundControl,
-    bool isTablet,
   ) {
     return SizedBox(
-      width: isTablet ? 280.w : 250.w,
-      height: isTablet ? 65.h : 60.h,
+      width: MediaQuery.of(context).size.width > 600 ? 252.w : 250.w,
+      height: MediaQuery.of(context).size.width > 600 ? 50.h : 60.h,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -317,9 +302,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             highlightColor: Colors.blue,
             onTap: onPressed,
             child: Container(
-              width: isTablet ? 280.w : 250.w,
-              height: isTablet ? 65.h : 60.h,
-              padding: EdgeInsets.symmetric(horizontal: isTablet ? 16.w : 12.w),
+              width: MediaQuery.of(context).size.width > 600 ? 270.w : 250.w,
+              height: MediaQuery.of(context).size.width > 600 ? 75.h : 60.h,
+              padding: EdgeInsets.symmetric(horizontal: 12.w),
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(AppImages.bluebutton),
@@ -345,28 +330,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         return Image.asset(
                           soundImage,
-                          height: isTablet ? 35.h : 30.h,
-                          width: isTablet ? 35.w : 30.w,
+                          height: 30.h,
+                          width: 30.w,
                         );
                       },
                     )
                   else
                     Image.asset(
                       imageUrl,
-                      height: isTablet ? 35.h : 30.h,
-                      width: isTablet ? 35.w : 30.w,
+                      height: 30.h,
+                      width: 30.w,
                     ),
 
-                  SizedBox(width: isTablet ? 16.w : 12.w),
+                  SizedBox(width: 12.w),
 
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: GoogleFonts.lato(
-                        color: Colors.white,
-                        fontSize: isTablet ? 20.sp : 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Text(
+                    text,
+                    style: GoogleFonts.lato(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
 

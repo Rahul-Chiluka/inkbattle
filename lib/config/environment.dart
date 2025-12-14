@@ -10,7 +10,7 @@ class Environment {
   static const String socketUrl =
       "http://ec2-35-154-241-0.ap-south-1.compute.amazonaws.com:4000";
 
-  //static const String apiBaseUrl = "http://192.168.1.6:4000/api";
+//static const String apiBaseUrl = "http://192.168.1.6:4000/api";
 //  static const String socketUrl = "http://192.168.1.6:4000";
 
   // static const String apiBaseUrl =
