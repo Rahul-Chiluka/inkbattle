@@ -61,7 +61,6 @@
 	<string>This identifier will be used to deliver personalized ads to you.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2111477197639109~9891158883</string>
-	    <string>This app requires access to the camera for profile photo uploads.</string>
 
     <key>NSAppTransportSecurity</key>
     <dict>
@@ -74,7 +73,7 @@
 
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>InkBattle uses Bluetooth for audio accessories during voice chat.</string>
-	
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
