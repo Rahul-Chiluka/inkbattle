@@ -51,7 +51,7 @@ dependencies:
   flutter_svg: ^2.1.0
   flutter_screenutil: ^5.9.3
   change_app_package_name: ^1.5.0
-  firebase_core: ^3.6.0
+  firebase_core: ^3.15.2
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.0
@@ -76,6 +76,8 @@ dependencies:
   universal_platform: ^1.1.0
   sign_in_with_apple: ^7.0.1
   app_tracking_transparency: ^2.0.4
+  firebase_messaging: ^15.2.10
+  flutter_local_notifications: ^19.5.0
 
 dev_dependencies:
   flutter_test:

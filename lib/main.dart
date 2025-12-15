@@ -15,6 +15,7 @@ import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'dart:developer';
+import 'package:inkbattle_frontend/services/notification_service.dart';
 
 final GlobalKey<ScaffoldMessengerState> snackbarKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -32,6 +33,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize notifications (FCM + local notifications)
+  await NotificationService().initialize();
+
   await AdService.initializeMobileAds();
   Bloc.observer = MyBlocObserver();
   usePathUrlStrategy();
@@ -57,7 +62,7 @@ void main() async {
 
 // class TestApp extends StatelessWidget {
 //   const TestApp({super.key});
-
+//
 //   @override
 //   Widget build(BuildContext context) {
 //     return MaterialApp(
