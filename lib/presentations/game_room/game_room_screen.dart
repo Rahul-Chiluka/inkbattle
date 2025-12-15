@@ -716,6 +716,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _cancelWordSelectionCountdown();
   }
 
+  int _lastDrawingEmitTime = 0;
+
   Future<void> _initializeRoom() async {
     try {
       final userResult = await _userRepository.getMe();
@@ -1038,13 +1040,31 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _socketService.onDrawingData((data) {
       if (!mounted || _isDrawer) return;
       try {
+        if (data is! Map<String, dynamic>) return;
+
         final strokeData = data['strokes'];
-        if (strokeData != null) {
+        // Check if this is a finished line or an in-progress one
+        // (We will add this flag in the sender below)
+        final bool isFinished = (data['isFinished'] as bool?) ?? true;
+
+        if (strokeData is Map<String, dynamic>) {
           final stroke = fdb.Stroke.fromJson(strokeData);
-          _strokes.value = List<fdb.Stroke>.from(_strokes.value)..add(stroke);
+          if (isFinished) {
+            // 1. Finalize: Add to the permanent list and clear the temporary 'ghost' stroke
+            _strokes.value = List<fdb.Stroke>.from(_strokes.value)..add(stroke);
+            _currentStroke.clear();
+          } else {
+            // 2. Real-time: Update the 'ghost' stroke so guessers see it drawing live
+            // We assume _currentStroke is a ValueNotifier<Stroke?> or similar
+             // This assumes your CurrentStrokeValueNotifier exposes a setter for value,
+             // or you can add a method to set the stroke directly.
+             // If direct set isn't available, we force it:
+            _currentStroke.value = stroke;
+          }
+          // _strokes.value = List<fdb.Stroke>.from(_strokes.value)..add(stroke);
         }
       } catch (e) {
-        
+        print("Error handling drawing data: $e");
       }
     });
 
@@ -2849,11 +2869,48 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                     fillShape: _isFilled(_currentTool),
                                     polygonSides: _polygonSides.value,
                                   ),
+                                  // onDrawingStrokeChanged: (stroke) {
+                                  //   if (stroke == null &&
+                                  //       _strokes.value.isNotEmpty) {
+                                  //     _socketService.sendDrawing(widget.roomId,
+                                  //         _strokes.value.last.toJson());
+                                  //   }
+                                  // },
                                   onDrawingStrokeChanged: (stroke) {
-                                    if (stroke == null &&
-                                        _strokes.value.isNotEmpty) {
-                                      _socketService.sendDrawing(widget.roomId,
-                                          _strokes.value.last.toJson());
+
+                                    // 1. END OF STROKE (User lifted finger)
+                                    if (stroke == null) {
+                                      if (_strokes.value.isNotEmpty) {
+                                        final finalStroke = _strokes.value.last.toJson();
+                                        // Mark as finished so receiver knows to add it to history
+                                        finalStroke['isFinished'] = true; // Use a wrapper if you prefer
+
+                                        // Sending the wrapper structure matching our receiver logic
+                                        _socketService.socket?.emit('drawing_data', {
+                                          'roomId': widget.roomId,
+                                          'strokes': finalStroke,
+                                          'isFinished': true
+                                        });
+                                      }
+                                      return;
+                                    }
+
+                                    // 2. ACTIVE DRAWING (User is dragging)
+                                    // Simple Throttle: Only send every ~30ms to prevent lag/disconnects
+                                    // You can add a static int _lastSendTime = 0; in your class to track this properly
+                                    // For now, we rely on the fact that Flutter calls this frequently.
+
+                                    final _now = DateTime.now().millisecondsSinceEpoch;
+
+                                    // Inside onDrawingStrokeChanged, inside the `else` (stroke != null) block:
+                                    if (_now - _lastDrawingEmitTime > 30) {
+                                      _lastDrawingEmitTime = _now;
+
+                                      _socketService.socket?.emit('drawing_data', {
+                                        'roomId': widget.roomId,
+                                        'strokes': stroke.toJson(),
+                                        'isFinished': false // Mark as in-progress
+                                      });
                                     }
                                   },
                                   backgroundImageListenable: _backgroundImage,
