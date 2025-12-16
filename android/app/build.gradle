@@ -20,6 +20,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -74,4 +75,7 @@ dependencies {
     
     // Facebook SDK
     implementation 'com.facebook.android:facebook-android-sdk:17.0.1'
+
+    // Desugaring for Java 8+ features
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
