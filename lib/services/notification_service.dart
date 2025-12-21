@@ -28,21 +28,27 @@ class NotificationService {
     if (_initialized) return;
     _initialized = true;
 
-    // Register the background handler once, early in app startup.
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    try {
+      // Register the background handler
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Request notification permissions (iOS + Android 13+).
-    await _requestPermissions();
+      // Request notification permissions
+      await _requestPermissions();
 
-    // Initialize flutter_local_notifications for foreground banners.
-    await _initLocalNotifications();
+      // Initialize local notifications
+      await _initLocalNotifications();
 
-    // Log and expose the FCM token so it can be copied.
-    final token = await _messaging.getToken();
-    debugPrint('📱 FCM Device Token: $token');
+      // Log and expose the FCM token
+      // The white screen often happens here if entitlements are missing
+      final token = await _messaging.getToken();
+      debugPrint('📱 FCM Device Token: $token');
 
-    // Listen for foreground messages and show local notification.
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      // Listen for foreground messages
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    } catch (e) {
+      // This catch block prevents the "White Screen" by allowing main() to finish
+      debugPrint('❌ Notification initialization failed: $e');
+    }
   }
 
   Future<void> _requestPermissions() async {

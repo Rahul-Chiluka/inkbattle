@@ -162,7 +162,7 @@ class _DrawerMessageOption {
 }
 
 class _GameRoomScreenState extends State<GameRoomScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final RoomRepository _roomRepository = RoomRepository();
   final UserRepository _userRepository = UserRepository();
   final ThemeRepository _themeRepository = ThemeRepository();
@@ -178,6 +178,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   final AudioPlayer _gameAudioPlayer = AudioPlayer();
   RoomModel? _room;
   UserModel? _currentUser;
+
+  bool _isResuming = false;
 
   final ValueNotifier<List<fdb.Stroke>> _strokes = ValueNotifier([]);
   final fdb.CurrentStrokeValueNotifier _currentStroke =
@@ -437,11 +439,29 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _undoRedoStack = fdb.UndoRedoStack(
       strokesNotifier: _strokes,
       currentStrokeNotifier: _currentStroke,
     );
+
+    /* points animation in gameArena UI  { */
+    _pointsAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _pointsOffsetAnimation = Tween<double>(begin: 0.0, end: -30.0).animate(
+      CurvedAnimation(parent: _pointsAnimationController, curve: Curves.easeOut),
+    );
+
+    _pointsOpacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(_pointsAnimationController);
+    /*  } points animation in gameArena UI  */
 
     // Initialize progress animation controller
     _progressAnimationController = AnimationController(
@@ -716,9 +736,59 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _cancelWordSelectionCountdown();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _handleAppResumed();
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    if (!mounted) return;
+    setState(() => _isResuming = true);
+    
+    // Clear "catch-up" spam
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    // 1. Validate Room & User Status
+    final roomResult = await _roomRepository.getRoomDetails(roomId: widget.roomId);
+    
+    roomResult.fold(
+      (failure) => _showAdAndExit(), // Room gone? Exit.
+      (room) {
+        final isStillInRoom = room.participants?.any((p) => p.user?.id == _currentUser?.id) ?? false;
+        
+        if (!isStillInRoom) {
+          _showAdAndExit(); // Removed for 3 skips? Exit.
+        } else {
+          setState(() {
+            _room = room;
+            _waitingForPlayers = room.status == 'lobby' || room.status == 'waiting';
+            _isResuming = false;
+          });
+          // 2. Sync Drawing if playing
+          if (room.status == 'playing') {
+            _socketService.socket?.emit('request_canvas_data', {'roomCode': room.code});
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _showAdAndExit() async {
+    // Show ad and force the "Go Home" behavior
+    await _showCloseAdAndNavigate(shouldGoHome: true);
+  }
+
   int _lastDrawingEmitTime = 0;
   // Buffer to hold the active drawing so we don't lose it when the finger lifts.
   fdb.Stroke? _lastInProgressStroke;
+
+  // Drawer game points animation 
+  int? _earnedPointsDisplay;
+  late AnimationController _pointsAnimationController;
+  late Animation<double> _pointsOffsetAnimation;
+  late Animation<double> _pointsOpacityAnimation;
 
   Future<void> _initializeRoom() async {
     try {
@@ -983,6 +1053,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onPlayerJoined((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         setState(() {
           _chatMessages
@@ -1019,6 +1090,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onPlayerLeft((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         final userName = data['userName'] ?? 'A player';
         setState(() {
@@ -1100,6 +1172,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
     });
     _socketService.onChatMessage((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         setState(() {
           final user = data['user'];
@@ -1131,6 +1204,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     });
     _socketService.onUserBannedFromGame((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       /*  message: `${userName} has been banned from the room for multiple reports`,
       bannedUserId: userToBlockId,
       roomId: roomId */
@@ -1149,6 +1223,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     });
     _socketService.onUserKickedFromGame((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       /* {
         message: `You have been banned from this room due to multiple reports`,
         roomId: roomId
@@ -1167,6 +1242,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       _leaveRoom();
     });
     _socketService.onGuessResult((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         final isCorrect = data['ok'] == true;
         final message = data['message'] ?? '';
@@ -1390,9 +1466,28 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _currentWord = data['word'];
             _currentWordForDashes = null;
             _showWordHint = false;
+            if (_isDrawer && selectedGameMode == '1v1' && _currentUser != null) {
+              final int totalPlayers = _participants.length;
+              final int correctGuesses = _usersWhoAnswered.length;
+              final int maxPoints = selectedPoints ?? 100;
+
+              if (totalPlayers > 1) {
+                // Use ceil to ensure 2.1 or 2.3 becomes 3
+                final int earned = ((correctGuesses * 2 * maxPoints) / (totalPlayers-1)).ceil();
+
+                setState(() {
+                  _earnedPointsDisplay = earned;
+                  final index = _participants.indexWhere((p) => p.user?.id == _currentUser?.id);
+                  if (index != -1) {
+                    _participants[index].score = (_participants[index].score ?? 0) + earned;
+                  }
+                });
+
+                // Trigger the floating animation
+                _pointsAnimationController.forward(from: 0.0);
+              }
+            }
             if (_isDrawer) {
-              
-              
               if (lastPhaseTimeRemaining > 2) {
                 _announcementManager.startAnnouncementSequence(isTimeUp: false);
               } else {
@@ -1401,6 +1496,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             }
             // DON'T clear canvas during reveal
           } else if (nextPhase == 'interval') {
+            setState(() {
+              _earnedPointsDisplay = null; // Clear the previous points display
+            });
             isAnsweredCorrectly = false;
             _isIntervalPhase = true;
             setState(() {});
@@ -1600,20 +1698,14 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         }
      */
       final message = data["message"];
-      final Map<String, dynamic> eliminatedParticipant =
-          data["eliminatedParticipant"];
-      if (message != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message ?? "Someone Skipped"),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+      final Map<String, dynamic> eliminatedParticipant =  data["eliminatedParticipant"];
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message ?? "Eliminated for inactivity"), backgroundColor: Colors.orange),
+        );
       }
       if (eliminatedParticipant["userId"] == _currentDrawerInfo?["id"]) {
-        _leaveRoom();
+        _showAdAndExit();
       }
     });
     _socketService.onGameStarted((data) {
@@ -1692,9 +1784,21 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onCorrectGuess((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         final dynamic participant = data['participant'];
-        
+        final String teamThatScored = participant['team'] ?? '';
+        final int pointsEarned = data['points'] ?? 0;
+
+        // Trigger animation if the current user is on the team that scored
+        if (selectedTeam == teamThatScored) {
+          setState(() {
+            _earnedPointsDisplay = pointsEarned;
+            // Optionally mark local state for team-wide celebration
+          });
+          _pointsAnimationController.forward(from: 0.0);
+        }
+
         final String guessText = data['guess'] ?? '';
         setState(() {
           int? participantId;
@@ -1783,6 +1887,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           });
         });
 
+        // Trigger the floating animation near the top score
+        _pointsAnimationController.forward(from: 0.0);
+
         // Show toast notification for drawer
         if (_isDrawer) {
           _showGuessToast(participant['name'] ?? 'Unknown', guessText, true);
@@ -1793,6 +1900,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onIncorrectGuess((data) {
+      if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         final guessText = data['guess'] ?? '';
         final user = data['user'];
@@ -2439,10 +2547,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     }
   }
 
-  Future<void> _showCloseAdAndNavigate() async {
+  Future<void> _showCloseAdAndNavigate({bool shouldGoHome = false}) async {
     if (_closeRewardedAd == null) {
-      
-      _toggleLeaderboard(closeRoom: true);
+      if (mounted) {
+        shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+      }
       return;
     }
 
@@ -2452,30 +2561,26 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
       ad.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (dismissedAd) {
-          
           dismissedAd.dispose();
           if (mounted) {
-            _toggleLeaderboard(closeRoom: true);
+            shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
           }
         },
         onAdFailedToShowFullScreenContent: (failedAd, error) {
           
           failedAd.dispose();
           if (mounted) {
-            _toggleLeaderboard(closeRoom: true);
+            shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
           }
         },
       );
 
       
-      await ad.show(
-        onUserEarnedReward: (ad, reward) {
-          
-        },
-      );
+      await ad.show(onUserEarnedReward: (ad, reward) {});
     } catch (e) {
-      
-      _toggleLeaderboard(closeRoom: true);
+      if (mounted) {
+        shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+      }
     }
   }
 
@@ -2590,7 +2695,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _progressAnimationController.dispose();
+    _pointsAnimationController.dispose();
     _answerController.dispose();
     _chatController.dispose();
     _chatScrollController.dispose();
@@ -2711,24 +2818,36 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         }
       });
       return Builder(builder: (innerContext) {
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 500),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.0, 0.1),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOut,
-                )),
-                child: child,
+        return Stack( // Use a Stack to layer the loader over the screen
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, 0.1),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOut,
+                    )),
+                    child: child,
+                  ),
+                );
+              },
+              child: _buildGameScreen(),
+            ),
+            if (_isResuming) 
+              Container(
+                key: const ValueKey('resuming_overlay'), // Keys help Flutter track changes
+                color: Colors.black54,
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.cyan),
+                ),
               ),
-            );
-          },
-          child: _buildGameScreen(),
+          ],
         );
       });
     });
@@ -6498,75 +6617,117 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
   }
 
-  Widget _buildTeamScoreboardView() {
-    int blueScore = 0;
-    int orangeScore = 0;
+Widget _buildTeamScoreboardView() {
+  int blueScore = 0;
+  int orangeScore = 0;
 
-    for (final participant in _participants) {
-      if (participant.team == 'blue') {
-        blueScore += participant.score ?? 0;
-      } else if (participant.team == 'orange') {
-        orangeScore += participant.score ?? 0;
-      }
+  for (final participant in _participants) {
+    if (participant.team == 'blue') {
+      blueScore += participant.score ?? 0;
+    } else if (participant.team == 'orange') {
+      orangeScore += participant.score ?? 0;
     }
+  }
 
-    Text buildScoreText(int score) => Text(
-          '$score',
-          style: GoogleFonts.lato(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w700,
-          ),
-        );
-    final isTablet = MediaQuery.of(context).size.width > 600;
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Container(
-        key: ValueKey('team-scoreboard-$blueScore-$orangeScore'),
-        // padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0C0C0C),
-          borderRadius: BorderRadius.circular(28.r),
-          border: Border.all(color: Colors.white, width: 1.4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 12.r,
-              offset: const Offset(0, 4),
-            ),
-          ],
+  Text buildScoreText(int score) => Text(
+        '$score',
+        style: GoogleFonts.lato(
+          color: Colors.white,
+          fontSize: 18.sp,
+          fontWeight: FontWeight.w700,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            teamBadge(
-              label: 'A',
-              color: const Color(0xFF02A9F7),
-              onTap: () => _showTeamPlayers('blue', 'Team A'),
-              isTablet: isTablet,
-            ),
-            SizedBox(width: 14.w),
-            buildScoreText(blueScore),
-            SizedBox(width: 18.w),
-            Transform.scale(
-              scale: 1.5,
-              child: _buildVsBadge(
-                size: 30.h,
-                backgroundColor: Colors.black,
-                textColor: Colors.white,
+      );
+
+  final isTablet = MediaQuery.of(context).size.width > 600;
+
+  return FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Stack(
+      clipBehavior: Clip.none, // Correctly placed to allow points to float up
+      alignment: Alignment.center,
+      children: [
+        // 1. The Main Scoreboard Container
+        Container(
+          key: ValueKey('team-scoreboard-$blueScore-$orangeScore'),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0C0C0C),
+            borderRadius: BorderRadius.circular(28.r),
+            border: Border.all(color: Colors.white, width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 12.r,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              teamBadge(
+                label: 'A',
+                color: const Color(0xFF02A9F7),
+                onTap: () => _showTeamPlayers('blue', 'Team A'),
+                isTablet: isTablet,
+              ),
+              SizedBox(width: 14.w),
+              buildScoreText(blueScore),
+              SizedBox(width: 18.w),
+              Transform.scale(
+                scale: 1.5,
+                child: _buildVsBadge(
+                  size: 30.h,
+                  backgroundColor: Colors.black,
+                  textColor: Colors.white,
+                ),
+              ),
+              SizedBox(width: 18.w),
+              buildScoreText(orangeScore),
+              SizedBox(width: 14.w),
+              teamBadge(
+                label: 'B',
+                color: const Color(0xFFF59E0B),
+                onTap: () => _showTeamPlayers('orange', 'Team B'),
+                isTablet: isTablet,
+              ),
+            ],
+          ),
+        ),
+
+        // 2. The Floating Points (Direct children of the Stack)
+        if (selectedTeam == 'blue' && _earnedPointsDisplay != null)
+          _buildFloatingTeamPoints(left: 30.w),
+
+        if (selectedTeam == 'orange' && _earnedPointsDisplay != null)
+          _buildFloatingTeamPoints(right: 30.w),
+      ],
+    ),
+  );
+}
+
+  Widget _buildFloatingTeamPoints({double? left, double? right}) {
+    return Positioned(
+      left: left,
+      right: right,
+      top: -20.h,
+      child: AnimatedBuilder(
+        animation: _pointsAnimationController,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _pointsOpacityAnimation.value,
+            child: Transform.translate(
+              offset: Offset(0, _pointsOffsetAnimation.value),
+              child: Text(
+                '+$_earnedPointsDisplay',
+                style: GoogleFonts.lato(
+                  color: Colors.greenAccent,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            SizedBox(width: 18.w),
-            buildScoreText(orangeScore),
-            SizedBox(width: 14.w),
-            teamBadge(
-              label: 'B',
-              color: const Color(0xFFF59E0B),
-              onTap: () => _showTeamPlayers('orange', 'Team B'),
-              isTablet: isTablet,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -6673,6 +6834,32 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               ),
             ),
           ),
+          // Floating Animation (Visible for both Drawer and Guesser)
+          if (_earnedPointsDisplay != null && _earnedPointsDisplay! > 0)
+            Positioned(
+              left: 5.w, // Positioned near the score bubble
+              top: 0,
+              child: AnimatedBuilder(
+                animation: _pointsAnimationController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _pointsOffsetAnimation.value),
+                    child: Opacity(
+                      opacity: _pointsOpacityAnimation.value,
+                      child: Text(
+                        '+$_earnedPointsDisplay',
+                        style: GoogleFonts.lato(
+                          color: Colors.greenAccent,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -9488,11 +9675,23 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     final currentUserId = _currentUser?.id?.toString();
     final hasCurrentUserAnswered =
         currentUserId != null && _usersWhoAnswered.contains(currentUserId);
+
+    // Check if current user is on the same team as the drawer
+    final bool isOurTeamDrawing = _currentDrawerInfo?['team'] == selectedTeam;
+
+    // Determine if the user is currently a spectator
+    final bool isSpectator = selectedGameMode == 'team_vs_team' && 
+                              _currentPhase == 'drawing' && 
+                              !isOurTeamDrawing;
+
+    // Corrected Team Label Logic (Blue = A, Orange = B)
+    final String activeTeamLabel = _currentDrawerInfo?['team'] == 'blue' ? 'A' : 'B';
+
     final shouldShowAnswerInput = (!_isDrawer &&
             !hasCurrentUserAnswered &&
             _isAnswersChatExpanded &&
-            _currentPhase == 'drawing') &&
-        ((_currentDrawerInfo?['team'] == _currentParticipant?.team));
+            _currentPhase == 'drawing' &&
+            (selectedGameMode == '1v1' || isOurTeamDrawing));
 
     // If expanded, return full width chat (same height)
     if (_isAnswersChatExpanded || _isGeneralChatExpanded) {
@@ -9811,11 +10010,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                         "Click to View users and scores according to team wise  ",
                     key: showcasekey4,
                     child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isAnswersChatExpanded = true;
-                          _isGeneralChatExpanded = false;
-                        });
+                      onTap: isSpectator 
+                        ? null 
+                        : () {
+                          setState(() {
+                            _isAnswersChatExpanded = true;
+                            _isGeneralChatExpanded = false;
+                          });
                       },
                       child: Container(
                         width: 120.w,
@@ -9828,172 +10029,189 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                         ),
                         child: Padding(
                           padding: EdgeInsets.only(left: 8.w),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(height: 5.h),
-                              Container(
-                                // height: 30.h,
-                                // width: 100.w,
-                                decoration: BoxDecoration(
-                                    color: const Color(0xFF202020),
-                                    borderRadius: BorderRadius.circular(20.r),
-                                    border: universalBorder),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 6.w, vertical: 3.h),
-                                child: Center(
-                                  child: Text(
-                                    'Answers chat',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white70,
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w700,
+                          child: isSpectator 
+                            ? Column( // STRICT: Show this label ONLY for spectators
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.lock_outline, color: Colors.white24, size: 18.sp),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    "Team $activeTeamLabel's Turn",
+                                    style: GoogleFonts.lato(
+                                      color: Colors.white38,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text("(Spectating)", style: GoogleFonts.lato(color: Colors.white24, fontSize: 8.sp)),
+                                ],
+                              )
+                            : Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(height: 5.h),
+                                Container(
+                                  // height: 30.h,
+                                  // width: 100.w,
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFF202020),
+                                      borderRadius: BorderRadius.circular(20.r),
+                                      border: universalBorder),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 6.w, vertical: 3.h),
+                                  child: Center(
+                                    child: Text(
+                                      'Answers chat',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white70,
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              // SizedBox(height: 8.h),
-                              // Show recent messages in collapsed view
-                              Expanded(
-                                child: _answersChatMessages.isEmpty
-                                    ? Padding(
-                                        padding: EdgeInsets.all(16.w),
-                                        child: SingleChildScrollView(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 16.r,
-                                                backgroundColor:
-                                                    Colors.grey[800],
-                                                child: Icon(
-                                                  Icons.person,
-                                                  color: Colors.white70,
-                                                  size: 20.sp,
-                                                ),
-                                              ),
-                                              SizedBox(height: 8.h),
-                                              Text(
-                                                'Type your answers here. If you\'re correct, it will be marked in green',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 8.sp,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        padding: EdgeInsets.all(8.w),
-                                        itemCount: _answersChatMessages.length,
-                                        itemBuilder: (context, i) {
-                                          final m = _answersChatMessages[i];
-
-                                          final isCorrect =
-                                              m['isCorrect'] == true;
-                                          final isPending =
-                                              m['type'] == 'pending';
-                                          final userName =
-                                              m['userName'] ?? 'User';
-                                          final message = m['message'] ?? '';
-                                          final avatar = m['avatar'];
-                                          final team = m['team'];
-
-                                          return Container(
-                                            margin:
-                                                EdgeInsets.only(bottom: 12.h),
-                                            child: Row(
+                                // SizedBox(height: 8.h),
+                                // Show recent messages in collapsed view
+                                Expanded(
+                                  child: _answersChatMessages.isEmpty
+                                      ? Padding(
+                                          padding: EdgeInsets.all(16.w),
+                                          child: SingleChildScrollView(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                                  CrossAxisAlignment.center,
                                               children: [
-                                                // Avatar
-                                                Container(
-                                                  clipBehavior: Clip.hardEdge,
-                                                  decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      border: BoxBorder.all(
-                                                          color: team != null
-                                                              ? team == 'blue'
-                                                                  ? Colors.blue
-                                                                  : Colors
-                                                                      .orange
-                                                              : Colors.blue,
-                                                          width: 1)),
-                                                  child: CircleAvatar(
-                                                      radius: 16.r,
-                                                      backgroundColor:
-                                                          Colors.black,
-                                                      child: avatar != null
-                                                          ? Image.asset(avatar)
-                                                          : Text(
-                                                              userName[0]
-                                                                  .toUpperCase(),
-                                                              style: TextStyle(
-                                                                  fontSize:
-                                                                      8.sp,
-                                                                  color: Colors
-                                                                      .white))),
+                                                CircleAvatar(
+                                                  radius: 16.r,
+                                                  backgroundColor:
+                                                      Colors.grey[800],
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    color: Colors.white70,
+                                                    size: 20.sp,
+                                                  ),
                                                 ),
-                                                SizedBox(width: 8.w),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        userName,
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 12.sp,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 4.h),
-                                                      Row(
-                                                        children: [
-                                                          Text(
-                                                            isCorrect
-                                                                ? "correct"
-                                                                : message,
-                                                            style: TextStyle(
-                                                              color: isCorrect
-                                                                  ? Colors
-                                                                      .greenAccent
-                                                                  : Colors
-                                                                      .white70,
-                                                              fontSize: 8.sp,
-                                                            ),
-                                                          ),
-                                                          SizedBox(
-                                                            width: 4.w,
-                                                          ),
-                                                          if (isCorrect)
-                                                            const Icon(
-                                                                Icons
-                                                                    .check_circle,
-                                                                size: 12,
-                                                                color: Colors
-                                                                    .greenAccent)
-                                                        ],
-                                                      ),
-                                                    ],
+                                                SizedBox(height: 8.h),
+                                                Text(
+                                                  'Type your answers here. If you\'re correct, it will be marked in green',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 8.sp,
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                          );
-                                        },
-                                      ),
-                              ),
-                            ],
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          padding: EdgeInsets.all(8.w),
+                                          itemCount: _answersChatMessages.length,
+                                          itemBuilder: (context, i) {
+                                            final m = _answersChatMessages[i];
+
+                                            final isCorrect =
+                                                m['isCorrect'] == true;
+                                            final isPending =
+                                                m['type'] == 'pending';
+                                            final userName =
+                                                m['userName'] ?? 'User';
+                                            final message = m['message'] ?? '';
+                                            final avatar = m['avatar'];
+                                            final team = m['team'];
+
+                                            return Container(
+                                              margin:
+                                                  EdgeInsets.only(bottom: 12.h),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // Avatar
+                                                  Container(
+                                                    clipBehavior: Clip.hardEdge,
+                                                    decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        border: BoxBorder.all(
+                                                            color: team != null
+                                                                ? team == 'blue'
+                                                                    ? Colors.blue
+                                                                    : Colors
+                                                                        .orange
+                                                                : Colors.blue,
+                                                            width: 1)),
+                                                    child: CircleAvatar(
+                                                        radius: 16.r,
+                                                        backgroundColor:
+                                                            Colors.black,
+                                                        child: avatar != null
+                                                            ? Image.asset(avatar)
+                                                            : Text(
+                                                                userName[0]
+                                                                    .toUpperCase(),
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        8.sp,
+                                                                    color: Colors
+                                                                        .white))),
+                                                  ),
+                                                  SizedBox(width: 8.w),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          userName,
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 12.sp,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        SizedBox(height: 4.h),
+                                                        Row(
+                                                          children: [
+                                                            Text(
+                                                              isCorrect
+                                                                  ? "correct"
+                                                                  : message,
+                                                              style: TextStyle(
+                                                                color: isCorrect
+                                                                    ? Colors
+                                                                        .greenAccent
+                                                                    : Colors
+                                                                        .white70,
+                                                                fontSize: 8.sp,
+                                                              ),
+                                                            ),
+                                                            SizedBox(
+                                                              width: 4.w,
+                                                            ),
+                                                            if (isCorrect)
+                                                              const Icon(
+                                                                  Icons
+                                                                      .check_circle,
+                                                                  size: 12,
+                                                                  color: Colors
+                                                                      .greenAccent)
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ],
                           ),
                         ),
                       ),
@@ -10408,6 +10626,31 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSpectatorLockedView(String teamLabel) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.lock_outline, color: Colors.white24, size: 18.sp),
+        SizedBox(height: 4.h),
+        Text(
+          "Team $teamLabel's Turn",
+          style: GoogleFonts.lato(
+            color: Colors.white38,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          "(Spectating)",
+          style: GoogleFonts.lato(
+            color: Colors.white24,
+            fontSize: 8.sp,
+          ),
+        ),
+      ],
     );
   }
 
