@@ -9,14 +9,14 @@ class AdService {
   // Android Ad Unit IDs
   static const String androidBannerAdUnitId =
       'ca-app-pub-2111477197639109/9642912729';
-  static const String androidInterstitialAdUnitId =
-      'ca-app-pub-2111477197639109/8228337825';
+  static const String androidRewardedAdUnitId =
+      'ca-app-pub-2111477197639109/2275191348';
 
   // iOS Ad Unit IDs
   static const String iosBannerAdUnitId =
       'ca-app-pub-2111477197639109/6915256150';
-  static const String iosInterstitialAdUnitId =
-      'ca-app-pub-2111477197639109/3822969209';
+  static const String iosRewardedAdUnitId =
+      'ca-app-pub-2111477197639109/8649028008';
 
   // Track initialization status
   static bool _initialized = false;
@@ -32,11 +32,11 @@ class AdService {
   }
 
   // Get platform-specific interstitial ad unit ID
-  static String getInterstitialAdUnitId() {
+  static String getRewardedAdUnitId() {
     if (Platform.isAndroid) {
-      return androidInterstitialAdUnitId;
+      return androidRewardedAdUnitId;
     } else if (Platform.isIOS) {
-      return iosInterstitialAdUnitId;
+      return iosRewardedAdUnitId;
     }
     throw UnsupportedError('Unsupported platform');
   }
@@ -81,7 +81,7 @@ class AdService {
   }) async {
     try {
       await RewardedAd.load(
-        adUnitId: getInterstitialAdUnitId(),
+        adUnitId: getRewardedAdUnitId(),
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: onAdLoaded,

@@ -256,6 +256,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   bool _isLeaderboardVisible = false;
   bool _showPencilTools = false;
   bool _isGameEnded = false;
+  bool _shouldExitAfterAd = false;
   final GlobalKey _pencilKey = GlobalKey();
   bool _showOptionMenu = false;
   static const String _drawerMessagePrefix = 'drawer_message:';
@@ -394,6 +395,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   bool _isBannerAdLoaded = false;
   RewardedAd? _closeRewardedAd;
   bool _isLoadingCloseAd = false;
+  DateTime? _adLoadTime; // Track when ad was loaded to check expiration
 
   final Map<int, DateTime> _lastHeardAt = {};
   final Map<int, int> _currentVolumes = {};
@@ -745,34 +747,194 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
   Future<void> _handleAppResumed() async {
     if (!mounted) return;
-    setState(() => _isResuming = true);
     
-    // Clear "catch-up" spam
+    // Don't check room status if game has ended and we're showing ad/leaderboard
+    // This prevents premature exits when room is being cleaned up
+    if (_isGameEnded) {
+      print("⚠️ Game ended - skipping room check on resume");
+      return;
+    }
+    
+    // CRITICAL: Clear all snackbars immediately to prevent obstruction
+    // Clear multiple times to catch any queued snackbars that might appear
     ScaffoldMessenger.of(context).clearSnackBars();
-
-    // 1. Validate Room & User Status
-    final roomResult = await _roomRepository.getRoomDetails(roomId: widget.roomId);
     
-    roomResult.fold(
-      (failure) => _showAdAndExit(), // Room gone? Exit.
-      (room) {
-        final isStillInRoom = room.participants?.any((p) => p.user?.id == _currentUser?.id) ?? false;
-        
-        if (!isStillInRoom) {
-          _showAdAndExit(); // Removed for 3 skips? Exit.
-        } else {
-          setState(() {
-            _room = room;
-            _waitingForPlayers = room.status == 'lobby' || room.status == 'waiting';
-            _isResuming = false;
+    // Clear again after a small delay to catch any snackbars that were queued
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+    
+    // Clear again after frame is built to ensure UI is clean
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+    
+    setState(() => _isResuming = true);
+
+    // SAFEGUARD: Set a maximum timeout to ensure loading doesn't run forever
+    // If resume takes more than 15 seconds, turn off loading and continue
+    Future.delayed(const Duration(seconds: 15), () {
+      if (mounted && _isResuming) {
+        print("⚠️ Resume timeout - turning off loading indicator");
+        setState(() => _isResuming = false);
+      }
+    });
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Reconnect Socket if disconnected - this is the primary way to stay in the room
+      if (_socketService.socket?.connected != true) {
+        print("Socket disconnected, attempting to reconnect...");
+      
+        // Fetch token and properly reconnect
+        final token = await LocalStorageUtils.fetchToken();
+        if (token != null && token.isNotEmpty) {
+          _socketService.connect(token);
+          
+          // Wait for connection with timeout
+          int attempts = 0;
+          while (attempts < 10 && (_socketService.socket?.connected != true)) {
+            await Future.delayed(const Duration(milliseconds: 200));
+            attempts++;
+          }
+          
+          if (_socketService.socket?.connected == true) {
+            _socketService.joinRoom(widget.roomId);
+          } else {
+            print("⚠️ Failed to reconnect socket after resume");
+          }
+        }
+      } else {
+        // Even if connected, re-join to ensure we're still registered in the room
+        _socketService.joinRoom(widget.roomId);
+      }
+      
+      // Try to validate room status, but don't exit on failures unless it's a confirmed 404
+      // Add timeout to the API call to prevent hanging
+      final roomResult = await _roomRepository.getRoomDetails(roomId: widget.roomId)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw TimeoutException('Room details request timed out');
+            },
+          );
+      
+      roomResult.fold(
+      (failure) {
+        // Only exit if it's a 404 (Room not found).
+        // If it's a network error, we stay in the screen and let the socket try to sync.
+        print("⚠️ Failed to fetch room details: ${failure.message}");
+
+        // Only exit on confirmed 404 - room truly doesn't exist
+        // For all other errors (network, auth, etc.), stay in the screen and trust the socket
+        final errorMessage = failure.message.toLowerCase();
+        if (errorMessage.contains('not found') || 
+            errorMessage.contains('404') ||
+            errorMessage.contains('room not found')) {
+          // Double-check: wait a bit and retry once more before exiting
+          Future.delayed(const Duration(seconds: 1), () async {
+            if (!mounted) {
+              // Ensure loading is turned off if widget is disposed
+              if (_isResuming) {
+                setState(() => _isResuming = false);
+              }
+              return;
+            }
+            try {
+              final retryResult = await _roomRepository.getRoomDetails(roomId: widget.roomId)
+                  .timeout(
+                    const Duration(seconds: 8),
+                    onTimeout: () {
+                      throw TimeoutException('Retry request timed out');
+                    },
+                  );
+              retryResult.fold(
+                (retryFailure) {
+                  final retryError = retryFailure.message.toLowerCase();
+                  if (retryError.contains('not found') || 
+                      retryError.contains('404') ||
+                      retryError.contains('room not found')) {
+                    // Confirmed 404, exit
+                    if (mounted) {
+                      setState(() => _isResuming = false);
+                      _showAdAndExit();
+                    }
+                  } else {
+                    // Not a 404, stay in room
+                    if (mounted) {
+                      setState(() => _isResuming = false);
+                    }
+                  }
+                },
+                (retryRoom) {
+                  // Room found on retry, continue
+                  if (mounted) {
+                    setState(() {
+                      _room = retryRoom;
+                      _waitingForPlayers = retryRoom.status == 'lobby' || retryRoom.status == 'waiting';
+                      _isResuming = false;
+                    });
+                    if (retryRoom.status == 'playing') {
+                      _socketService.socket?.emit('request_canvas_data', {'roomCode': retryRoom.code});
+                    }
+                  }
+                },
+              );
+            } catch (e) {
+              // Timeout or other error - turn off loading and stay in room
+              print("⚠️ Retry error: $e - staying in room");
+              if (mounted) {
+                setState(() => _isResuming = false);
+              }
+            }
           });
-          // 2. Sync Drawing if playing
-          if (room.status == 'playing') {
-            _socketService.socket?.emit('request_canvas_data', {'roomCode': room.code});
+        } else {
+          // Not a 404 error - likely network or temporary issue
+          // Stay in the room and trust the socket connection
+          print("⚠️ Non-404 error, staying in room and trusting socket connection");
+          if (mounted) {
+            setState(() => _isResuming = false);
+          }
+          // Request canvas data if we were playing
+          if (_room?.status == 'playing' && _room?.code != null) {
+            _socketService.socket?.emit('request_canvas_data', {'roomCode': _room!.code});
           }
         }
       },
+      (room) {
+        // Room found successfully - update state and continue
+        // Note: We don't check if user is in participants here because:
+        // 1. API might be slow to sync after app resume
+        // 2. Socket connection is the source of truth for room membership
+        // 3. If user was truly removed, socket will notify us via room_closed or similar events
+        setState(() {
+          _room = room;
+          _waitingForPlayers = room.status == 'lobby' || room.status == 'waiting';
+          _isResuming = false;
+        });
+        
+        // Sync Drawing if playing
+        if (room.status == 'playing') {
+          _socketService.socket?.emit('request_canvas_data', {'roomCode': room.code});
+        }
+      },
     );
+    } catch (e) {
+      // Any exception - stay in room and trust socket
+      print("⚠️ Exception during resume check: $e - staying in room");
+      if (mounted) {
+        setState(() => _isResuming = false);
+      }
+      // Request canvas data if we were playing
+      if (_room?.status == 'playing' && _room?.code != null) {
+        _socketService.socket?.emit('request_canvas_data', {'roomCode': _room!.code});
+      }
+    }
   }
 
   Future<void> _showAdAndExit() async {
@@ -783,6 +945,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   int _lastDrawingEmitTime = 0;
   // Buffer to hold the active drawing so we don't lose it when the finger lifts.
   fdb.Stroke? _lastInProgressStroke;
+
+  // Add this near your other state variables
+  int _strokeSplitIndex = 0;
 
   // Drawer game points animation 
   int? _earnedPointsDisplay;
@@ -856,6 +1021,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _playTeamScoreboardIntro(reset: true);
           } else {
             _resetTeamScoreboardAnimation(withSetState: false);
+          }
+          
+          // Preload rewarded ad if game is already playing (optimal pattern: load early)
+          if (room.status == 'playing') {
+            _loadCloseRewardedAd();
           }
         },
       );
@@ -964,13 +1134,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
   // Update the drawer selection handler
 
-// Helper method to compare sets
+  // Helper method to compare sets
   bool _setEquals<T>(Set<T> a, Set<T> b) {
     if (a.length != b.length) return false;
     return a.difference(b).isEmpty;
   }
 
-// Periodic cleanup timer for speaking states
+  // Periodic cleanup timer for speaking states
   void _startSpeakingCleanupTimer() {
     _speakingCleanupTimer?.cancel();
     _speakingCleanupTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -1118,24 +1288,29 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
         final strokeData = data['strokes'];
         // Check if this is a finished line or an in-progress one
-        // (We will add this flag in the sender below)
         final bool isFinished = (data['isFinished'] as bool?) ?? true;
 
         if (strokeData is Map<String, dynamic>) {
           final stroke = fdb.Stroke.fromJson(strokeData);
+          
           if (isFinished) {
             // 1. Finalize: Add to the permanent list and clear the temporary 'ghost' stroke
-            _strokes.value = List<fdb.Stroke>.from(_strokes.value)..add(stroke);
-            _currentStroke.clear();
+            // CRITICAL: Always add finished strokes to ensure complete drawing sync
+            // Use setState to ensure UI updates immediately for better visual feedback
+            if (mounted) {
+              setState(() {
+                final currentStrokes = List<fdb.Stroke>.from(_strokes.value);
+                currentStrokes.add(stroke);
+                _strokes.value = currentStrokes;
+                _currentStroke.clear();
+              });
+            }
           } else {
             // 2. Real-time: Update the 'ghost' stroke so guessers see it drawing live
-            // We assume _currentStroke is a ValueNotifier<Stroke?> or similar
-             // This assumes your CurrentStrokeValueNotifier exposes a setter for value,
-             // or you can add a method to set the stroke directly.
-             // If direct set isn't available, we force it:
+            // This provides live preview while the drawer is actively drawing
+            // Update immediately without setState for smoother real-time preview
             _currentStroke.value = stroke;
           }
-          // _strokes.value = List<fdb.Stroke>.from(_strokes.value)..add(stroke);
         }
       } catch (e) {
         print("Error handling drawing data: $e");
@@ -1472,8 +1647,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               final int maxPoints = selectedPoints ?? 100;
 
               if (totalPlayers > 1) {
-                // Use ceil to ensure 2.1 or 2.3 becomes 3
-                final int earned = ((correctGuesses * 2 * maxPoints) / (totalPlayers-1)).ceil();
+                // Use ceil to ensure 2.1 or 2.3 becomes 3, 10 represents max points
+                final int earned = ((correctGuesses * 2 * 10) / (totalPlayers-1)).ceil();
 
                 setState(() {
                   _earnedPointsDisplay = earned;
@@ -1485,6 +1660,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
                 // Trigger the floating animation
                 _pointsAnimationController.forward(from: 0.0);
+                // You must handle this event on your backend to save it permanently.
+                _socketService.socket?.emit('drawer_earned_points', {
+                  'roomId': widget.roomId,
+                  'points': earned,
+                  'userId': _currentUser!.id
+                });
               }
             }
             if (_isDrawer) {
@@ -1658,14 +1839,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
       _handleWordSelectionTimeout();
       showLostTurnWidget(skippedName);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('$skippedName missed their turn. Selecting next artist...'),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      
+      // Don't show snackbar if app is resuming (prevents obstruction)
+      if (!_isResuming && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('$skippedName missed their turn. Selecting next artist...'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     });
 
     _socketService.onTimeUpdate((data) {
@@ -1699,7 +1884,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
      */
       final message = data["message"];
       final Map<String, dynamic> eliminatedParticipant =  data["eliminatedParticipant"];
-      if (mounted) {
+      // Don't show snackbar if app is resuming (prevents obstruction)
+      if (!_isResuming && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message ?? "Eliminated for inactivity"), backgroundColor: Colors.orange),
         );
@@ -1725,6 +1911,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         } else {
           _resetTeamScoreboardAnimation();
         }
+        
+        // Preload rewarded ad when game starts (optimal pattern: load early, store, use when needed)
+        // This ensures ad is ready when game ends
+        _loadCloseRewardedAd();
       }
     });
 
@@ -1786,89 +1976,60 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _socketService.onCorrectGuess((data) {
       if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
+        // --- Extract data ---
         final dynamic participant = data['participant'];
         final String teamThatScored = participant['team'] ?? '';
         final int pointsEarned = data['points'] ?? 0;
-
-        // Trigger animation if the current user is on the team that scored
-        if (selectedTeam == teamThatScored) {
-          setState(() {
-            _earnedPointsDisplay = pointsEarned;
-            // Optionally mark local state for team-wide celebration
-          });
-          _pointsAnimationController.forward(from: 0.0);
+        final String guessText = data['guess'] ?? '';
+        
+        // --- Parse participant info ---
+        String userName = participant['name'] ?? 'Unknown';
+        int? participantId;
+        int? participantScore;
+        
+        if (participant is Map<String, dynamic>) {
+          // Extract user info
+          if (participant['user'] is Map<String, dynamic>) {
+            final userMap = Map<String, dynamic>.from(participant['user']);
+            participantId = userMap['id'] as int?;
+            userName = (userMap['name'] as String?)?.trim() ?? userName;
+          }
+          
+          // Fallback ID extraction
+          participantId ??= participant['userId'] as int? ?? participant['id'] as int?;
+          participantScore = participant['score'] as int?;
+          userName = (participant['name'] as String?)?.trim() ?? userName;
         }
 
-        final String guessText = data['guess'] ?? '';
+        // --- Update local state ---
         setState(() {
-          int? participantId;
-          int? participantScore;
-          String userName = participant['name'] ?? 'Unknown';
-
-          if (participant is Map<String, dynamic>) {
-            if (participant['user'] is Map<String, dynamic>) {
-              final Map<String, dynamic> userMap =
-                  Map<String, dynamic>.from(participant['user']);
-              if (userMap['id'] is int) {
-                participantId = userMap['id'] as int;
-              }
-              if (userMap['name'] is String &&
-                  (userMap['name'] as String).trim().isNotEmpty) {
-                userName = (userMap['name'] as String).trim();
-              }
-            }
-
-            if (participantId == null) {
-              if (participant['userId'] is int) {
-                participantId = participant['userId'] as int;
-              } else if (participant['id'] is int) {
-                participantId = participant['id'] as int;
-              }
-            }
-            if (participantId.toString() ==
-                    _currentParticipant?.id.toString() ||
-                participantId.toString() ==
-                    _currentParticipant!.user!.id.toString()) {
-              isAnsweredCorrectly = true;
-            }
-
-            if (participant['score'] is int) {
-              participantScore = participant['score'] as int;
-            }
-            if (participant['name'] is String &&
-                (participant['name'] as String).trim().isNotEmpty) {
-              userName = (participant['name'] as String).trim();
-            }
+          // Mark if current user answered correctly
+          if (participantId != null &&
+              (participantId.toString() == _currentParticipant?.id.toString() ||
+               participantId.toString() == _currentParticipant?.user?.id.toString())) {
+            isAnsweredCorrectly = true;
           }
 
-          final String? participantIdStr = participantId?.toString();
-
+          // Update participant list
           if (participantId != null) {
-            final int index = _participants.indexWhere(
-              (p) =>
-                  p.userId == participantId ||
-                  p.user?.id == participantId ||
-                  p.id == participantId,
+            final index = _participants.indexWhere(
+              (p) => p.userId == participantId || p.user?.id == participantId || p.id == participantId,
             );
             if (index != -1) {
-              if (participantScore != null) {
-                _participants[index].score = participantScore;
-              }
-              if (userName != 'Unknown') {
-                if (_participants[index].user != null) {
-                  _participants[index].user!.name = userName;
-                } else {
-                  _participants[index].user =
-                      UserModel(id: participantId, name: userName);
-                }
+              if (participantScore != null) _participants[index].score = participantScore;
+              if (_participants[index].user != null) {
+                _participants[index].user!.name = userName;
+              } else {
+                _participants[index].user = UserModel(id: participantId, name: userName);
               }
             }
           }
 
-          if (participantIdStr != null) {
-            _usersWhoAnswered.add(participantIdStr);
-          }
+          // Track answered users
+          final participantIdStr = participantId?.toString();
+          if (participantIdStr != null) _usersWhoAnswered.add(participantIdStr);
 
+          // Remove pending and add correct answer
           _answersChatMessages.removeWhere((m) =>
               m['type'] == 'pending' &&
               (participantIdStr == _currentUser?.id?.toString() ||
@@ -1881,20 +2042,37 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             'message': guessText,
             'isCorrect': true,
             'userId': participantIdStr,
-            'avatar':
-                _currentUser?.profilePicture ?? _currentUser?.avatar ?? '',
+            'avatar': _currentUser?.profilePicture ?? _currentUser?.avatar ?? '',
             'team': _currentParticipant?.team,
           });
         });
 
-        // Trigger the floating animation near the top score
-        _pointsAnimationController.forward(from: 0.0);
-
-        // Show toast notification for drawer
-        if (_isDrawer) {
-          _showGuessToast(participant['name'] ?? 'Unknown', guessText, true);
+        // --- Determine animation trigger based on game mode ---
+        bool shouldAnimate = false;
+        
+        if (selectedGameMode == 'team_vs_team') {
+          // Team mode: animate if current user is on the scoring team
+          shouldAnimate = selectedTeam != null && selectedTeam == teamThatScored;
+        } else {
+          // 1v1 mode: animate only if current user is the one who guessed correctly
+          shouldAnimate = participantId != null && 
+                        _currentUser?.id != null && 
+                        participantId.toString() == _currentUser!.id.toString();
         }
 
+        // --- Trigger animation if appropriate ---
+        if (shouldAnimate) {
+          setState(() {
+            _earnedPointsDisplay = pointsEarned;
+          });
+          _pointsAnimationController.forward(from: 0.0);
+        }
+
+        // --- Show toast for drawer ---
+        if (_isDrawer) {
+          _showGuessToast(userName, guessText, true);
+        }
+        
         _scrollAnswersToBottom();
       }
     });
@@ -2014,13 +2192,25 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
     _socketService.onRoomClosed((data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Room closed: ${data['message'] ?? 'No active participants'}'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        // If game has ended and we're showing ad/leaderboard, don't exit immediately
+        // Let the ad/leaderboard flow complete first
+        if (_isGameEnded) {
+          print("⚠️ Room closed but game ended - will exit after ad/leaderboard");
+          // Set a flag to exit after ad is shown
+          _shouldExitAfterAd = true;
+          return;
+        }
+        
+        // Don't show snackbar if app is resuming (prevents obstruction)
+        if (!_isResuming) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Room closed: ${data['message'] ?? 'No active participants'}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
             context.go('/home');
@@ -2511,7 +2701,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   Future<void> _loadCloseRewardedAd() async {
-    if (_isLoadingCloseAd || _closeRewardedAd != null) return;
+    // Don't load if already loading or if ad exists and is still fresh (loaded within last hour)
+    if (_isLoadingCloseAd) return;
+    
+    // If ad exists and was loaded recently (within last hour), keep it
+    // Ads can typically be stored for several hours, but we'll reload if older than 1 hour
+    if (_closeRewardedAd != null && _adLoadTime != null) {
+      final hoursSinceLoad = DateTime.now().difference(_adLoadTime!).inHours;
+      if (hoursSinceLoad < 1) {
+        print("✅ Ad already loaded and fresh (loaded ${hoursSinceLoad}h ago)");
+        return;
+      } else {
+        // Ad is too old, dispose it and load a new one
+        print("⚠️ Ad is too old (${hoursSinceLoad}h), disposing and reloading");
+        _closeRewardedAd?.dispose();
+        _closeRewardedAd = null;
+        _adLoadTime = null;
+      }
+    }
 
     setState(() {
       _isLoadingCloseAd = true;
@@ -2523,13 +2730,14 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           if (mounted) {
             setState(() {
               _closeRewardedAd = ad;
+              _adLoadTime = DateTime.now(); // Store load time
               _isLoadingCloseAd = false;
             });
-            
+            print("✅ Rewarded ad loaded and stored successfully");
           }
         },
         onAdFailedToLoad: (error) {
-          
+          print("❌ Failed to load rewarded ad: $error");
           if (mounted) {
             setState(() {
               _isLoadingCloseAd = false;
@@ -2538,7 +2746,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         },
       );
     } catch (e) {
-      
+      print("❌ Error loading rewarded ad: $e");
       if (mounted) {
         setState(() {
           _isLoadingCloseAd = false;
@@ -2548,9 +2756,53 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   Future<void> _showCloseAdAndNavigate({bool shouldGoHome = false}) async {
+    // If ad is not loaded yet, wait for it to load (max 5 seconds)
+    if (_closeRewardedAd == null && !_isLoadingCloseAd) {
+      // Try to load ad if not already loading
+      _loadCloseRewardedAd();
+    }
+    
+    // Wait for ad to load (with timeout)
+    if (_closeRewardedAd == null) {
+      int waitAttempts = 0;
+      while (_closeRewardedAd == null && waitAttempts < 50 && mounted) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        waitAttempts++;
+      }
+    }
+
+    // Helper function to return to lobby screen (where categories are selected and start button is clicked)
+    void returnToLobby() {
+      if (mounted) {
+        setState(() {
+          _isGameEnded = false;
+          _isLeaderboardVisible = false;
+          // Set room status to lobby and waiting for players to show lobby screen
+          if (_room != null) {
+            _room!.status = 'lobby';
+          }
+          _waitingForPlayers = true;
+        });
+        // Reset all game data when returning to lobby
+        _resetGameState();
+        
+        // Preload ad for next game (optimal pattern: load early, store, use when needed)
+        // This ensures ad is ready when the next game ends
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          _loadCloseRewardedAd();
+        });
+      }
+    }
+
+    // If ad is still null after waiting, proceed without ad
     if (_closeRewardedAd == null) {
       if (mounted) {
-        shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+        if (shouldGoHome) {
+          context.go('/home');
+        } else {
+          // Return to lobby screen (where categories are selected and start button is clicked)
+          returnToLobby();
+        }
       }
       return;
     }
@@ -2562,24 +2814,69 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       ad.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (dismissedAd) {
           dismissedAd.dispose();
+          
+          // CRITICAL: Immediately load a new ad for next time (preload pattern)
+          // This ensures ad is ready for the next game end
+          Future.delayed(const Duration(milliseconds: 500), () {
+            _loadCloseRewardedAd();
+          });
+          
           if (mounted) {
-            shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+            // If room was closed while showing ad, exit to home
+            if (_shouldExitAfterAd) {
+              _shouldExitAfterAd = false;
+              context.go('/home');
+            } else if (shouldGoHome) {
+              context.go('/home');
+            } else {
+              // Return to lobby screen after ad
+              returnToLobby();
+            }
           }
         },
         onAdFailedToShowFullScreenContent: (failedAd, error) {
-          
+          print("❌ Ad failed to show: $error");
           failedAd.dispose();
+          
+          // Load a new ad even if this one failed
+          Future.delayed(const Duration(milliseconds: 500), () {
+            _loadCloseRewardedAd();
+          });
+          
           if (mounted) {
-            shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+            // If room was closed while showing ad, exit to home
+            if (_shouldExitAfterAd) {
+              _shouldExitAfterAd = false;
+              context.go('/home');
+            } else if (shouldGoHome) {
+              context.go('/home');
+            } else {
+              // Return to lobby screen after ad (where categories are selected and start button is clicked)
+              returnToLobby();
+            }
           }
         },
       );
-
-      
       await ad.show(onUserEarnedReward: (ad, reward) {});
     } catch (e) {
+      print("❌ Error showing ad: $e");
+      
+      // Load a new ad even if there was an error
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _loadCloseRewardedAd();
+      });
+      
       if (mounted) {
-        shouldGoHome ? context.go('/home') : _toggleLeaderboard(closeRoom: true);
+        // If room was closed while showing ad, exit to home
+        if (_shouldExitAfterAd) {
+          _shouldExitAfterAd = false;
+          context.go('/home');
+        } else if (shouldGoHome) {
+          context.go('/home');
+        } else {
+          // Return to lobby screen after ad (where categories are selected and start button is clicked)
+          returnToLobby();
+        }
       }
     }
   }
@@ -3031,28 +3328,48 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                   onDrawingStrokeChanged: (stroke) {
                                     // 1. END OF STROKE (User lifted finger)
                                     if (stroke == null) {
-                                      // Send the captured stroke, NOT the old history list
+                                      // CRITICAL: Always send the final stroke segment when user lifts finger
+                                      // This ensures guessers see the complete drawing (especially important for complex shapes like trees, flowers)
+                                      
+                                      final currentStroke = _currentStroke.value;
+                                      
+                                      // Priority 1: Use _lastInProgressStroke (most up-to-date from our tracking)
                                       if (_lastInProgressStroke != null) {
-                                        // Sending the wrapper structure matching our receiver logic
                                         _socketService.socket?.emit('drawing_data', {
                                           'roomId': widget.roomId,
                                           'strokes': _lastInProgressStroke!.toJson(),
-                                          'isFinished': true   // Guesser side will now move this to permanent history
+                                          'isFinished': true
                                         });
                                         _lastInProgressStroke = null; // Cleanup
+                                      }
+                                      
+                                      // Priority 2: Also send currentStroke if it exists and has points
+                                      // This catches any points added after the last throttle update
+                                      if (currentStroke != null && currentStroke.points.isNotEmpty) {
+                                        // Only send if it's different from what we just sent
+                                        if (_lastInProgressStroke == null || 
+                                            currentStroke.points.length != _lastInProgressStroke?.points.length) {
+                                          _socketService.socket?.emit('drawing_data', {
+                                            'roomId': widget.roomId,
+                                            'strokes': currentStroke.toJson(),
+                                            'isFinished': true
+                                          });
+                                        }
                                       }
                                       return;
                                     }
 
                                     // 2. ACTIVE DRAWING (User is dragging)
-                                    // Simple Throttle: Only send every ~40ms to prevent lag/disconnects
                                     final now = DateTime.now().millisecondsSinceEpoch;
-                                    _lastInProgressStroke = stroke; // Capture the stroke
+                                    final isEraser = _currentTool == DrawingTool.eraser;
+                                    
+                                    // Always capture the current stroke state
+                                    _lastInProgressStroke = stroke;
 
                                     // 1. CHOP LARGE STROKES: If the stroke is getting too heavy, split it.
-                                    if (stroke.points.length >= 750) {
-                                      // Send this segment as finished
-                                      // _sendDrawingUpdate(isFinished: true);
+                                    // Lowered threshold to 300 points for more frequent sending and better sync
+                                    if (stroke.points.length >= 300) {
+                                      // Send this segment as finished immediately
                                       _socketService.socket?.emit('drawing_data', {
                                         'roomId': widget.roomId,
                                         'strokes': stroke.toJson(),
@@ -3064,13 +3381,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                       // Start a NEW stroke at the last point to continue seamlessly
                                       _currentStroke.startStroke(
                                         stroke.points.last,
-                                        color: _currentTool == DrawingTool.eraser
+                                        color: isEraser
                                           ? Colors.black
                                           : _selectedColor,
-                                        size: _currentTool == DrawingTool.eraser
+                                        size: isEraser
                                           ? _strokeWidth * 3.0
                                           : _strokeWidth,
-                                        opacity: _currentTool == DrawingTool.eraser
+                                        opacity: isEraser
                                           ? 1.0
                                           : _selectedColor.opacity,
                                         type: _getFdbStrokeType(_currentTool),
@@ -3078,7 +3395,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                       );
 
                                       // Emit the new stroke immediately so other players see continuous drawing
-                                      // instead of waiting for the next 40ms throttle tick.
                                       final newStroke = _currentStroke.value;
                                       if (newStroke != null) {
                                         _socketService.socket?.emit('drawing_data', {
@@ -3087,18 +3403,25 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                           'isFinished': false,
                                         });
                                         _lastDrawingEmitTime = now;
+                                        // Update tracking to the new stroke
+                                        _lastInProgressStroke = newStroke;
                                       }
-
-                                      // CRITICAL FIX: Update the tracking variable to the new empty/started stroke
-                                      // so the 'if (stroke == null)' block doesn't resend the old 500 points.
-                                      _lastInProgressStroke = null;
                                       return;
                                     }
 
-                                    // 2. REGULAR THROTTLE: Send real-time updates every 40ms
-                                    if (now - _lastDrawingEmitTime > 60) {
+                                    // 2. REGULAR THROTTLE: Send real-time updates
+                                    // Reduced throttle times for faster, smoother drawing sync
+                                    // Eraser: 10ms (100 updates/sec) for precise erasing
+                                    // Regular: 16ms (~60fps) for smooth drawing
+                                    final throttleTime = isEraser ? 10 : 16;
+                                    
+                                    // Always send if enough time has passed OR if stroke has many points
+                                    // This ensures complex drawings (trees, flowers) are synced more frequently
+                                    final shouldSend = (now - _lastDrawingEmitTime >= throttleTime) ||
+                                        (stroke.points.length > 50 && now - _lastDrawingEmitTime >= 8);
+                                    
+                                    if (shouldSend) {
                                       _lastDrawingEmitTime = now;
-                                      // _sendDrawingUpdate(isFinished: false);
                                       _socketService.socket?.emit('drawing_data', {
                                         'roomId': widget.roomId,
                                         'strokes': stroke.toJson(),
@@ -9658,12 +9981,7 @@ Widget _buildTeamScoreboardView() {
                 ),
               ),
             ),
-            if (canSelectMessage)
-              Icon(
-                Icons.keyboard_arrow_down,
-                color: Colors.white60,
-                size: 20.sp,
-              ),
+            // Arrow icon removed - not needed for message selector
           ],
         ),
       ),
