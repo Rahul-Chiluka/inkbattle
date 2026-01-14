@@ -40,7 +40,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
   int _currentPage = 0;
   int selectedAvatarIndex = 0;
   String? selectedProfilePhoto;
-  bool showAvatarSelection = false;
   bool _isSubmitting = false;
   List<String> avatarsURLs = [
     AppImages.av1,
@@ -57,97 +56,128 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
   VideoPlayerController? _videoController;
   final random = Random();
 
-  // Avatar animation variables
-  int? _movingAvatarIndex;
-  Offset? _movingAvatarStartPosition;
-  final GlobalKey _centerAvatarKey = GlobalKey();
+  // Avatar swipe animation variables
+  late AnimationController _avatarSwipeController;
+  int _previousAvatarIndex = 0;
+  double _swipeOffset = 0.0;
+  bool _isSwiping = false;
 
-  final List<String> languages = [
-    "Hindi",
-    "Telugu",
-    "English",
-    "Marathi",
-    "Kannada",
-    "Malayalam",
-    "Bengali",
-    "Arabic",
-    "Spanish",
-    "Portuguese",
-    "French",
-    "German",
-    "Russian",
-    "Japanese",
-    "Punjabi",
-    "Gujarati"
+final List<String> languages = [
+    "English",    // English
+    "हिंदी",      // Hindi
+    "తెలుగు",     // Telugu
+    "தமிழ்",      // Tamil
+    "मराठी",      // Marathi
+    "ಕನ್ನಡ",      // Kannada
+    "മലയാളം",    // Malayalam
+    "বাংলা",      // Bengali
+    "العربية",    // Arabic
+    "Español",    // Spanish
+    "Português",  // Portuguese
+    "Français",   // French
+    "Deutsch",    // German
+    "Русский",    // Russian
+    "日本語",      // Japanese
+    "ਪੰਜਾਬੀ",      // Punjabi
+    "ગુજરાતી",     // Gujarati
+    "Italiano",   // Italian
+    "한국어",      // Korean
+    "中文",        // Chinese
   ];
-  final List<String> countries = ["India", "USA", "UK", "Japan"];
+  // final List<String> countries = ["India", "USA", "UK", "Japan"];
+    final List<String> countries = [
+    "🇮🇳 India",
+    "🇺🇸 USA",
+    "🇬🇧 UK",
+    "🇯🇵 Japan",
+    "🇪🇸 Spain",
+    "🇵🇹 Portugal",
+    "🇫🇷 France",
+    "🇩🇪 Germany",
+    "🇷🇺 Russia"
+  ];
 
-  void _selectAvatar(int index) {
-    if (_movingAvatarIndex != null) return; // Prevent multiple animations
-
+  void _onAvatarSwipeLeft() {
+    if (_isSwiping) return;
+    
     setState(() {
-      _movingAvatarIndex = index;
-      selectedAvatarIndex = index;
+      _isSwiping = true;
+      _previousAvatarIndex = selectedAvatarIndex;
+      selectedAvatarIndex = (selectedAvatarIndex + 1) % avatarsURLs.length;
+      selectedProfilePhoto = avatarsURLs[selectedAvatarIndex];
     });
-    _avatarMoveController.reset();
-    // Start the move animation
-    _avatarMoveController.forward().then((_) {
-      // Update the profile photo after animation completes
-      setState(() {
-        if (index <= avatarsURLs.length - 1) {
-          selectedProfilePhoto = avatarsURLs[index];
-        } else {
-          selectedProfilePhoto = null;
-        }
-        _movingAvatarIndex = null;
-      });
-      // Trigger rebuild to update button state
-      if (mounted) setState(() {});
+    
+    _avatarSwipeController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSwiping = false;
+          _swipeOffset = 0.0;
+        });
+      }
     });
   }
 
-  void _toggleAvatarSelection() {
+  void _onAvatarSwipeRight() {
+    if (_isSwiping) return;
+    
     setState(() {
-      showAvatarSelection = !showAvatarSelection;
+      _isSwiping = true;
+      _previousAvatarIndex = selectedAvatarIndex;
+      selectedAvatarIndex = (selectedAvatarIndex - 1 + avatarsURLs.length) % avatarsURLs.length;
+      selectedProfilePhoto = avatarsURLs[selectedAvatarIndex];
+    });
+    
+    _avatarSwipeController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSwiping = false;
+          _swipeOffset = 0.0;
+        });
+      }
     });
   }
 
   void _loadLanguage() {
     final savedLanguage = LocalStorageUtils.getLanguage();
-    // Don't call setLanguage here - it's already set in main.dart
-    // Just map the language code to display name for the dropdown
-
-    // Map language codes to display names
+    
     if (savedLanguage == 'hi') {
-      selectedLanguage = 'Hindi';
+      selectedLanguage = 'हिंदी';
     } else if (savedLanguage == 'te') {
-      selectedLanguage = 'Telugu';
+      selectedLanguage = 'తెలుగు';
+    } else if (savedLanguage == 'ta') {
+      selectedLanguage = 'தமிழ்';
     } else if (savedLanguage == 'mr') {
-      selectedLanguage = 'Marathi';
-    } else if (savedLanguage == 'km') {
-      selectedLanguage = 'Kannada';
+      selectedLanguage = 'मराठी';
+    } else if (savedLanguage == 'kn') {
+      selectedLanguage = 'ಕನ್ನಡ';
     } else if (savedLanguage == 'ml') {
-      selectedLanguage = 'Malayalam';
+      selectedLanguage = 'മലയാളം';
     } else if (savedLanguage == 'bn') {
-      selectedLanguage = 'Bengali';
+      selectedLanguage = 'বাংলা';
     } else if (savedLanguage == 'ar') {
-      selectedLanguage = 'Arabic';
+      selectedLanguage = 'العربية';
     } else if (savedLanguage == 'es') {
-      selectedLanguage = 'Spanish';
+      selectedLanguage = 'Español';
     } else if (savedLanguage == 'pt') {
-      selectedLanguage = 'Portuguese';
+      selectedLanguage = 'Português';
     } else if (savedLanguage == 'fr') {
-      selectedLanguage = 'French';
+      selectedLanguage = 'Français';
     } else if (savedLanguage == 'de') {
-      selectedLanguage = 'German';
-    } else if (savedLanguage == 'rn') {
-      selectedLanguage = 'Russian';
+      selectedLanguage = 'Deutsch';
+    } else if (savedLanguage == 'ru') { 
+      selectedLanguage = 'Русский';
     } else if (savedLanguage == 'ja') {
-      selectedLanguage = 'Japanese';
+      selectedLanguage = '日本語';
     } else if (savedLanguage == 'pa') {
-      selectedLanguage = 'Punjabi';
+      selectedLanguage = 'ਪੰਜਾਬੀ';
     } else if (savedLanguage == 'gu') {
-      selectedLanguage = 'Gujarati';
+      selectedLanguage = 'ગુજરાતી';
+    } else if (savedLanguage == 'it') {
+      selectedLanguage = 'Italiano';
+    } else if (savedLanguage == 'ko') {
+      selectedLanguage = '한국어';
+    } else if (savedLanguage == 'zh') {
+      selectedLanguage = '中文';
     } else {
       selectedLanguage = 'English';
     }
@@ -159,43 +189,48 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
     setState(() {
       selectedLanguage = language;
     });
-    // Trigger rebuild to update button state
     if (mounted) setState(() {});
 
-    // Map display name to language code
     String languageCode = 'en';
-    if (language == 'Hindi') {
+    
+    if (language == 'हिंदी') {
       languageCode = 'hi';
-    } else if (language == 'Telugu') {
+    } else if (language == 'తెలుగు') {
       languageCode = 'te';
-    } else if (language == 'Marathi') {
+    } else if (language == 'தமிழ்') {
+      languageCode = 'ta';
+    } else if (language == 'मराठी') {
       languageCode = 'mr';
-    } else if (language == 'Kannada') {
-      languageCode = 'km';
-    } else if (language == 'Malayalam') {
+    } else if (language == 'ಕನ್ನಡ') {
+      languageCode = 'kn';
+    } else if (language == 'മലയാളം') {
       languageCode = 'ml';
-    } else if (language == 'Bengali') {
+    } else if (language == 'বাংলা') {
       languageCode = 'bn';
-    } else if (language == 'Arabic') {
+    } else if (language == 'العربية') {
       languageCode = 'ar';
-    } else if (language == 'Spanish') {
+    } else if (language == 'Español') {
       languageCode = 'es';
-    } else if (language == 'Portuguese') {
+    } else if (language == 'Português') {
       languageCode = 'pt';
-    } else if (language == 'French') {
+    } else if (language == 'Français') {
       languageCode = 'fr';
-    } else if (language == 'German') {
+    } else if (language == 'Deutsch') {
       languageCode = 'de';
-    } else if (language == 'Russian') {
-      languageCode = 'rn';
-    } else if (language == 'Japanese') {
+    } else if (language == 'Русский') {
+      languageCode = 'ru';
+    } else if (language == '日本語') {
       languageCode = 'ja';
-    } else if (language == 'Punjabi') {
+    } else if (language == 'ਪੰਜਾਬੀ') {
       languageCode = 'pa';
-    } else if (language == 'Gujarati') {
+    } else if (language == 'ગુજરાતી') {
       languageCode = 'gu';
-    } else {
-      languageCode = 'en';
+    } else if (language == 'Italiano') {
+      languageCode = 'it';
+    } else if (language == '한국어') {
+      languageCode = 'ko';
+    } else if (language == '中文') {
+      languageCode = 'zh';
     }
 
     // Save and apply language
@@ -203,9 +238,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
     AppLocalizations.setLanguage(languageCode);
 
     // Trigger rebuild
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -232,10 +265,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
       }
     });
 
-    // Avatar move animation controller
-    _avatarMoveController = AnimationController(
+    // Avatar swipe animation controller
+    _avatarSwipeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 300),
     );
 
     _coinDrops = [];
@@ -290,7 +323,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
     _usernameFocusNode.dispose();
     _pageController.dispose();
     _controller.dispose();
-    _avatarMoveController.dispose();
+    _avatarSwipeController.dispose();
     _videoController?.dispose();
     super.dispose();
   }
@@ -314,7 +347,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
               selectedProfilePhoto =
                   _user?.avatar ?? _user?.profilePicture ?? AppImages.av3;
               selectedCountry = _user?.country ?? selectedCountry;
-              selectedLanguage = _user?.language ?? selectedLanguage;
+              if (_user?.language != null) {
+                String code = _user!.language!;
+                if (code == 'hi') selectedLanguage = 'हिंदी';
+                else if (code == 'te') selectedLanguage = 'తెలుగు';
+                else if (code == 'ta') selectedLanguage = 'தமிழ்';
+                else if (code == 'mr') selectedLanguage = 'मराठी';
+                else if (code == 'kn') selectedLanguage = 'ಕನ್ನಡ';
+                else if (code == 'ml') selectedLanguage = 'മലയാളം';
+                else if (code == 'bn') selectedLanguage = 'বাংলা';
+                else if (code == 'ar') selectedLanguage = 'العربية';
+                else if (code == 'es') selectedLanguage = 'Español';
+                else if (code == 'pt') selectedLanguage = 'Português';
+                else if (code == 'fr') selectedLanguage = 'Français';
+                else if (code == 'de') selectedLanguage = 'Deutsch';
+                else if (code == 'ru') selectedLanguage = 'Русский';
+                else if (code == 'ja') selectedLanguage = '日本語';
+                else if (code == 'pa') selectedLanguage = 'ਪੰਜਾਬੀ';
+                else if (code == 'gu') selectedLanguage = 'ગુજરાતી';
+                else if (code == 'it') selectedLanguage = 'Italiano';
+                else if (code == 'ko') selectedLanguage = '한국어';
+                else if (code == 'zh') selectedLanguage = '中文';
+                else selectedLanguage = 'English'; // Default
+              }
 
               // Set selectedAvatarIndex based on current avatar
               if (selectedProfilePhoto != null) {
@@ -366,211 +421,244 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     double contentWidth = isTablet ? 600 : screenWidth;
-    double size = isTablet ? contentWidth * 0.12 : 0.15.sw;
-    List<Widget> avatars = List.generate(5, (index) {
-      return Container();
-    });
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 10.h),
-      child: Center(
-        child: SizedBox(
-          width: contentWidth,
-          child: SingleChildScrollView(
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 10.h),
+        child: Center(
+          child: SizedBox(
+            width: contentWidth,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // const CoinContainer(coins: 0),
-                SizedBox(height: isTablet ? 0.1.sh : 0.15.sh),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 0.w),
-                  child: Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
+                // Dynamic spacer at top
+                const Spacer(flex: 1),
+                
+                // Main content - Flexible to adapt to screen size
+                Flexible(
+                  flex: 8,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 0.w),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Main Profile Avatar
-                          Container(
-                            key: _centerAvatarKey,
-                            child: GestureDetector(
-                              onTap: _toggleAvatarSelection,
-                              child: Container(
-                                height: isTablet ? 180.h : 150.h,
-                                width: isTablet ? 180.w : 150.w,
-                                padding: EdgeInsets.all(2.w),
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFF09BDFF),
-                                      Color(0xFF6FE4FF),
-                                      Color(0xFFFFFFFF),
-                                    ],
-                                  ),
-                                ),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.black,
-                                  ),
-                                  child: ClipOval(
-                                    child: SizedBox(
-                                      width: isTablet ? 170.r : 140.r,
-                                      height: isTablet ? 170.r : 140.r,
-                                      child: Padding(
-                                        padding: EdgeInsets.all(
-                                            isTablet ? 30.0 : 24.0),
-                                        child: Image.asset(
-                                          selectedProfilePhoto ?? AppImages.av3,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            // Fallback to av3.png if image fails to load
-                                            return Image.asset(
-                                              AppImages.av3,
-                                              fit: BoxFit.cover,
-                                            );
-                                          },
+                          // Avatar Section - Swipe-based carousel
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: GestureDetector(
+                                onHorizontalDragUpdate: (details) {
+                                  if (!_isSwiping) {
+                                    setState(() {
+                                      _swipeOffset += details.delta.dx;
+                                    });
+                                  }
+                                },
+                                onHorizontalDragEnd: (details) {
+                                  if (_isSwiping) return;
+                                  
+                                  // Determine swipe direction based on velocity and distance
+                                  final velocity = details.velocity.pixelsPerSecond.dx;
+                                  final dragDistance = _swipeOffset;
+                                  
+                                  // Threshold for swipe detection
+                                  const swipeThreshold = 50.0;
+                                  const velocityThreshold = 300.0;
+                                  
+                                  if (velocity.abs() > velocityThreshold || dragDistance.abs() > swipeThreshold) {
+                                    if (velocity > 0 || dragDistance > 0) {
+                                      // Swipe right - previous avatar
+                                      _onAvatarSwipeRight();
+                                    } else {
+                                      // Swipe left - next avatar
+                                      _onAvatarSwipeLeft();
+                                    }
+                                  } else {
+                                    // Reset if swipe wasn't strong enough
+                                    setState(() {
+                                      _swipeOffset = 0.0;
+                                    });
+                                  }
+                                },
+                                child: AnimatedBuilder(
+                                  animation: _avatarSwipeController,
+                                  builder: (context, child) {
+                                    // Determine swipe direction
+                                    bool isMovingNext = false;
+                                    if (_isSwiping) {
+                                      if (selectedAvatarIndex > _previousAvatarIndex) {
+                                        isMovingNext = true;
+                                      } else if (selectedAvatarIndex == 0 && _previousAvatarIndex == avatarsURLs.length - 1) {
+                                        isMovingNext = true; // Wrapped from last to first
+                                      }
+                                    }
+                                    
+                                    // Calculate slide offset during animation
+                                    double slideOffset = 0.0;
+                                    if (_isSwiping) {
+                                      slideOffset = isMovingNext 
+                                        ? -_avatarSwipeController.value * contentWidth * 0.4
+                                        : _avatarSwipeController.value * contentWidth * 0.4;
+                                    } else {
+                                      // Use manual swipe offset when dragging
+                                      slideOffset = _swipeOffset * 0.3;
+                                    }
+                                    
+                                    return Stack(
+                                      alignment: Alignment.center,
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        // Previous avatar (slides out)
+                                        if (_isSwiping)
+                                          Transform.translate(
+                                            offset: Offset(
+                                              isMovingNext 
+                                                ? -contentWidth * 0.4 * (1 - _avatarSwipeController.value)
+                                                : contentWidth * 0.4 * (1 - _avatarSwipeController.value),
+                                              0,
+                                            ),
+                                            child: Opacity(
+                                              opacity: 1.0 - _avatarSwipeController.value,
+                                              child: _buildAvatarCircle(
+                                                avatarsURLs[_previousAvatarIndex],
+                                                isTablet,
+                                                contentWidth,
+                                              ),
+                                            ),
+                                          ),
+                                        
+                                        // Current avatar (slides in from opposite side)
+                                        Transform.translate(
+                                          offset: Offset(slideOffset, 0),
+                                          child: Opacity(
+                                            opacity: _isSwiping 
+                                              ? _avatarSwipeController.value 
+                                              : 1.0,
+                                            child: _buildAvatarCircle(
+                                              avatarsURLs[selectedAvatarIndex],
+                                              isTablet,
+                                              contentWidth,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
                           ),
-
-                          if (!showAvatarSelection)
-                            Positioned(
-                              bottom: isTablet ? 25.h : 20.h,
-                              right: 0.w,
-                              child: GestureDetector(
-                                onTap: _toggleAvatarSelection,
-                                child: Container(
-                                  height: isTablet ? 50.h : 40.h,
-                                  width: isTablet ? 50.w : 40.w,
-                                  decoration: const BoxDecoration(
-                                    color: Color.fromRGBO(217, 217, 217, 1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Image.asset(
-                                    AppImages.pencil,
-                                    height: isTablet ? 35.h : 30.h,
-                                    width: isTablet ? 35.w : 30.w,
-                                  ),
+                          
+                          SizedBox(height: isTablet ? 30.h : 20.h),
+                          
+                          // Form Fields Section
+                          SizedBox(
+                            width: isTablet ? contentWidth * 0.5 : 0.6.sw,
+                            child: TextformFieldWidget(
+                              readOnly: false,
+                              controller: _usernameController,
+                              focusNode: _usernameFocusNode,
+                              height: isTablet ? 55.h : 48.h,
+                              rouneded: 15.r,
+                              fontSize: isTablet ? 20.sp : 18.sp,
+                              hintTextColor:
+                                  const Color.fromRGBO(255, 255, 255, 0.52),
+                              hintText: AppLocalizations.enterUsername,
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.all(10.w),
+                                child: CustomSvgImage(
+                                  imageUrl: AppImages.userSvg,
+                                  height: isTablet ? 24.h : 21.h,
+                                  width: isTablet ? 24.w : 21.w,
                                 ),
                               ),
                             ),
-
-                          // Avatar Selection Options
-                          if (showAvatarSelection)
-                            _buildAvatarSelectionStack(
-                                avatars, size, contentWidth, isTablet),
-
-                          // Moving Avatar Animation
-                          if (_movingAvatarIndex != null)
-                            _buildMovingAvatar(
-                                _movingAvatarIndex!, contentWidth, isTablet),
+                          ),
+                          SizedBox(height: isTablet ? 20.h : 15.h),
+                          SizedBox(
+                            width: isTablet ? contentWidth * 0.5 : 0.6.sw,
+                            child: _buildGradientDropdown(
+                              hint: AppLocalizations.language,
+                              value: selectedLanguage,
+                              items: languages,
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.all(12.w),
+                                child: CustomSvgImage(
+                                  imageUrl: AppImages.languageSvg,
+                                  height: isTablet ? 24.h : 21.h,
+                                  width: isTablet ? 24.w : 21.w,
+                                ),
+                              ),
+                              onChanged: (val) => _changeLanguage(val),
+                            ),
+                          ),
+                          SizedBox(height: isTablet ? 20.h : 15.h),
+                          SizedBox(
+                            width: isTablet ? contentWidth * 0.5 : 0.6.sw,
+                            child: _buildGradientDropdown(
+                              hint: AppLocalizations.country,
+                              value: selectedCountry,
+                              items: countries,
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.all(12.w),
+                                child: CustomSvgImage(
+                                  imageUrl: AppImages.coutrySvg,
+                                  height: isTablet ? 24.h : 21.h,
+                                  width: isTablet ? 24.w : 21.w,
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setState(() => selectedCountry = val);
+                                // Trigger rebuild to update button state
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                          ),
+                          SizedBox(height: isTablet ? 30.h : 25.h),
+                          InkWell(
+                            onTap: (_isSubmitting || !_areAllFieldsFilled())
+                                ? null
+                                : _handleGuestSignup,
+                            child: Opacity(
+                              opacity: (_isSubmitting || !_areAllFieldsFilled())
+                                  ? 0.5
+                                  : 1.0,
+                              child: Row(
+                                children: [
+                                  const Spacer(),
+                                  _isSubmitting
+                                      ? SizedBox(
+                                          width: isTablet ? 20.sp : 18.sp,
+                                          height: isTablet ? 20.sp : 18.sp,
+                                          child: const CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Flexible( // Add Flexible
+                                          child: FittedBox( // Add FittedBox
+                                            fit: BoxFit.scaleDown,
+                                            child: TextWidget(
+                                              text: AppLocalizations.next,
+                                              fontSize: isTablet ? 20.sp : 18.sp,
+                                              color: AppColors.whiteColor,
+                                            ),
+                                          ),
+                                        ),
+                                  Icon(Icons.navigate_next_outlined,
+                                      color: AppColors.whiteColor,
+                                      size: isTablet ? 26.sp : 22.sp),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                      SizedBox(height: isTablet ? 0.05.sh : 0.07.sh),
-                      SizedBox(
-                        width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                        child: TextformFieldWidget(
-                          readOnly: false,
-                          controller: _usernameController,
-                          focusNode: _usernameFocusNode,
-                          height: isTablet ? 55.h : 48.h,
-                          rouneded: 15.r,
-                          fontSize: isTablet ? 20.sp : 18.sp,
-                          hintTextColor:
-                              const Color.fromRGBO(255, 255, 255, 0.52),
-                          hintText: AppLocalizations.enterUsername,
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.all(10.w),
-                            child: CustomSvgImage(
-                              imageUrl: AppImages.userSvg,
-                              height: isTablet ? 24.h : 21.h,
-                              width: isTablet ? 24.w : 21.w,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: isTablet ? 0.025.sh : 0.03.sh),
-                      SizedBox(
-                        width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                        child: _buildGradientDropdown(
-                          hint: AppLocalizations.language,
-                          value: selectedLanguage,
-                          items: languages,
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.all(12.w),
-                            child: CustomSvgImage(
-                              imageUrl: AppImages.languageSvg,
-                              height: isTablet ? 24.h : 21.h,
-                              width: isTablet ? 24.w : 21.w,
-                            ),
-                          ),
-                          onChanged: (val) => _changeLanguage(val),
-                        ),
-                      ),
-                      SizedBox(height: isTablet ? 0.025.sh : 0.03.sh),
-                      SizedBox(
-                        width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                        child: _buildGradientDropdown(
-                          hint: AppLocalizations.country,
-                          value: selectedCountry,
-                          items: countries,
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.all(12.w),
-                            child: CustomSvgImage(
-                              imageUrl: AppImages.coutrySvg,
-                              height: isTablet ? 24.h : 21.h,
-                              width: isTablet ? 24.w : 21.w,
-                            ),
-                          ),
-                          onChanged: (val) {
-                            setState(() => selectedCountry = val);
-                            // Trigger rebuild to update button state
-                            if (mounted) setState(() {});
-                          },
-                        ),
-                      ),
-                      SizedBox(height: isTablet ? 30.h : 25.h),
-                      InkWell(
-                        onTap: (_isSubmitting || !_areAllFieldsFilled())
-                            ? null
-                            : _handleGuestSignup,
-                        child: Opacity(
-                          opacity: (_isSubmitting || !_areAllFieldsFilled())
-                              ? 0.5
-                              : 1.0,
-                          child: Row(
-                            children: [
-                              const Spacer(),
-                              _isSubmitting
-                                  ? SizedBox(
-                                      width: isTablet ? 20.sp : 18.sp,
-                                      height: isTablet ? 20.sp : 18.sp,
-                                      child: const CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : TextWidget(
-                                      text: AppLocalizations.save,
-                                      fontSize: isTablet ? 20.sp : 18.sp,
-                                      color: AppColors.whiteColor,
-                                    ),
-                              Icon(Icons.navigate_next_outlined,
-                                  color: AppColors.whiteColor,
-                                  size: isTablet ? 26.sp : 22.sp),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+                
+                // Dynamic spacer at bottom
+                const Spacer(flex: 1),
               ],
             ),
           ),
@@ -579,197 +667,47 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
     );
   }
 
-  Widget _buildAvatarSelectionStack(
-      List<Widget> avatars, double size, double contentWidth, bool isTablet) {
-    double centerX = contentWidth * 0.5;
-    double centerY = isTablet ? 0.12.sh : 0.17.sh;
-
-    // 4 bubble positions - adjusted for tablet view
-    final bubblePositions = isTablet
-        ? [
-            {'x': centerX - contentWidth * 0.28, 'y': centerY}, // Top left
-            {
-              'x': centerX - contentWidth * 0.35,
-              'y': centerY + 40.h
-            }, // Bottom left
-            {
-              'x': centerX + contentWidth * 0.18,
-              'y': centerY + 5.h
-            }, // Top right
-            {
-              'x': centerX + contentWidth * 0.30,
-              'y': centerY + 45.h
-            }, // Bottom right
-          ]
-        : [
-            {'x': centerX - 0.35.sw, 'y': centerY}, // Top left
-            {'x': centerX - 0.44.sw, 'y': centerY + 31.h}, // Bottom left
-            {'x': centerX + 0.22.sw, 'y': centerY + 2.h}, // Top right
-            {'x': centerX + 0.38.sw, 'y': centerY + 32.h}, // Bottom right
-          ];
-
-    return SizedBox(
-      height: 0.3.sh,
-      width: double.infinity,
-      child: Stack(
-        children: List.generate(5, (index) {
-          // Don't show the moving avatar in the selection stack
-          if (index == _movingAvatarIndex) return const SizedBox.shrink();
-          // Don't show the selected avatar in the surrounding positions
-          if (index == selectedAvatarIndex && _movingAvatarIndex == null) {
-            return const SizedBox.shrink();
-          }
-
-          // Map avatar index to bubble position (skip center avatar index 2)
-          int bubbleIndex = index;
-          if (index > selectedAvatarIndex) {
-            bubbleIndex = index - 1;
-          }
-          // Safety clamp to prevent out of range
-          bubbleIndex = bubbleIndex.clamp(0, bubblePositions.length - 1);
-
-          double x = bubblePositions[bubbleIndex]['x']!;
-          double y = bubblePositions[bubbleIndex]['y']!;
-
-          double bubbleSize = (bubbleIndex % 2 == 0) ? size : size / 2;
-
-          return Positioned(
-            left: x,
-            top: y,
-            child: GestureDetector(
-              onTap: () => _selectAvatar(index),
-              child: Container(
-                width: bubbleSize,
-                height: bubbleSize,
-                padding: EdgeInsets.all(1.w),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [
-                    Color(0xFF09BDFF),
-                    Color(0xFF09BDFF),
-                    Color(0xFF4A4A4A)
-                  ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-                ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black,
-                  ),
-                  child: ClipOval(
-                    child: SizedBox(
-                      width: bubbleSize - 4.w,
-                      height: bubbleSize - 4.w,
-                      child: Image.asset(
-                        avatarsURLs[index],
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
+  Widget _buildAvatarCircle(String avatarPath, bool isTablet, double contentWidth) {
+    return Container(
+      height: isTablet ? 180.h : 150.h,
+      width: isTablet ? 180.w : 150.w,
+      padding: EdgeInsets.all(2.w),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF09BDFF),
+            Color(0xFF6FE4FF),
+            Color(0xFFFFFFFF),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildMovingAvatar(int index, double contentWidth, bool isTablet) {
-    double centerX = contentWidth * 0.5;
-    double centerY = isTablet ? 0.12.sh : 0.17.sh;
-    double size = isTablet ? contentWidth * 0.12 : 0.15.sw;
-
-    // 4 bubble positions - adjusted for tablet view
-    final bubblePositions = isTablet
-        ? [
-            {'x': centerX - contentWidth * 0.30, 'y': centerY}, // Top left
-            {
-              'x': centerX - contentWidth * 0.37,
-              'y': centerY + 40.h
-            }, // Bottom left
-            {
-              'x': centerX + contentWidth * 0.20,
-              'y': centerY + 5.h
-            }, // Top right
-            {
-              'x': centerX + contentWidth * 0.32,
-              'y': centerY + 45.h
-            }, // Bottom right
-          ]
-        : [
-            {'x': centerX - 0.37.sw, 'y': centerY}, // Top left
-            {'x': centerX - 0.44.sw, 'y': centerY + 31.h}, // Bottom left
-            {'x': centerX + 0.22.sw, 'y': centerY + 2.h}, // Top right
-            {'x': centerX + 0.36.sw, 'y': centerY + 32.h}, // Bottom right
-          ];
-
-    // Map avatar index to bubble position (skip center avatar index 2)
-    int bubbleIndex = index;
-    if (index > selectedAvatarIndex) {
-      bubbleIndex = index - 1;
-    }
-    // Safety clamp to prevent out of range
-    bubbleIndex = bubbleIndex.clamp(0, bubblePositions.length - 1);
-
-    double startX = bubblePositions[bubbleIndex]['x']!;
-    double startY = bubblePositions[bubbleIndex]['y']!;
-
-    // Calculate center position (where the main avatar is)
-    double endX = contentWidth * 0.5 -
-        (isTablet ? 50.w : 40.w); // Center minus half width
-    double endY = (isTablet ? 0.12.sh : 0.17.sh) -
-        (isTablet ? 50.h : 40.h); // Center minus half height
-
-    return AnimatedBuilder(
-      animation: _avatarMoveController,
-      builder: (context, child) {
-        double animatedX =
-            startX + (endX - startX) * _avatarMoveController.value;
-        double animatedY =
-            startY + (endY - startY) * _avatarMoveController.value;
-
-        // Scale down as it moves to center
-        double scale = 1.0 - (0.7 * _avatarMoveController.value);
-
-        double bubbleSize = (bubbleIndex % 2 == 0) ? size : size / 2;
-
-        return Positioned(
-          left: animatedX,
-          top: animatedY,
-          child: Transform.scale(
-            scale: scale,
-            child: Container(
-              width: bubbleSize,
-              height: bubbleSize,
-              padding: EdgeInsets.all(1.w),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [
-                  Color(0xFF09BDFF),
-                  Color(0xFF09BDFF),
-                  Color(0xFF4A4A4A)
-                ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black,
-                ),
-                child: ClipOval(
-                  child: SizedBox(
-                    width: bubbleSize - 4.w,
-                    height: bubbleSize - 4.w,
-                    child: Image.asset(
-                      avatarsURLs[index],
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
+      child: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black,
+        ),
+        child: ClipOval(
+          child: SizedBox(
+            width: isTablet ? 170.r : 140.r,
+            height: isTablet ? 170.r : 140.r,
+            child: Padding(
+              padding: EdgeInsets.all(isTablet ? 30.0 : 24.0),
+              child: Image.asset(
+                avatarPath,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to av3.png if image fails to load
+                  return Image.asset(
+                    AppImages.av3,
+                    fit: BoxFit.cover,
+                  );
+                },
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -803,47 +741,55 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
 
     try {
       // Save language to shared preferences if changed
+      String languageCode = 'en';
       if (selectedLanguage != null) {
-        String languageCode = 'en';
-        if (selectedLanguage == 'Hindi') {
+        if (selectedLanguage == 'हिंदी') {
           languageCode = 'hi';
-        } else if (selectedLanguage == 'Telugu') {
+        } else if (selectedLanguage == 'తెలుగు') {
           languageCode = 'te';
-        } else if (selectedLanguage == 'Marathi') {
+        } else if (selectedLanguage == 'தமிழ்') {
+          languageCode = 'ta';
+        } else if (selectedLanguage == 'मराठी') {
           languageCode = 'mr';
-        } else if (selectedLanguage == 'Kannada') {
-          languageCode = 'km';
-        } else if (selectedLanguage == 'Malayalam') {
+        } else if (selectedLanguage == 'ಕನ್ನಡ') {
+          languageCode = 'kn';
+        } else if (selectedLanguage == 'മലയാളം') {
           languageCode = 'ml';
-        } else if (selectedLanguage == 'Bengali') {
+        } else if (selectedLanguage == 'বাংলা') {
           languageCode = 'bn';
-        } else if (selectedLanguage == 'Arabic') {
+        } else if (selectedLanguage == 'العربية') {
           languageCode = 'ar';
-        } else if (selectedLanguage == 'Spanish') {
+        } else if (selectedLanguage == 'Español') {
           languageCode = 'es';
-        } else if (selectedLanguage == 'Portuguese') {
+        } else if (selectedLanguage == 'Português') {
           languageCode = 'pt';
-        } else if (selectedLanguage == 'French') {
+        } else if (selectedLanguage == 'Français') {
           languageCode = 'fr';
-        } else if (selectedLanguage == 'German') {
+        } else if (selectedLanguage == 'Deutsch') {
           languageCode = 'de';
-        } else if (selectedLanguage == 'Russian') {
-          languageCode = 'rn';
-        } else if (selectedLanguage == 'Japanese') {
+        } else if (selectedLanguage == 'Русский') {
+          languageCode = 'ru';
+        } else if (selectedLanguage == '日本語') {
           languageCode = 'ja';
-        } else if (selectedLanguage == 'Punjabi') {
+        } else if (selectedLanguage == 'ਪੰਜਾਬੀ') {
           languageCode = 'pa';
-        } else if (selectedLanguage == 'Gujarati') {
+        } else if (selectedLanguage == 'ગુજરાતી') {
           languageCode = 'gu';
+        } else if (selectedLanguage == 'Italiano') {
+          languageCode = 'it';
+        } else if (selectedLanguage == '한국어') {
+          languageCode = 'ko';
+        } else if (selectedLanguage == '中文') {
+          languageCode = 'zh';
         }
-        await LocalStorageUtils.saveLanguage(languageCode);
-        AppLocalizations.setLanguage(languageCode);
+          await LocalStorageUtils.saveLanguage(languageCode);
+          AppLocalizations.setLanguage(languageCode);
       }
 
       final result = await _userRepository.updateProfile(
         name: username,
         avatar: selectedProfilePhoto,
-        language: selectedLanguage,
+        language: languageCode,
         country: selectedCountry,
       );
 
@@ -960,12 +906,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
                                     ),
                                     child: Align(
                                       alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        e,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18.sp,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          e,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18.sp,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -992,14 +941,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
                     prefixIcon,
                     SizedBox(width: 8.w),
                     Expanded(
-                      child: Text(
-                        value ?? hint,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: value == null
-                              ? const Color.fromRGBO(255, 255, 255, 0.52)
-                              : Colors.white,
-                          fontSize: 18.sp,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value ?? hint,
+                          style: TextStyle(
+                            color: value == null
+                                ? const Color.fromRGBO(255, 255, 255, 0.52)
+                                : Colors.white,
+                            fontSize: 18.sp,
+                          ),
                         ),
                       ),
                     ),
@@ -1071,7 +1023,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen>
                             style: TextStyle(
                                 color: Colors.white70, fontSize: 14.sp)),
                         Icon(Icons.arrow_forward_ios,
-                            size: 16.sp, color: Colors.white70),
+                            size: 16. sp, color: Colors.white70),
                       ],
                     ),
                   ),

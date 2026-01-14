@@ -2,27 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/services/ad_service.dart';
-// import 'package:inkbattle_frontend/services/payment_service.dart';
-// import 'package:inkbattle_frontend/config/environment.dart';
+import 'package:inkbattle_frontend/services/billing_service.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:inkbattle_frontend/widgets/video_reward_dialog.dart';
+import 'package:inkbattle_frontend/utils/lang.dart';
 
 import '../../../main.dart';
 
 class AdsFreePopup extends StatefulWidget {
   final Function(dynamic)? onAdWatched;
   final BuildContext? parentContext;
-  const AdsFreePopup({super.key, this.onAdWatched, this.parentContext});
+  final Function()? onPurchaseComplete; // Callback when purchase completes to refresh user data
+  const AdsFreePopup({
+    super.key,
+    this.onAdWatched,
+    this.parentContext,
+    this.onPurchaseComplete,
+  });
 
-  static void show(BuildContext context, {Function(dynamic)? onAdWatched}) {
+  static void show(
+    BuildContext context, {
+    Function(dynamic)? onAdWatched,
+    Function()? onPurchaseComplete, // Callback to refresh user data after purchase
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AdsFreePopup(
         onAdWatched: onAdWatched,
         parentContext: context,
+        onPurchaseComplete: onPurchaseComplete,
       ),
     );
   }
@@ -33,7 +46,6 @@ class AdsFreePopup extends StatefulWidget {
 
 class _AdsFreePopupState extends State<AdsFreePopup> {
   final UserRepository _userRepository = UserRepository();
-  // final PaymentService _paymentService = PaymentService();
   final GlobalKey _contextKey = GlobalKey();
   bool _isLoading = false;
   RewardedAd? _rewardedAd;
@@ -41,29 +53,136 @@ class _AdsFreePopupState extends State<AdsFreePopup> {
   bool _isLoadingAd = false;
   bool _adLoadFailed = false;
   bool _shouldClaimReward = false;
-  final bool _isProcessingPayment = false;
+  bool _isProcessingPayment = false;
+  
+  // Platform-specific Product IDs for 8000 coins purchase
+  // Android: Google Play Console product ID
+  // iOS: App Store Connect product ID
+  static const String _androidProductId = 'coins_8000'; // Update with your Google Play Console product ID
+  static const String _iosProductId = 'coins_8000'; // Update with your App Store Connect product ID
+  
+  // Get platform-specific product ID
+  String get _coinsProductId {
+    if (Platform.isAndroid) {
+      return _androidProductId;
+    } else if (Platform.isIOS) {
+      return _iosProductId;
+    } else {
+      throw UnsupportedError('In-app purchases are only supported on Android and iOS');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeAndLoadAd();
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _paymentService.initialize();
-    // });
+    _initializeBilling();
+  }
+  
+  void _initializeBilling() {
+    // Initialize billing service with purchase success and error handlers
+    BillingService.init(
+      onSuccess: (PurchaseDetails purchase) {
+        _handlePurchaseSuccess(purchase);
+      },
+      onError: (String error) {
+        _handlePurchaseError(error);
+      },
+    );
+  }
+  
+  void _handlePurchaseError(String error) {
+    if (mounted) {
+      setState(() {
+        _isProcessingPayment = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Purchase failed: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  Future<void> _handlePurchaseSuccess(PurchaseDetails purchase) async {
+    try {
+      // Verify purchase and add coins to user account
+      final result = await _userRepository.addCoins(
+        amount: 8000, // 8000 coins for this purchase
+        reason: 'in_app_purchase',
+      );
+      
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Purchase successful but failed to add coins: ${failure.message}'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            setState(() {
+              _isProcessingPayment = false;
+            });
+          }
+        },
+        (user) {
+          if (mounted) {
+            setState(() {
+              _isProcessingPayment = false;
+            });
+            
+            // Close the dialog first
+            Navigator.of(context).pop();
+            
+            // Show success message and coin animation
+            VideoRewardDialog.show(
+              widget.parentContext ?? context,
+              coinsAwarded: 8000,
+              onComplete: () {
+                print('📍 Purchase coin animation completed');
+                // Refresh user data in parent
+                widget.onPurchaseComplete?.call();
+              },
+            );
+          }
+        },
+      );
+    } catch (e) {
+      print('Error handling purchase: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing purchase: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isProcessingPayment = false;
+        });
+      }
+    }
   }
 
-  Future<void> _initializeAndLoadAd() async {
-    if (_isLoadingAd) return;
+  Future<void> _initializeAndLoadAd({int retryCount = 0}) async {
+    if (_isLoadingAd) {
+      print('⏳ Ad is already loading, skipping...');
+      return;
+    }
 
     if (!mounted) return;
+    
     setState(() {
       _isLoadingAd = true;
+      _adLoadFailed = false;
     });
+    
     try {
-      await AdService.initializeMobileAds();
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      AdService.loadRewardedAd(
+      print('🔄 Initializing and loading rewarded ad (attempt ${retryCount + 1})...');
+      
+      // AdService.loadRewardedAd now handles initialization internally
+      await AdService.loadRewardedAd(
         onAdLoaded: (ad) {
           if (mounted) {
             setState(() {
@@ -75,22 +194,48 @@ class _AdsFreePopupState extends State<AdsFreePopup> {
           }
         },
         onAdFailedToLoad: (error) {
-          print('❌ RewardedAd failed to load: $error');
+          print('❌ RewardedAd failed to load: ${error.code} - ${error.message}');
+          print('   Domain: ${error.domain}');
+          
           if (mounted) {
             setState(() {
               _isLoadingAd = false;
               _adLoadFailed = true;
             });
+            
+            // Retry loading ad if it failed (max 2 retries)
+            if (retryCount < 2) {
+              print('🔄 Retrying ad load in 2 seconds... (attempt ${retryCount + 2}/3)');
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  _initializeAndLoadAd(retryCount: retryCount + 1);
+                }
+              });
+            } else {
+              print('❌ Max retries reached. Ad will not be available.');
+            }
           }
         },
       );
-    } catch (e) {
-      print('Error initializing ads: $e');
+    } catch (e, stackTrace) {
+      print('❌ Exception initializing/loading ads: $e');
+      print('   Stack trace: $stackTrace');
+      
       if (mounted) {
         setState(() {
           _isLoadingAd = false;
           _adLoadFailed = true;
         });
+        
+        // Retry on exception too (max 2 retries)
+        if (retryCount < 2) {
+          print('🔄 Retrying ad load after exception in 2 seconds... (attempt ${retryCount + 2}/3)');
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              _initializeAndLoadAd(retryCount: retryCount + 1);
+            }
+          });
+        }
       }
     }
   }
@@ -117,21 +262,85 @@ class _AdsFreePopupState extends State<AdsFreePopup> {
   @override
   void dispose() {
     _rewardedAd?.dispose();
-    // _paymentService.dispose();
+    // Note: We don't dispose BillingService here as it might be used by other widgets
+    // BillingService should be disposed at app level or when all purchase flows are done
     super.dispose();
   }
 
   Future<void> _handleBuyCoins() async {
-    // Payment functionality commented out
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment feature is currently unavailable.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    if (_isProcessingPayment) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Purchase already in progress. Please wait...'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
     }
-    // if (_isProcessingPayment) return;
+    
+    // Check platform support
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('In-app purchases are only supported on Android and iOS devices.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    try {
+      setState(() {
+        _isProcessingPayment = true;
+      });
+      
+      // Check if in-app purchases are available
+      final bool available = await InAppPurchase.instance.isAvailable();
+      if (!available) {
+        if (mounted) {
+          final platformName = Platform.isAndroid ? 'Google Play' : 'App Store';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('In-app purchases are not available. Please ensure you are signed in to $platformName.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isProcessingPayment = false;
+          });
+        }
+        return;
+      }
+      
+      // Get platform-specific product ID
+      final productId = _coinsProductId;
+      print('Initiating purchase on ${Platform.isAndroid ? "Android" : "iOS"} with product ID: $productId');
+      
+      // Initiate purchase
+      await BillingService.buy(productId);
+      
+      // Note: Purchase completion is handled in _handlePurchaseSuccess
+      // The purchase stream will notify us when the purchase is complete
+      // Dialog will be closed in _handlePurchaseSuccess after coins are added
+    } catch (e) {
+      print('Error initiating purchase: $e');
+      if (mounted) {
+        final platformName = Platform.isAndroid ? 'Google Play' : 'App Store';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate purchase. Please try again or contact support if the issue persists. ($platformName)'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isProcessingPayment = false;
+        });
+      }
+    }
 
     // setState(() {
     //   _isProcessingPayment = true;
@@ -193,9 +402,25 @@ class _AdsFreePopupState extends State<AdsFreePopup> {
 
   Future<void> _watchAd() async {
     if (_rewardedAd == null) {
-      print('⚠️ Ad is null, using fallback');
-      _simulateAdWatch();
-      return;
+      print('⚠️ Ad is null, attempting to load...');
+      
+      // Try to load ad one more time before giving up
+      if (!_isLoadingAd) {
+        _initializeAndLoadAd();
+        
+        // Wait up to 5 seconds for ad to load
+        int waitAttempts = 0;
+        while (_rewardedAd == null && waitAttempts < 50 && mounted) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          waitAttempts++;
+        }
+      }
+      
+      if (_rewardedAd == null) {
+        print('❌ Ad still not available after retry, using fallback');
+        _simulateAdWatch();
+        return;
+      }
     }
 
     _shouldClaimReward = false;
@@ -529,7 +754,7 @@ class _AdsFreePopupState extends State<AdsFreePopup> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "Buy",
+                                          AppLocalizations.buy,
                                           style: GoogleFonts.lato(
                                             fontSize: 20.sp,
                                             fontWeight: FontWeight.w600,

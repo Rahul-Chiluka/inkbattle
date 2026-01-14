@@ -2,29 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/repositories/room_repository.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
-import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
+import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class OneVsOneScreen extends StatefulWidget {
   final String category;
   final int points;
   final String roomId;
   final RoomModel roomModel;
-  final BannerAd? bannerAd;
+  
+  // REMOVED: final BannerAd? bannerAd;
+  
   const OneVsOneScreen({
     super.key,
     required this.category,
     required this.points,
     required this.roomId,
     required this.roomModel,
-    this.bannerAd,
+    // REMOVED: this.bannerAd,
   });
 
   @override
@@ -33,9 +34,10 @@ class OneVsOneScreen extends StatefulWidget {
 
 class _OneVsOneScreenState extends State<OneVsOneScreen> {
   // bool isMicEnabled = true;
-  BannerAd? _bannerAd;
-
-  bool _isBannerAdLoaded = false;
+  
+  // REMOVED: Ad variables
+  // BannerAd? _bannerAd;
+  // bool _isBannerAdLoaded = false;
 
   bool isButtonPressed = false;
   Color gradientStartColor =
@@ -108,40 +110,11 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    _loadBannerAd();
+    // REMOVED: _loadBannerAd();
   }
 
-  Future<void> _loadBannerAd() async {
-    try {
-      // Initialize Mobile Ads SDK first
-      await AdService.initializeMobileAds();
-
-      // Load banner ad
-      await AdService.loadBannerAd(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = ad as BannerAd;
-              _isBannerAdLoaded = true;
-            });
-            print('✅ Banner ad loaded successfully');
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('❌ Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = false;
-            });
-          }
-        },
-      );
-    } catch (e) {
-      print('Error loading banner ad: $e');
-    }
-  }
+  // REMOVED: _loadBannerAd() function
 
   @override
   Widget build(BuildContext context) {
@@ -153,14 +126,16 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
         final isTablet = MediaQuery.of(context).size.shortestSide > 600;
 
         return BlueBackgroundScaffold(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 25.w,
-              right: 25.w,
-              top: isTablet ? 20.h : 15.h,
-              bottom: 0,
-            ),
-            child: Column(
+          child: SafeArea(
+            bottom: true, // Protect bottom for ad visibility
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 25.w,
+                right: 25.w,
+                top: isTablet ? 20.h : 15.h,
+                bottom: 0,
+              ),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
@@ -245,50 +220,9 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                         children: [
                           const Column(
                             children: [
-                              // Row(
-                              //   children: [
-                              //     Image.asset(
-                              //       AppImages.mic,
-                              //       color: Colors.grey,
-                              //       height: 30.h,
-                              //       width: 30.w,
-                              //     ),
-                              //     SizedBox(width: 8.w),
-                              //     GestureDetector(
-                              //       onTap: () {
-                              //         setState(() {
-                              //           isMicEnabled = !isMicEnabled;
-                              //         });
-                              //         print("Mic toggled to $isMicEnabled");
-                              //       },
-                              //       child: Image.asset(
-                              //         isMicEnabled
-                              //             ? AppImages.toggleon
-                              //             : AppImages.toggleoff,
-                              //         width: 45.w,
-                              //         height: isTablet ? 35.h : 30.h,
-                              //         fit: BoxFit.contain,
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
-                              // SizedBox(height: 10.h),
-                              // Text(
-                              //   "Enable mic for \nreal-time\ndiscussion",
-                              //   style: GoogleFonts.lato(
-                              //     color: const Color(0xFF445881),
-                              //     fontSize: 12.sp,
-                              //     fontWeight: FontWeight.w600,
-                              //   ),
-                              // ),
+                              // Mic controls commented out in original code
                             ],
                           ),
-                          // Container(
-                          //   height: 50.h,
-                          //   width: 1.w,
-                          //   color: Colors.white.withOpacity(0.5),
-                          //   margin: EdgeInsets.symmetric(horizontal: 16.w),
-                          // ),
                           Column(
                             children: [
                               Row(children: [
@@ -385,32 +319,13 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 10.h),
-                if (_isBannerAdLoaded && _bannerAd != null)
-                  Container(
-                    width: double.infinity,
-                    height: 60.h,
-                    color: Colors.black.withOpacity(0.3),
-                    child: AdWidget(ad: _bannerAd!),
-                  )
-                else
-                  Container(
-                    width: double.infinity,
-                    height: 60.h,
-                    color: Colors.grey.withOpacity(0.2),
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.loadingAds,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ),
-                  ),
+                
+                // Persistent Banner Ad (app-wide, loaded once)
+                const PersistentBannerAdWidget(),
               ],
             ),
           ),
+        ),
         );
       },
     );

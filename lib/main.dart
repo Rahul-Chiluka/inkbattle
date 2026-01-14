@@ -38,6 +38,8 @@ void main() async {
   await NotificationService().initialize();
 
   await AdService.initializeMobileAds();
+  // Load persistent banner ad (app-wide, loaded once)
+  AdService.loadPersistentBannerAd();
   Bloc.observer = MyBlocObserver();
   usePathUrlStrategy();
   GoRouter.optionURLReflectsImperativeAPIs = true;

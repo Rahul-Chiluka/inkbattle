@@ -14,7 +14,7 @@ class RoomModel {
   String? script;
   String? country;
   int? pointsTarget;
-  String? category;
+  dynamic category; // Can be String? or List<String>? for backward compatibility
   String? gamePlay;
   String? gameMode;
   int? entryPoints;

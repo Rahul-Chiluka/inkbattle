@@ -21,8 +21,7 @@ class CustomRoomButton extends StatelessWidget {
       height: buttonHeight,
       child: AspectRatio(
         aspectRatio: 3.5,
-        child:
-        ElevatedButton(
+        child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
             overlayColor: Colors.blue.withOpacity(1),
@@ -53,28 +52,33 @@ class CustomRoomButton extends StatelessWidget {
                   ),
                 ),
                 alignment: Alignment.center,
-                child: Stack(
-                  children: [
-                    Text(
-                      text,
-                      style: GoogleFonts.luckiestGuy(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w400,
-                        foreground: Paint()
-                          ..style = PaintingStyle.stroke
-                          ..strokeWidth = 2
-                          ..color = Colors.black,
+                // ADD PADDING so text doesn't touch the edges
+                padding: EdgeInsets.symmetric(horizontal: 10.w), 
+                child: FittedBox(
+                  fit: BoxFit.scaleDown, // Shrinks text if it's too big, but won't expand it excessively
+                  child: Stack(
+                    children: [
+                      Text(
+                        text,
+                        style: GoogleFonts.luckiestGuy(
+                          fontSize: 18.sp, // Target size
+                          fontWeight: FontWeight.w400,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2
+                            ..color = Colors.black,
+                        ),
                       ),
-                    ),
-                    Text(
-                      text,
-                      style: GoogleFonts.luckiestGuy(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
+                      Text(
+                        text,
+                        style: GoogleFonts.luckiestGuy(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -98,8 +98,11 @@ class SocketService {
     _socket?.emit('drawing_data', {'roomId': roomId, 'strokes': drawData});
   }
 
-  void clearCanvas(String roomId) {
-    _socket?.emit('clear_canvas', {'roomId': roomId});
+  void clearCanvas(String roomId, [int? canvasVersion]) {
+    _socket?.emit('clear_canvas', {
+      'roomId': roomId,
+      'canvasVersion': canvasVersion,
+    });
   }
 
   // Chat events
@@ -182,6 +185,11 @@ class SocketService {
 
   void onDrawingData(Function(dynamic) callback) {
     _socket?.on('drawing_data', callback);
+  }
+
+  // ✅ PHASE 2: Acknowledgment listener for drawing data
+  void onDrawingAck(Function(dynamic) callback) {
+    _socket?.on('drawing_ack', callback);
   }
 
   void onClearCanvas(Function(dynamic) callback) {

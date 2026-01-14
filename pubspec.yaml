@@ -79,6 +79,8 @@ dependencies:
   firebase_messaging: ^15.2.10
   flutter_local_notifications: ^19.5.0
   package_info_plus: ^8.0.0
+  flutter_native_splash: ^2.4.7
+  in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -144,3 +146,12 @@ flutter_launcher_icons:
   image_path: "asset/logo.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#172026"               # Background color (black, matching your app theme)
+  image: "asset/splash_logo.png" # This is the logo users see when opening the app
+  android_12:
+    image: "asset/splash_logo.png"
+    icon_background_color: "#172026"
+  ios: true
+  android: true

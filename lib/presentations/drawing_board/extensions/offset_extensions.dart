@@ -2,52 +2,54 @@ import 'package:flutter/material.dart';
 
 /// Extension on [Offset] to provide scaling functionalities.
 ///
-/// This extension allows for scaling an [Offset] to and from a standard canvas size.
-/// The standard canvas size is defined by [standardWidth] and [standardHeight].
+/// Changed from fixed 800x600 standard to normalized coordinates (0.0-1.0)
+/// This prevents aspect ratio distortion when drawings are rendered on devices with different screen ratios.
+///
+/// Normalized coordinates store positions as percentages (0.0 to 1.0) of the canvas size,
+/// ensuring drawings appear correctly regardless of device aspect ratio.
 extension OffsetExtensions on Offset {
-  /// Standard width of the canvas.
-  static const double standardWidth = 800;
-
-  /// Standard height of the canvas.
-  static const double standardHeight = 600;
-
-  /// Scales the current [Offset] to a standard canvas size.
+  /// Scales the current [Offset] to normalized coordinates (0.0 to 1.0).
   ///
-  /// This method scales the current offset coordinates (dx, dy) from the current
-  /// device canvas size to a predefined standard canvas size. This is useful for
-  /// maintaining consistency of coordinates across different devices.
-  ///
-  /// The scaling is based on the ratio of the standard canvas size to the actual
-  /// size of the device canvas.
+  /// This method converts device-specific pixel coordinates to normalized coordinates
+  /// that represent the position as a percentage of the canvas size.
+  /// 
+  /// Example: On a 1920x1080 canvas, point (960, 540) becomes (0.5, 0.5)
   ///
   /// [deviceCanvasSize] is the size of the canvas on the current device.
   ///
-  /// Returns a new [Offset] that is scaled to the standard canvas size.
+  /// Returns a new [Offset] with normalized coordinates (dx: 0.0-1.0, dy: 0.0-1.0).
   Offset scaleToStandard(Size deviceCanvasSize) {
-    final scaleX = standardWidth / deviceCanvasSize.width;
-    final scaleY = standardHeight / deviceCanvasSize.height;
-
-    return Offset(dx * scaleX, dy * scaleY);
+    // Prevent division by zero
+    if (deviceCanvasSize.width <= 0 || deviceCanvasSize.height <= 0) {
+      return Offset(0, 0);
+    }
+    
+    // Normalize to 0.0-1.0 range
+    return Offset(
+      dx / deviceCanvasSize.width,   // 0.0 to 1.0
+      dy / deviceCanvasSize.height,  // 0.0 to 1.0
+    );
   }
 
-  /// Scales the current [Offset] from a standard canvas size to the device canvas size.
+  /// Scales the current [Offset] from normalized coordinates (0.0-1.0) to device canvas size.
   ///
-  /// This method is the inverse of [scaleToStandard]. It scales the current offset
-  /// coordinates (dx, dy) from the standard canvas size back to the device canvas size.
-  /// This is particularly useful when rendering coordinates that were captured
-  /// on a device with a different resolution.
+  /// This method is the inverse of [scaleToStandard]. It converts normalized coordinates
+  /// back to device-specific pixel coordinates.
   ///
-  /// The scaling is based on the ratio of the device canvas size to the standard
-  /// canvas size.
+  /// Example: Normalized (0.5, 0.5) on a 400x300 canvas becomes (200, 150)
   ///
   /// [deviceCanvasSize] is the size of the canvas on the current device.
   ///
-  /// Returns a new [Offset] that is scaled from the standard canvas size to
-  /// the device's canvas size.
+  /// Returns a new [Offset] with device-specific pixel coordinates.
   Offset scaleFromStandard(Size deviceCanvasSize) {
-    final scaleX = deviceCanvasSize.width / standardWidth;
-    final scaleY = deviceCanvasSize.height / standardHeight;
-
-    return Offset(dx * scaleX, dy * scaleY);
+    // Clamp normalized values to valid range (0.0-1.0)
+    final clampedDx = dx.clamp(0.0, 1.0);
+    final clampedDy = dy.clamp(0.0, 1.0);
+    
+    // Convert from normalized (0.0-1.0) to device pixels
+    return Offset(
+      clampedDx * deviceCanvasSize.width,
+      clampedDy * deviceCanvasSize.height,
+    );
   }
 }

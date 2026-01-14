@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _initPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
-      _version = "${info.version}+${info.buildNumber}";
+      _version = info.version;
     });
   }
 
@@ -85,7 +85,8 @@ class _SplashScreenState extends State<SplashScreen> {
       child: Stack( // Use a Stack to place version at the bottom
         children: [
           Center(
-            child: Image.asset(AppImages.logo, 
+            // child: Image.asset(AppImages.logo, 
+            child: Image.asset(AppImages.splashLogo,
             width: 200.w, // Added width scaling for tablets
             fit: BoxFit.contain),
           ),

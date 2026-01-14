@@ -82,9 +82,7 @@ class Routes {
       ),
       GoRoute(
         path: multiplayer,
-        builder: (context, state) =>  MultiplayerScreen( bannerAd: state.extra != null
-            ? (state.extra as Map<String, dynamic>?)!["bannerAd"]
-            : null,),
+        builder: (context, state) =>  MultiplayerScreen(),
       ),
       GoRoute(
         path: onevsone,
@@ -96,9 +94,6 @@ class Routes {
           return OneVsOneScreen(
               roomModel: state.extra != null
                   ? (state.extra as Map<String, dynamic>?)!["roomModel"]
-                  : null,
-              bannerAd: state.extra != null
-                  ? (state.extra as Map<String, dynamic>?)!["bannerAd"]
                   : null,
               category: category,
               points: points,
@@ -115,9 +110,6 @@ class Routes {
           return TeamVsTeamScreen(
               roomModel: state.extra != null
                   ? (state.extra as Map<String, dynamic>?)!["roomModel"]
-                  : null,
-              bannerAd: state.extra != null
-                  ? (state.extra as Map<String, dynamic>?)!["bannerAd"]
                   : null,
               category: category,
               points: points,

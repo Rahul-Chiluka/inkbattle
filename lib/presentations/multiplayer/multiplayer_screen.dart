@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart'; // Assuming GoogleFonts is available
+import 'package:google_fonts/google_fonts.dart'; 
 import 'package:go_router/go_router.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
-import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
 import 'package:inkbattle_frontend/repositories/room_repository.dart';
 import 'package:inkbattle_frontend/repositories/theme_repository.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
+import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class MultiplayerScreen extends StatefulWidget {
-  const MultiplayerScreen({super.key, this.bannerAd});
-  final BannerAd? bannerAd;
+  const MultiplayerScreen({super.key});
 
   @override
   State<MultiplayerScreen> createState() => _MultiplayerScreenState();
@@ -29,13 +27,15 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   String? selectedScript;
   String? selectedCountry;
   String? selectedPoints;
-  String? selectedCategory;
-
+  // String? selectedCategory;
+  List<String> selectedCategories = [];
   bool voiceEnabled = false;
   String? selectedGameMode = "team_vs_team";
   bool _isLoading = false;
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
+  
+  // REMOVED: Ad variables
+  // BannerAd? _bannerAd;
+  // bool _isBannerAdLoaded = false;
 
   List<RoomModel> _rooms = [];
 
@@ -65,41 +65,16 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     // selectedCountry = countries.first; // No default country selection
 
     _loadRooms();
-    _loadBannerAd();
+    // REMOVED: _loadBannerAd();
   }
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
+    // REMOVED: _bannerAd?.dispose();
     super.dispose();
   }
 
-  Future<void> _loadBannerAd() async {
-    try {
-      await AdService.initializeMobileAds();
-      await AdService.loadBannerAd(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = ad as BannerAd;
-              _isBannerAdLoaded = true;
-            });
-            print('✅ Banner ad loaded successfully');
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('❌ Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = false;
-            });
-          }
-        },
-      );
-    } catch (e) {
-      print('Error loading banner ad: $e');
-    }
-  }
+  // REMOVED: _loadBannerAd() function
 
   Future<void> _loadLanguagesAndCategories() async {
     // Load languages
@@ -144,7 +119,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
         if (mounted) {
           setState(() {
             categories = ["Fruits", "Animals", "Food", "Movies"];
-            selectedCategory = categories.first;
+            // selectedCategory = categories.first;
+            selectedCategories = categories;
           });
         }
       },
@@ -153,7 +129,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
           if (mounted) {
             setState(() {
               categories = ["Fruits", "Animals", "Food", "Movies"];
-              selectedCategory = categories.first;
+              // selectedCategory = categories.first;
+              selectedCategories = categories;
             });
           }
           return;
@@ -166,7 +143,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                 .where((title) => title.isNotEmpty)
                 .toList();
             // Set default category after loading
-            selectedCategory = categories.isNotEmpty ? categories.first : null;
+            // selectedCategory = categories.isNotEmpty ? categories.first : null;
+            selectedCategories = categories.isNotEmpty ? categories : [];
           });
         }
       },
@@ -182,11 +160,13 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     });
 
     try {
+      final categoriesToSend =
+        selectedCategories.isEmpty ? null : selectedCategories;
       final result = await _roomRepository.listRooms(
           language: selectedLanguage,
           gameMode: selectedGameMode,
           country: selectedCountry == "All" ? null : selectedCountry,
-          category: selectedCategory,
+          categories: categoriesToSend,
           script: selectedScript,
           targetPoints: int.tryParse(selectedPoints.toString()) ?? 250,
           voiceEnabled: voiceEnabled);
@@ -224,18 +204,23 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   }
 
   Future<void> _joinRoom(RoomModel room) async {
+    final result = await _roomRepository.getRoomDetails(roomId: room.id.toString());
+    final updatedRoom = result.fold(
+      (failure) => room,
+      (roomModel) => roomModel,
+    );
     room.gameMode == 'team' || room.gameMode == 'team_vs_team'
         ? context.push(
             "/teamvsteam/${room.id}/${room.category}/${room.entryPoints}",
             extra: {
-                "roomModel": room,
-                "bannerAd": widget.bannerAd,
+                "roomModel": updatedRoom,
+                // Removed passing bannerAd as it is now persistent
               })
         : context.push(
             "/onevsone/${room.id}/${room.category}/${room.entryPoints}",
             extra: {
                 "roomModel": room,
-                "bannerAd": widget.bannerAd,
+                // Removed passing bannerAd as it is now persistent
               });
   }
 
@@ -302,81 +287,77 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     );
   }
 
-  void _showInsufficientCoinsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        title: Text(
-          "Insufficient Coins",
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        content: Text(
-          "You don't have enough coins to join. Watch ads or buy coins to continue playing.",
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Colors.grey,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Cancel",
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Watch ads feature coming soon!')),
-              );
-            },
-            child: Text(
-              "Watch Ads",
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.orange,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Buy coins feature coming soon!')),
-              );
-            },
-            child: Text(
-              "Buy Coins",
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.green,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _showInsufficientCoinsDialog() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       backgroundColor: const Color(0xFF1A1A2E),
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(20.r),
+  //       ),
+  //       title: Text(
+  //         AppLocalizations.insufficientCoinsTitle,
+  //         style: TextStyle(
+  //           fontSize: 18.sp,
+  //           fontWeight: FontWeight.bold,
+  //           color: Colors.white,
+  //         ),
+  //       ),
+  //       content: Text(
+  //         AppLocalizations.insufficientCoinsMessage,
+  //         style: TextStyle(
+  //           fontSize: 14.sp,
+  //           color: Colors.grey,
+  //         ),
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: TextWidget(
+  //             text: AppLocalizations.cancel,
+  //             fontSize: 14.sp,
+  //             color: Colors.grey,
+  //           ),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(content: Text(AppLocalizations.watchAdsComingSoon)),  
+  //             );
+  //           },
+  //           child: TextWidget(
+  //             text: AppLocalizations.watchAds,
+  //             fontSize: 14.sp,
+  //             color: Colors.orange,
+  //           ),
+  //         ),
+  //         // TextButton(
+  //         //   onPressed: () {
+  //         //     // Navigator.pop(context);
+  //         //     // ScaffoldMessenger.of(context).showSnackBar(
+  //         //     //   const SnackBar(content: Text('Buy coins feature coming soon!')),
+  //         //     // );
+  //         //   },
+  //         //   child: Text(
+  //         //     AppLocalizations.buyCoins,
+  //         //     style: TextStyle(
+  //         //       fontSize: 14.sp,
+  //         //       color: Colors.green,
+  //         //     ),
+  //         //   ),
+  //         // ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
     return BlueBackgroundScaffold(
       child: SafeArea(
-        bottom: false,
+        bottom: true, // Protect bottom for ad visibility
         child: Center(
           child: SizedBox(
             width: isTablet ? 600 : MediaQuery.of(context).size.width,
@@ -419,7 +400,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             print(selectedLanguage);
                             _loadRooms();
                           },
-                          hintText: "Language",
+                          hintText: AppLocalizations.language,
                           iconColor: Colors.lightBlueAccent,
                           isTablet: isTablet,
                         ),
@@ -435,7 +416,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             setState(() => selectedScript = val);
                             _loadRooms();
                           },
-                          hintText: "Script",
+                          hintText: AppLocalizations.script,
                           iconColor: Colors.deepPurpleAccent,
                           isTablet: isTablet,
                         ),
@@ -462,7 +443,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             setState(() => selectedCountry = val);
                             _loadRooms();
                           },
-                          hintText: "Country",
+                          hintText: AppLocalizations.country,
                           iconColor: Colors.lightGreenAccent,
                           isTablet: isTablet,
                         ),
@@ -478,7 +459,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             setState(() => selectedPoints = val);
                             _loadRooms();
                           },
-                          hintText: "Points",
+                          hintText: AppLocalizations.points,
                           iconColor: Colors.amber,
                           isTablet: isTablet,
                         ),
@@ -499,13 +480,16 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                         child: _buildFilterPill(
                           image: AppImages.category,
                           icon: Icons.category,
-                          value: selectedCategory,
+                          // value: selectedCategory,
+                          value: selectedCategories.isEmpty ? null : selectedCategories.join(", "),
                           items: categories,
                           onChanged: (val) {
-                            setState(() => selectedCategory = val);
+                            setState(() {
+                              selectedCategories = val != null ? [val] : [];
+                            });
                             _loadRooms();
                           },
-                          hintText: "Category",
+                          hintText: AppLocalizations.category,
                           iconColor: Colors.orange,
                           isTablet: isTablet,
                         ),
@@ -597,7 +581,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             : _rooms.isEmpty
                                 ? Center(
                                     child: Text(
-                                      'No rooms available',
+                                      AppLocalizations.noRoomsAvailable,
                                       style: TextStyle(
                                         color: Colors.white60,
                                         fontSize: 16.sp,
@@ -615,7 +599,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                                   )
                         : Center(
                             child: Text(
-                              'Select all filters to view rooms',
+                              AppLocalizations.selectAllFiltersToViewRooms,
                               style: TextStyle(
                                 color: Colors.white60,
                                 fontSize: 16.sp,
@@ -624,30 +608,9 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           ),
                   ),
                 ),
-                SizedBox(height: isTablet ? 12.h : 10.h),
-                // Banner Ad
-                if (_isBannerAdLoaded && _bannerAd != null)
-                  Container(
-                    width: double.infinity,
-                    height: isTablet ? 70.h : 60.h,
-                    color: Colors.black.withOpacity(0.3),
-                    child: AdWidget(ad: _bannerAd!),
-                  )
-                else
-                  Container(
-                    width: double.infinity,
-                    height: isTablet ? 70.h : 60.h,
-                    color: Colors.grey.withOpacity(0.2),
-                    child: Center(
-                      child: Text(
-                        'Loading ads...',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: isTablet ? 14.sp : 12.sp,
-                        ),
-                      ),
-                    ),
-                  ),
+                
+                // Persistent Banner Ad (app-wide, loaded once)
+                const PersistentBannerAdWidget(),
               ],
             ),
           ),
@@ -655,170 +618,6 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
       ),
     );
   }
-
-// Helper widget for handling both Dropdowns and Static Toggles
-  // Widget _buildFilterPillMic({
-  //   required IconData icon,
-  //   String? value,
-  //   List<String>? items,
-  //   ValueChanged<String?>? onChanged, // Used for dropdowns
-  //   VoidCallback? onTap, // Used for static/toggle buttons
-  //   required String hintText,
-  //   Color iconColor = Colors.white,
-  //   bool isStatic =
-  //       false, // If true, ignore dropdown logic and just execute onTap
-  //   bool isToggle = false,
-  //   String? image,
-  //   bool isEnabled = true, // New parameter for enable/disable state
-  //   ValueChanged<bool>? onEnabledChanged, // Callback for checkbox state changes
-  // }) {
-  //   final GlobalKey tapKey = GlobalKey();
-  //   final String displayValue = value ?? hintText;
-  //   final bool isInteractive = onChanged != null || onTap != null;
-  //   final bool isDropdown =
-  //       !isStatic && !isToggle; // True if it should open a menu
-
-  //   return Container(
-  //     height: 35.h,
-  //     decoration: BoxDecoration(
-  //       borderRadius: BorderRadius.circular(25.r),
-  //       border: Border.all(
-  //         color: isEnabled
-  //             ? Colors.white
-  //             : Colors.grey, // Grey border when disabled
-  //         width: 1.w,
-  //       ),
-  //       color: const Color(0xFF0E0E0E),
-  //     ),
-  //     child: Material(
-  //       color: Colors.transparent,
-  //       child: InkWell(
-  //         key: tapKey,
-  //         borderRadius: BorderRadius.circular(25.r),
-  //         onTap: isEnabled
-  //             ? (isDropdown
-  //                 ? () async {
-  //                     // If it's a dropdown, show the menu
-  //                     final box = tapKey.currentContext!.findRenderObject()
-  //                         as RenderBox;
-  //                     final Offset pos = box.localToGlobal(Offset.zero);
-  //                     final Size size = box.size;
-
-  //                     final selected = await showMenu<String>(
-  //                       context: context,
-  //                       position: RelativeRect.fromLTRB(
-  //                         pos.dx,
-  //                         pos.dy + size.height,
-  //                         pos.dx + size.width,
-  //                         pos.dy + size.height * 2,
-  //                       ),
-  //                       color: const Color(0xFF1E2A3A),
-  //                       shape: RoundedRectangleBorder(
-  //                         borderRadius: BorderRadius.circular(12.r),
-  //                       ),
-  //                       items: items!.map((item) {
-  //                         return PopupMenuItem<String>(
-  //                           value: item,
-  //                           child: Text(
-  //                             item,
-  //                             style: GoogleFonts.lato(
-  //                               color: Colors.white,
-  //                               fontSize: 14.sp,
-  //                             ),
-  //                           ),
-  //                         );
-  //                       }).toList(),
-  //                     );
-  //                     if (selected != null) onChanged!(selected);
-  //                   }
-  //                 : onTap) // If it's a static/toggle button, execute the direct onTap
-  //             : null, // Disable tap when not enabled
-
-  //         child: Padding(
-  //           padding: EdgeInsets.symmetric(horizontal: 12.w),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.center,
-  //             children: [
-  //               image != null
-  //                   ? Image.asset(
-  //                       image,
-  //                       height: 20.h,
-  //                       width: 20.w,
-  //                       color: isEnabled
-  //                           ? null
-  //                           : Colors.grey, // Grey out image when disabled
-  //                     )
-  //                   : const SizedBox.shrink(),
-  //               SizedBox(width: 6.w),
-  //               Flexible(
-  //                 child: Text(
-  //                   // Truncate long display values
-  //                   displayValue.length > 8
-  //                       ? "${displayValue.substring(0, 8)}..."
-  //                       : displayValue,
-  //                   overflow: TextOverflow.ellipsis,
-  //                   style: GoogleFonts.lato(
-  //                     color: isEnabled
-  //                         ? Colors.white
-  //                         : Colors.grey, // Grey text when disabled
-  //                     fontSize: 14.sp,
-  //                     fontWeight: FontWeight.w500,
-  //                   ),
-  //                 ),
-  //               ),
-  //               const Spacer(),
-  //               // Only show the dropdown icon if it's an actual dropdown menu and enabled
-  //               if (isDropdown && isEnabled)
-  //                 Image.asset(
-  //                   "asset/image/arrow_down.png",
-  //                   height: 14.sp,
-  //                   width: 14.sp,
-  //                 ),
-
-  //               // Checkbox at the end
-  //               // if (onEnabledChanged != null) ...[
-  //               SizedBox(width: 8.w),
-  //               Container(
-  //                 width: 20.w,
-  //                 height: 20.h,
-  //                 decoration: BoxDecoration(
-  //                   color: displayValue == 'On'
-  //                       ? Colors.green
-  //                       : Colors.transparent,
-  //                   borderRadius: BorderRadius.circular(4.r),
-  //                   border: Border.all(
-  //                     color: displayValue == 'On' ? Colors.green : Colors.grey,
-  //                     width: 2.w,
-  //                   ),
-  //                 ),
-  //                 child: Theme(
-  //                   data: ThemeData(
-  //                     unselectedWidgetColor: Colors.transparent,
-  //                   ),
-  //                   child: Checkbox(
-  //                     value: isEnabled,
-  //                     onChanged: (bool? newValue) {
-  //                       if (newValue != null) {
-  //                         isEnabled = !isEnabled;
-  //                         onEnabledChanged!(true);
-  //                       }
-  //                     },
-  //                     activeColor: Colors.transparent,
-  //                     checkColor: Colors.white,
-  //                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  //                     visualDensity: VisualDensity.compact,
-  //                     side: const BorderSide(color: Colors.transparent),
-  //                   ),
-  //                 ),
-  //               ),
-  //               // ],
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   // Helper widget for handling both Dropdowns and Static Toggles
   Widget _buildFilterPill({
@@ -1008,10 +807,12 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
 
   Widget _buildCategoryPill() => _buildGradientDropdown(
         icon: Icons.category,
-        value: selectedCategory,
+        value: selectedCategories.isEmpty ? null : selectedCategories.join(", "),
         items: categories,
         onChanged: (val) {
-          setState(() => selectedCategory = val);
+          setState(() {
+            selectedCategories = val != null ? [val] : [];
+          });
           _loadRooms();
         },
         hintText: "Category",
@@ -1191,6 +992,39 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     );
   }
 
+  Widget _buildMultiSelectCategoryPill() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Categories",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: categories.map((category) {
+            final isSelected = selectedCategories.contains(category);
+            return FilterChip(
+              label: Text(category),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  selected
+                      ? selectedCategories.add(category)
+                      : selectedCategories.remove(category);
+                });
+                _loadRooms();
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+
   Widget _buildBadge(String text) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
@@ -1222,7 +1056,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
       selectedScript != null &&
       // selectedCountry != null && // Country is optional
       selectedPoints != null &&
-      selectedCategory != null;
+      selectedCategories.isNotEmpty;
 
   String _getCategoryIcon(String category) {
     switch (category) {

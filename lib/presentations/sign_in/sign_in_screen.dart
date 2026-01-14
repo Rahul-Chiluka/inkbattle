@@ -267,7 +267,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 alignment: Alignment.center,
                 children: [
                   Image.asset(
-                    AppImages.logo,
+                    AppImages.splashLogo,
                     width: screenWidth * 0.9,
                     height: screenHeight * 0.5,
                     fit: BoxFit.contain,

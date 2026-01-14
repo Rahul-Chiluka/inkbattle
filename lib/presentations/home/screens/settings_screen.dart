@@ -3,20 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/presentations/home/bloc/settings_bloc.dart';
-import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/logic/auth/google_auth_service.dart';
 import 'package:inkbattle_frontend/logic/auth/facebook_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
+import 'package:inkbattle_frontend/services/ad_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,8 +25,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
   double soundValue = 0.5;
   final UserRepository _userRepo = UserRepository();
   final GoogleAuthService _googleAuthService = GoogleAuthService();
@@ -42,50 +39,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    // Ensure banner ad is loaded when settings screen opens
     _loadBannerAd();
   }
 
+  // Load banner ad if not already loaded
   Future<void> _loadBannerAd() async {
     try {
-      // Initialize Mobile Ads SDK first
-      await AdService.initializeMobileAds();
-
-      // Load banner ad
-      await AdService.loadBannerAd(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = ad as BannerAd;
-              _isBannerAdLoaded = true;
-            });
-            print('✅ Banner ad loaded successfully');
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('❌ Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = false;
-            });
-          }
-        },
-      );
+      // Check if banner ad is already loaded
+      if (!AdService.isBannerAdLoaded()) {
+        // Load the persistent banner ad
+        await AdService.loadPersistentBannerAd();
+      }
     } catch (e) {
-      print('Error loading banner ad: $e');
+      print('Error loading banner ad in settings screen: $e');
     }
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    _bannerAd?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isTablet = MediaQuery.of(context).size.width > 600;
+
     return BlocProvider(
       create: (context) => SettingsBloc()..add(SettingsInitialEvent()),
       child: Scaffold(
@@ -93,6 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             .getCurrentLanguage()), // Force rebuild on language change
         backgroundColor: const Color(0xFF1A2A44),
         body: SafeArea(
+          bottom: true, // Protect bottom for ad visibility
           child: Column(
             children: [
               Expanded(
@@ -110,10 +91,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 onTap: () {
                                   Navigator.pop(context);
                                 },
-                                child: const CustomSvgImage(
+                                child: CustomSvgImage(
                                   imageUrl: AppImages.arrow_back,
-                                  height: 25,
-                                  width: 25,
+                                  height: isTablet ? 32 : 25,
+                                  width: isTablet ? 32 : 25,
                                 ),
                               ),
                               Expanded(
@@ -122,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     AppLocalizations.settings,
                                     style: GoogleFonts.lato(
                                       color: Colors.white,
-                                      fontSize: 30.sp,
+                                      fontSize: isTablet ? 32 : 30.sp,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -132,139 +113,134 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           )),
                       SizedBox(height: 15.h),
                       Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildButton(context, AppLocalizations.sound,
-                                AppImages.soundfull, () {}, true),
-                            _buildButton(
-                                context,
-                                AppLocalizations.profileAndAccounts,
-                                AppImages.profile, () async {
-                              final result =
-                                  await context.push(Routes.profileEditScreen);
-                              // If language was changed, trigger rebuild
-                              if (result == true && mounted) {
-                                setState(() {});
-                              }
-                            }, false),
-                            _buildButton(
-                                context,
-                                AppLocalizations.privacyAndSafety,
-                                AppImages.privacy, () {
-                              context.push(Routes.privacySafetyScreen);
-                            }, false),
-                            _buildButton(context, AppLocalizations.contact,
-                                AppImages.contact, () {}, false),
-                            _buildButton(context, AppLocalizations.deleteAccount,
-                                AppImages.exitgame, () async {
-                              if (await canLaunchUrl(deleteAccountUrl)) {
-                                await launchUrl(deleteAccountUrl,
-                                    mode: LaunchMode.externalApplication);
-                              }
-                            }, false),
-                            _buildButton(context, AppLocalizations.logout,
-                                AppImages.exitgame, () {
-                              _handleLogout(context);
-                            }, false),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
-                        child: Column(
-                          children: [
-                            Text(
-                              AppLocalizations.connectUsAt,
-                              style: GoogleFonts.lato(
-                                color: const Color(0xFF90C1D6),
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.w700,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Added spacers in scroll view might be tricky,
+                              // better to use SizedBox for consistent spacing
+                              SizedBox(height: 20.h),
+                              
+                              _buildButton(context, AppLocalizations.sound,
+                                  AppImages.soundfull, () {}, true),
+                              SizedBox(height: 15.h),
+                              _buildButton(
+                                  context,
+                                  AppLocalizations.profileAndAccounts,
+                                  AppImages.profile, () async {
+                                final result =
+                                    await context.push(Routes.profileEditScreen);
+                                // If language was changed, trigger rebuild
+                                if (result == true && mounted) {
+                                  setState(() {});
+                                }
+                              }, false),
+                              SizedBox(height: 15.h),
+                              _buildButton(
+                                  context,
+                                  AppLocalizations.privacyAndSafety,
+                                  AppImages.privacy, () {
+                                context.push(Routes.privacySafetyScreen);
+                              }, false),
+                              SizedBox(height: 15.h),
+                              _buildButton(context, AppLocalizations.contact,
+                                  AppImages.contact, () {}, false),
+                              SizedBox(height: 15.h),
+                              _buildButton(context, AppLocalizations.deleteAccount,
+                                  AppImages.exitgame, () async {
+                                if (await canLaunchUrl(deleteAccountUrl)) {
+                                  await launchUrl(deleteAccountUrl,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              }, false),
+                              SizedBox(height: 15.h),
+                              _buildButton(context, AppLocalizations.logout,
+                                  AppImages.exitgame, () {
+                                _handleLogout(context);
+                              }, false),
+                              
+                              SizedBox(height: 30.h),
+                              
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10.h),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      AppLocalizations.connectUsAt,
+                                      style: GoogleFonts.lato(
+                                        color: const Color(0xFF90C1D6),
+                                        fontSize: isTablet ? 24 : 20.sp,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CustomSvgImage(
+                                          onTap: () async {
+                                            if (await canLaunchUrl(twitterUrl)) {
+                                              await launchUrl(twitterUrl,
+                                                  mode: LaunchMode.externalApplication);
+                                            }
+                                          },
+                                          imageUrl: AppImages.twitterSvg,
+                                          width: isTablet ? 30 : 22.w,
+                                          height: isTablet ? 30 : 22.h,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 15.w),
+                                        CustomSvgImage(
+                                          onTap: () async {
+                                            if (await canLaunchUrl(youtubeUrl)) {
+                                              await launchUrl(youtubeUrl,
+                                                  mode: LaunchMode.externalApplication);
+                                            }
+                                          },
+                                          imageUrl: AppImages.youtubeSvg,
+                                          width: isTablet ? 30 : 22.w,
+                                          height: isTablet ? 30 : 21.h,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 15.w),
+                                        CustomSvgImage(
+                                          onTap: () async {
+                                            if (await canLaunchUrl(instagramUrl)) {
+                                              await launchUrl(instagramUrl,
+                                                  mode: LaunchMode.externalApplication);
+                                            }
+                                          },
+                                          imageUrl: AppImages.instaSvg,
+                                          width: isTablet ? 30 : 22.w,
+                                          height: isTablet ? 30 : 22.h,
+                                          color: Colors.white,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    Text(
+                                      '${AppLocalizations.version} 1.0.0',
+                                      style: GoogleFonts.lato(
+                                        color: const Color(0xFF869998),
+                                        fontSize: isTablet ? 18 : 16.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 10.h),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CustomSvgImage(
-                                  onTap: () async {
-                                    if (await canLaunchUrl(twitterUrl)) {
-                                      await launchUrl(twitterUrl,
-                                          mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  imageUrl: AppImages.twitterSvg,
-                                  width: 22.w,
-                                  height: 22.h,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(width: 15.w),
-                                CustomSvgImage(
-                                  onTap: () async {
-                                    if (await canLaunchUrl(youtubeUrl)) {
-                                      await launchUrl(youtubeUrl,
-                                          mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  imageUrl: AppImages.youtubeSvg,
-                                  width: 22.w,
-                                  height: 21.h,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(width: 15.w),
-                                CustomSvgImage(
-                                  onTap: () async {
-                                    if (await canLaunchUrl(instagramUrl)) {
-                                      await launchUrl(instagramUrl,
-                                          mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  imageUrl: AppImages.instaSvg,
-                                  width: 22.w,
-                                  height: 22.h,
-                                  color: Colors.white,
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10.h),
-                            Text(
-                              '${AppLocalizations.version} 1.0.0',
-                              style: GoogleFonts.lato(
-                                color: const Color(0xFF869998),
-                                fontSize: 16.sp,
-                              ),
-                            ),
-                          ],
+                              // Extra space for potential bottom navigation or ad overlap
+                              SizedBox(height: 20.h),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 10.h),
-              if (_isBannerAdLoaded && _bannerAd != null)
-                Container(
-                  width: double.infinity,
-                  height: 60.h,
-                  color: Colors.black.withOpacity(0.3),
-                  child: AdWidget(ad: _bannerAd!),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  height: 60.h,
-                  color: Colors.grey.withOpacity(0.2),
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.loadingAds,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              SizedBox(height: 10.h),
+              
+              // Persistent Banner Ad (app-wide, loaded once)
+              const PersistentBannerAdWidget(),
             ],
           ),
         ),
@@ -279,9 +255,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback onPressed,
     bool soundControl,
   ) {
+    bool isTablet = MediaQuery.of(context).size.width > 600;
+
+    // FIX: Use specific widths for tablet instead of ScreenUtil scaling (.w)
+    // .w scales with screen width, which makes buttons massive on tablets.
+    double containerWidth = isTablet ? 450 : 250.w;
+    double containerHeight = isTablet ? 65 : 60.h;
+    
+    // For the inner image/content, we slightly adjust
+    double contentWidth = isTablet ? 470 : 250.w; 
+    double contentHeight = isTablet ? 80 : 60.h;
+
     return SizedBox(
-      width: MediaQuery.of(context).size.width > 600 ? 252.w : 250.w,
-      height: MediaQuery.of(context).size.width > 600 ? 50.h : 60.h,
+      width: containerWidth,
+      height: containerHeight,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -302,8 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             highlightColor: Colors.blue,
             onTap: onPressed,
             child: Container(
-              width: MediaQuery.of(context).size.width > 600 ? 270.w : 250.w,
-              height: MediaQuery.of(context).size.width > 600 ? 75.h : 60.h,
+              width: contentWidth,
+              height: contentHeight,
               padding: EdgeInsets.symmetric(horizontal: 12.w),
               decoration: const BoxDecoration(
                 image: DecorationImage(
@@ -330,16 +317,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         return Image.asset(
                           soundImage,
-                          height: 30.h,
-                          width: 30.w,
+                          height: isTablet ? 32 : 30.h,
+                          width: isTablet ? 32 : 30.w,
                         );
                       },
                     )
                   else
                     Image.asset(
                       imageUrl,
-                      height: 30.h,
-                      width: 30.w,
+                      height: isTablet ? 32 : 30.h,
+                      width: isTablet ? 32 : 30.w,
                     ),
 
                   SizedBox(width: 12.w),
@@ -348,7 +335,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     text,
                     style: GoogleFonts.lato(
                       color: Colors.white,
-                      fontSize: 18.sp,
+                      // FIX: Use fixed size for tablet to prevent over-scaling
+                      fontSize: isTablet ? 22 : 18.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

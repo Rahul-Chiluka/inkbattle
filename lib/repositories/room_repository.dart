@@ -39,7 +39,7 @@ class RoomRepository {
     String? language,
     String? script,
     String? country,
-    String? category,
+    List<String>? categories,
     int? entryPoints,
     int? targetPoints,
     bool? voiceEnabled,
@@ -52,7 +52,7 @@ class RoomRepository {
         "language": language,
         "script": script,
         "country": country,
-        "category": category,
+        "category": categories ?? [],
         "entryPoints": entryPoints,
         "targetPoints": targetPoints,
         "voiceEnabled": voiceEnabled,
@@ -215,16 +215,16 @@ class RoomRepository {
     String? gameMode,
     String? language,
     String? country,
-    String? category,
+    List<String>? categories,
     int? entryPoints,
     int? targetPoints,
     bool? voiceEnabled,
   }) async {
-    try {
+    try { 
       var payload = {
         "language": language ?? "english",
         "country": country,
-        "category": category ?? "general",
+        "category": categories ?? [],
         "targetPoints": targetPoints ?? 100,
         "voiceEnabled": voiceEnabled ?? true,
       };
@@ -250,7 +250,7 @@ class RoomRepository {
     String? gameMode,
     String? language,
     String? country,
-    String? category,
+    List<String>? categories, // Can be String? or List<String>? for multi-select
     int? entryPoints,
     int? targetPoints,
     int? maxPlayers,
@@ -261,7 +261,7 @@ class RoomRepository {
         "gameMode": gameMode ?? "1v1",
         "language": language ?? "english",
         "country": country,
-        "category": category ?? "general",
+        "category": categories ?? [],
         "entryPoints": entryPoints ?? 250,
         "targetPoints": targetPoints ?? 100,
         "maxPlayers": maxPlayers ?? 2,
@@ -288,7 +288,7 @@ class RoomRepository {
     required String name,
     String? language,
     String? country,
-    String? category,
+    List<String>? categories,
     int? entryPoints,
     int? targetPoints,
     int? maxPlayers,
@@ -299,7 +299,7 @@ class RoomRepository {
         "gameMode": "team_vs_team",
         "language": language ?? "english",
         "country": country,
-        "category": category ?? "general",
+        "category": categories ?? [],
         "entryPoints": entryPoints ?? 250,
         "targetPoints": targetPoints ?? 100,
         "maxPlayers": maxPlayers ?? 4,
@@ -327,7 +327,7 @@ class RoomRepository {
     String? language,
     String? script,
     String? country,
-    String? category,
+    List<String>? categories,
     bool? voiceEnabled,
     int? targetPoints,
     int? page,
@@ -338,7 +338,7 @@ class RoomRepository {
       if (gameMode != null) queryParams['gameMode'] = gameMode;
       if (language != null) queryParams['language'] = language;
       if (country != null) queryParams['country'] = country;
-      if (category != null) queryParams['category'] = category;
+      if (categories != null && categories.isNotEmpty) queryParams['category'] = categories.join(",");
       if (page != null) queryParams['page'] = page;
       if (limit != null) queryParams['limit'] = limit;
       if (script != null) queryParams['script'] = script;

@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/constants/app_colors.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/repositories/room_repository.dart';
 import 'package:inkbattle_frontend/repositories/theme_repository.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
-import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/widgets/text_widget.dart';
 import 'package:inkbattle_frontend/widgets/textformfield_widget.dart';
+import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class CreateRoomScreen extends StatefulWidget {
   final bool isTeamMode;
@@ -41,8 +40,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   bool isPublic = true;
   bool _isLoading = false;
   int? _lastCreatedRoomId;
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
+  
+  // REMOVED: BannerAd? _bannerAd;
+  // REMOVED: bool _isBannerAdLoaded = false;
 
   List<String> languages = [];
   final List<String> scripts = ["Latin", "Devanagari", "Telugu"];
@@ -71,45 +71,17 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   void initState() {
     super.initState();
     _loadLanguagesAndCategories();
-    _loadBannerAd();
+    // REMOVED: _loadBannerAd(); - Now handled by persistent widget
   }
 
   @override
   void dispose() {
     _roomNameController.dispose();
-    _bannerAd?.dispose();
+    // REMOVED: _bannerAd?.dispose(); - Now handled by persistent widget
     super.dispose();
   }
 
-  Future<void> _loadBannerAd() async {
-    try {
-      // Initialize Mobile Ads SDK first
-      await AdService.initializeMobileAds();
-
-      // Load banner ad
-      await AdService.loadBannerAd(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = ad as BannerAd;
-              _isBannerAdLoaded = true;
-            });
-            print('✅ Banner ad loaded successfully');
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('❌ Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = false;
-            });
-          }
-        },
-      );
-    } catch (e) {
-      print('Error loading banner ad: $e');
-    }
-  }
+  // REMOVED: _loadBannerAd() function completely
 
   Future<void> _loadLanguagesAndCategories() async {
     // Load languages
@@ -225,14 +197,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           if (mounted) {
             // Store room ID
             _lastCreatedRoomId = roomResponse.room?.id;
-
-            // Show room code dialog
-            // if (roomResponse.room?.code != null) {
-            //   _showRoomCodeDialog(roomResponse.room!.code!);
-            // } else {
-              // Navigate directly to lobby
-              context.go('/game-room/${roomResponse.room?.id}');
-            // }
+            
+            // Navigate directly to lobby
+            context.go('/game-room/${roomResponse.room?.id}');
           }
         },
       );
@@ -385,7 +352,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
     return BlueBackgroundScaffold(
       child: SafeArea(
-        bottom: false,
+        bottom: true, // Protect bottom for ad visibility
         child: Center(
           child: SizedBox(
             width: MediaQuery.of(context).size.width > 600
@@ -419,14 +386,14 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   ),
                   SizedBox(height: 20.h),
 
-                  // Form - Simplified to just room name
+                  // Form - Simplified to just room name (Flexible content)
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(height: 40.h),
-
+                          const Spacer(flex: 1),
+                          
                           // Info text
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -466,34 +433,16 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                               textAlign: TextAlign.center,
                             ),
                           ),
+                          
+                          const Spacer(flex: 1),
+                          SizedBox(height: 10.h), // Space above ad
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(height: 10.h),
-                  // Banner Ad
-                  if (_isBannerAdLoaded && _bannerAd != null)
-                    Container(
-                      width: double.infinity,
-                      height: 60.h,
-                      color: Colors.black.withOpacity(0.3),
-                      child: AdWidget(ad: _bannerAd!),
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      height: 60.h,
-                      color: Colors.grey.withOpacity(0.2),
-                      child: Center(
-                        child: Text(
-                          AppLocalizations.loadingAds,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ),
-                    ),
+                  
+                  // Persistent Banner Ad (app-wide, loaded once)
+                  const PersistentBannerAdWidget(),
                 ],
               ),
             ),

@@ -10,7 +10,13 @@ import 'package:video_player/video_player.dart';
 
 class DailyCoinsPopup extends StatefulWidget {
   final Function(dynamic)? onClaimed;
-  const DailyCoinsPopup({super.key, this.onClaimed});
+  // final VoidCallback? onBuyClicked; // 1. Added callback for Buy button
+
+  // const DailyCoinsPopup({
+  //   super.key, 
+  //   this.onClaimed, 
+  //   this.onBuyClicked // 2. Added to constructor
+  // });
 
   @override
   State<DailyCoinsPopup> createState() => _DailyCoinsPopupState();
@@ -137,7 +143,7 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: isTablet ? size.width * 0.7 : size.width * 0.9,
-          maxHeight: isTablet ? size.height * 0.7 : size.height * 0.7,
+          maxHeight: isTablet ? size.height * 0.8 : size.height * 0.85, // Increased height slightly to fit new button
         ),
         child: AlertDialog(
           shape: RoundedRectangleBorder(
@@ -226,6 +232,8 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
                   ),
                 ],
                 SizedBox(height: 24.h),
+                
+                // --- EXISTING CLAIM/OK BUTTON ---
                 SizedBox(
                   width: double.infinity,
                   height: isTablet ? 75.h : 65.h,

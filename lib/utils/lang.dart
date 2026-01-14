@@ -3,6 +3,8 @@ class AppLocalizations {
 
   static void setOnLanguageChanged(Function() callback) {
     _onLanguageChanged = callback;
+
+  
   }
 
   static final Map<String, Map<String, String>> _localizedValues = {
@@ -158,6 +160,11 @@ class AppLocalizations {
       'usa': 'USA',
       'uk': 'UK',
       'japan': 'Japan',
+      'spain': 'Spain',
+      'portugal': 'Portugal',
+      'france': 'France',
+      'germany': 'Germany',
+      'russia': 'Russia',
 
       // New keys
       'username_required': 'Username is required for signup.',
@@ -244,15 +251,32 @@ class AppLocalizations {
       'failed_to_find_match': 'Failed to find match',
       'watch_ads_coming_soon': 'Watch ads feature coming soon!',
       'buy_coins_coming_soon': 'Buy coins feature coming soon!',
+      'buy': 'Buy',
+      'script': 'Script',
       'insufficient_coins_title': 'Insufficient Coins',
       'insufficient_coins_message':
           "You don't have enough coins to join. Watch ads or buy coins to continue playing.",
       'watch_ads': 'Watch Ads',
       'buy_coins': 'Buy Coins',
+      'no_rooms_available': 'No Rooms Available',
+      'select_all_filters_to_view_rooms': 'Select all filters to view rooms',
       'no_matches_found': 'No Matches Found',
       'no_matches_message':
           'No public rooms match your preferences. Try different settings or create a new room.',
       'try_again': 'Try Again',
+
+      'selected': 'selected',   
+      'team_a_is_full': 'Team A is full',
+      'team_b_is_full': 'Team B is full',
+      'please_select_the_other_team': 'Please select the other team.',
+      // --- Categories ---
+      'animals': 'Animals',
+      'countries': 'Countries',
+      'everyday_objects': 'Everyday Objects',
+      'food': 'Food',
+      'historical_events': 'Historical Events',
+      'movies': 'Movies',
+
     },
     'hi': {
       // Guest Signup & Profile
@@ -408,6 +432,11 @@ class AppLocalizations {
       'usa': 'अमेरिका',
       'uk': 'यूके',
       'japan': 'जापान',
+      'spain': 'स्पेन',
+      'portugal': 'पुर्तगाल',
+      'france': 'फ्रांस',
+      'germany': 'जर्मनी',
+      'russia': 'रूसिया',
 
       // Create Room & Join Room
       'please_enter_room_name': 'कृपया रूम का नाम दर्ज करें',
@@ -441,6 +470,17 @@ class AppLocalizations {
       'no_matches_message':
           'कोई सार्वजनिक रूम आपकी प्राथमिकताओं से मेल नहीं खाता। विभिन्न सेटिंग्स आज़माएं या नया रूम बनाएं।',
       'try_again': 'पुनः प्रयास करें',
+      'selected': 'चुना गया',
+      'team_a_is_full': 'टीम A भर चुकी है',
+      'team_b_is_full': 'टीम B भर चुकी है',
+      'please_select_the_other_team': 'कृपया दूसरी टीम चुनें',
+
+      'animals': 'जानवर',
+      'countries': 'देश',
+      'food': 'भोजन',
+      'everyday_objects': 'रोजमर्रा वस्तुएं',
+      'historical_events': 'ऐतिहासिक घटनाएं',
+      'movies': 'चलचित्र',
     },
     'te': {
       // Guest Signup & Profile
@@ -596,6 +636,11 @@ class AppLocalizations {
       'usa': 'USA',
       'uk': 'UK',
       'japan': 'జపాన్',
+      'spain': 'స్పేన్',
+      'portugal': 'పోర్చుగల్',
+      'france': 'ఫ్రాన్స్',
+      'germany': 'జర్మనీ',
+      'russia': 'రషియా',
 
       // Create Room & Join Room
       'please_enter_room_name': 'దయచేసి గది పేరును నమోదు చేయండి',
@@ -630,6 +675,218 @@ class AppLocalizations {
       'no_matches_message':
           'మీ ప్రాధాన్యతలకు పబ్లిక్ గదులు సరిపోలలేదు। వేర్వేరు సెట్టింగ్‌లను ప్రయత్నించండి లేదా కొత్త గదిని సృష్టించండి.',
       'try_again': 'మళ్లీ ప్రయత్నించండి',
+      'selected': 'ఎంచుకోబడింది',
+      'team_a_is_full': 'టీమ్ A పూర్తిగా నిండిపోయింది',
+      'team_b_is_full': 'టీమ్ B పూర్తిగా నిండిపోయింది',
+      'please_select_the_other_team': 'దయచేసి మరో టీమ్‌ను ఎంచుకోండి',
+      
+      'animals': 'జనవర్త్త',
+      'countries': 'దేశాలు',
+      'food': 'భోజనం',
+      'everyday_objects': 'రోజరామర్వత్తులు',
+      'historical_events': 'ఇతిహాసిక ఘటనలు',
+      'movies': 'చలనవీక్షణలు',
+    },
+    'ta': {
+      // Guest Signup & Profile
+      'enter_username': 'பயனர்பெயரை உள்ளிடவும்',
+      'language': 'மொழி',
+      'country': 'நாடு',
+      'save': 'சேமி',
+      'skip': 'தவிர்',
+      'next': 'அடுத்து',
+      'please_fill_all_fields': 'அனைத்து விவரங்களையும் நிரப்பவும்',
+      'coins': 'நாணயங்கள்',
+      'welcome': 'வரவேற்கிறோம்',
+
+      // Home Screen
+      'home': 'முகப்பு',
+      'play': 'விளையாடு',
+      'profile': 'சுயவிவரம்',
+      'settings': 'அமைப்புகள்',
+      'leaderboard': 'தரவரிசை',
+      'friends': 'நண்பர்கள்',
+      'shop': 'கடை',
+      'daily_bonus': 'தினசரி போனஸ்',
+      'claim': 'பெறு',
+      'claimed': 'பெறப்பட்டது',
+
+      // Multiplayer Screen
+      'multiplayer': 'மல்டிபிளேயர்',
+      'create_room': 'அறையை உருவாக்கு',
+      'join_room': 'அறையில் சேர்',
+      'room_code': 'அறை குறியீடு',
+      'join': 'சேர்',
+      'players': 'வீரர்கள்',
+      'waiting_for_players': 'வீரர்களுக்காக காத்திருக்கிறது...',
+      'start_game': 'ஆட்டத்தைத் தொடங்கு',
+      'leave': 'வெளியேறு',
+      'mode': 'முறை',
+      'individual': 'தனிநபர்',
+      'team': 'குழு',
+      'language_filter': 'மொழி',
+      'points': 'புள்ளிகள்',
+      'category': 'வகை',
+      'all': 'அனைத்தும்',
+
+      // Game Room Screen
+      'game_room': 'விளையாட்டு அறை',
+      'gameplay': 'விளையாட்டு முறை',
+      'drawing': 'வரைதல்',
+      'guessing': 'கணித்தல்',
+      'selecting_drawer': 'வரைபவரைத் தேர்ந்தெடுக்கிறது...',
+      'choosing_word': 'ஒரு வார்த்தையைத் தேர்ந்தெடு!',
+      'drawer_is_choosing': 'வரைபவர் தேர்ந்தெடுக்கிறார்...',
+      'draw': 'வரையவும்',
+      'guess_the_word': 'வார்த்தையைக் கண்டுபிடி',
+      'word_was': 'வார்த்தை',
+      'next_round_starting': 'அடுத்த சுற்று தொடங்குகிறது...',
+      'time_up': 'நேரம் முடிந்தது!',
+      'well_done': 'நன்று!',
+      'whos_next': 'அடுத்து யார்?',
+      'interval': 'இடைவேளை',
+      'host': 'தொகுப்பாளர்',
+      'you': 'நீங்கள்',
+      'correct': 'சரி!',
+      'good_job': 'நன்று!',
+      'chat': 'அரட்டை',
+      'send': 'அனுப்பு',
+      'type_message': 'செய்தியைத் தட்டச்சு செய்யவும்...',
+      'answers_chat': 'பதில்கள் அரட்டை',
+      'general_chat': 'பொது அரட்டை',
+      'team_chat': 'குழு அரட்டை',
+
+      // Room Preferences Screen
+      'room_preferences': 'அறை விருப்பங்கள்',
+      'select_language': 'மொழியைத் தேர்ந்தெடு',
+      'select_points': 'புள்ளிகளைத் தேர்ந்தெடு',
+      'select_category': 'வகையைத் தேர்ந்தெடு',
+      'voice_enabled': 'குரல் இயக்கப்பட்டது',
+      'select_team': 'குழுவைத் தேர்ந்தெடு',
+      'team_selection': 'குழுத் தேர்வு',
+      'blue_team': 'நீல குழு',
+      'orange_team': 'ஆரஞ்சு குழு',
+
+      // Profile & Settings
+      'edit_profile': 'சுயவிவரத்தைத் திருத்து',
+      'profile_and_accounts': 'சுயவிவரம் மற்றும் கணக்கு',
+      'username': 'பயனர்பெயர்',
+      'email': 'மின்னஞ்சல்',
+      'phone': 'தொலைபேசி',
+      'logout': 'வெளியேறு',
+      'delete_account': 'கணக்கை நீக்கு',
+      'version': 'பதிப்பு',
+      'about': 'பற்றி',
+      'privacy_policy': 'தனியுரிமைக் கொள்கை',
+      'terms_and_conditions': 'விதிமுறைகள் மற்றும் நிபந்தனைகள்',
+      'sound': 'ஒலி',
+      'privacy_and_safety': 'தனியுரிமை மற்றும் பாதுகாப்பு',
+      'contact': 'தொடர்பு',
+      'rate_app': 'பயன்பாட்டை மதிப்பிடு',
+      'connect_us_at': 'எங்களுடன் இணையுங்கள்',
+      'are_you_sure_logout': 'நீங்கள் நிச்சயமாக வெளியேற விரும்புகிறீர்களா?',
+      'loading_ads': 'விளம்பரங்கள் ஏற்றப்படுகின்றன...',
+
+      // Sign In
+      'ink_battle': 'இங்க் பேட்டில்',
+      'sign_in_with_google': 'Google மூலம் உள்நுழையவும்',
+      'sign_in_with_facebook': 'Facebook மூலம் உள்நுழையவும்',
+      'signing_in': 'உள்நுழைகிறது...',
+      'or': 'அல்லது',
+      'play_as_guest': 'விருந்தினராக விளையாடு',
+      'progress_not_saved': 'முன்னேற்றம் சேமிக்கப்படாது',
+
+      // Home Screen
+      'play_random': 'ரேண்டம் ப்ளே',
+
+      // Instructions
+      'instructions': 'வழிமுறைகள்',
+      'tutorial_guide': 'பயிற்சி வழிகாட்டி',
+      'instructions_text':
+          'உங்கள் விளையாட்டு பயணத்தைத் தொடங்க திரையைத் தட்டவும்! நிலைகளுக்குச் செல்ல அம்புக்குறிகளைப் பயன்படுத்தவும். சவால்களை முடித்து நாணயங்களைச் சேகரிக்கவும். அதிக மதிப்பெண் பெற தடைகளைத் தவிர்க்கவும். மாறுபட்ட அனுபவத்திற்கு முறைகளை மாற்றவும்.',
+
+      // Common
+      'ok': 'சரி',
+      'cancel': 'ரத்து',
+      'yes': 'ஆம்',
+      'no': 'இல்லை',
+      'confirm': 'உறுதி செய்',
+      'back': 'பின்',
+      'close': 'மூடு',
+      'loading': 'ஏற்றுகிறது...',
+      'error': 'பிழை',
+      'success': 'வெற்றி',
+      'warning': 'எச்சரிக்கை',
+      'info': 'தகவல்',
+
+      // Messages
+      'insufficient_coins': 'போதிய நாணயங்கள் இல்லை',
+      'room_full': 'அறை நிரம்பியுள்ளது',
+      'room_not_found': 'அறை காணப்படவில்லை',
+      'already_in_room': 'ஏற்கனவே அறையில் உள்ளீர்கள்',
+      'connection_lost': 'இணைப்பு துண்டிக்கப்பட்டது',
+      'reconnecting': 'மீண்டும் இணைகிறது...',
+      'connected': 'இணைக்கப்பட்டது',
+      'disconnected': 'துண்டிக்கப்பட்டது',
+
+      // Languages
+      'hindi': 'இந்தி',
+      'telugu': 'தெலுங்கு',
+      'english': 'ஆங்கிலம்',
+
+      // Countries
+      'india': 'இந்தியா',
+      'usa': 'அமெரிக்கா',
+      'uk': 'இங்கிலாந்து',
+      'japan': 'ஜப்பான்',
+      'spain': 'ஸ்பெயின்',
+      'portugal': 'போர்ச்சுகல்',
+      'france': 'பிரான்ஸ்',
+      'germany': 'ஜெர்மனி',
+      'russia': 'ரஷ்யா',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'அறையின் பெயரை உள்ளிடவும்',
+      'failed_to_create_room': 'அறையை உருவாக்க முடியவில்லை',
+      'code_copied_clipboard': 'குறியீடு கிளிப்போர்டில் நகலெடுக்கப்பட்டது!',
+      'room_created': 'அறை உருவாக்கப்பட்டது!',
+      'share_code_with_friends': 'இந்தக் குறியீட்டை நண்பர்களுடன் பகிரவும்:',
+      'enter_room': 'அறையில் நுழை',
+      'create_room_configure_lobby':
+          'அறையை உருவாக்கி லாபியில் அமைப்புகளை மாற்றவும்',
+      'enter_room_name_hint': 'அறையின் பெயரை உள்ளிடவும்',
+      'room_code_share_info':
+          'அறையை உருவாக்கிய பிறகு குறியீட்டைப் பகிரலாம்',
+      'create_team_room': 'குழு அறையை உருவாக்கு',
+      'please_check_code':
+          'குறியீட்டைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
+
+      // Random Match Screen
+      'random_match': 'ரேண்டம் மேட்ச்',
+      'select_target_points': 'இலக்கு புள்ளிகளைத் தேர்ந்தெடு',
+      'play_random_coins': 'ரேண்டம் ப்ளே (250 நாணயங்கள்)',
+      'please_select_all_fields': 'இலக்கு புள்ளிகள் உட்பட அனைத்தையும் தேர்ந்தெடுக்கவும்',
+      'failed_to_find_match': 'போட்டியை கண்டுபிடிக்க முடியவில்லை',
+      'watch_ads_coming_soon': 'விளம்பரம் பார்க்கும் வசதி விரைவில்!',
+      'buy_coins_coming_soon': 'நாணயம் வாங்கும் வசதி விரைவில்!',
+      'insufficient_coins_title': 'போதிய நாணயங்கள் இல்லை',
+      'insufficient_coins_message': 'சேர உங்களிடம் போதுமான நாணயங்கள் இல்லை. தொடர விளம்பரங்களைப் பார்க்கவும் அல்லது நாணயங்களை வாங்கவும்.',
+      'watch_ads': 'விளம்பரம் பார்',
+      'buy_coins': 'நாணயங்கள் வாங்கு',
+      'no_matches_found': 'போட்டிகள் எதுவும் இல்லை',
+      'no_matches_message': 'உங்கள் விருப்பங்களுக்கு ஏற்ற பொது அறைகள் இல்லை. வேறு அமைப்புகளை முயற்சிக்கவும் அல்லது புதிய அறையை உருவாக்கவும்.',
+      'try_again': 'மீண்டும் முயற்சி',
+      'selected': 'தேர்ந்தெடுக்கப்பட்டது',
+      'team_a_is_full': 'அணி A நிரம்பியுள்ளது',
+      'team_b_is_full': 'அணி B நிரம்பியுள்ளது',
+      'please_select_the_other_team': 'தயவுசெய்து மற்ற அணியைத் தேர்வு செய்யவும்',
+
+      'animals': 'விலங்குகள்',
+      'countries': 'நாடுகள்',
+      'food': 'உணவு',
+      'everyday_objects': 'தினசரி பொருட்கள்',
+      'historical_events': 'வரலாற்று நிகழ்வுகள்',
+      'movies': 'திரைப்படங்கள்',
     },
     'mr': {
       // Guest Signup & Profile
@@ -783,6 +1040,11 @@ class AppLocalizations {
       'usa': 'अमेरिका',
       'uk': 'यूके',
       'japan': 'जपान',
+      'spain': 'स्पेन',
+      'portugal': 'पुर्तगाल',
+      'france': 'फ्रांस',
+      'germany': 'जर्मनी',
+      'russia': 'रूसिया',
 
       // Create Room & Join Room
       'please_enter_room_name': 'कृपया रूम चे नाव प्रविष्ट करा',
@@ -816,8 +1078,19 @@ class AppLocalizations {
       'no_matches_message':
           'तुमच्या प्राधान्यांशी कोणतीही सार्वजनिक खोली जुळली नाही। भिन्न सेटिंग्ज प्रयत्न करा किंवा नवीन खोली तयार करा।',
       'try_again': 'पुन्हा प्रयत्न करा',
+      'selected': 'चुना गया',
+      'team_a_is_full': 'टीम A पूर्ण झाली आहे',
+      'team_b_is_full': 'टीम B पूर्ण झाली आहे',
+      'please_select_the_other_team': 'कृपया दूसरी टीम निवडा',
+
+      'animals': 'जानवर',
+      'countries': 'देश',
+      'food': 'भोजन',
+      'everyday_objects': 'रोजमर्रा वस्तुएं',
+      'historical_events': 'ऐतिहासिक घटनाएं',
+      'movies': 'चलचित्र',
     },
-    'km': {
+    'kn': {
       // Guest Signup & Profile
       'enter_username': 'ಬಳಕೆದಾರಹೆಸರನ್ನು ನಮೂದಿಸಿ',
       'language': 'ಭಾಷೆ',
@@ -969,6 +1242,11 @@ class AppLocalizations {
       'usa': 'ಯುನೈಟೆಡ್ ಸ್ಟೇಟ್ಸ್',
       'uk': 'ಯುಕೆ',
       'japan': 'ಜಪಾನ್',
+      'spain': 'ಸ్ಪేನ్',
+      'portugal': 'ಪోರ్ಚుಗಲ్',
+      'france': 'ಫ్ರಾನ్ಸ్',
+      'germany': 'ಜರ్ಮನಿ',
+      'russia': 'ರಷಿಯಾ',
 
       // Create Room & Join Room
       'please_enter_room_name': 'ದಯವಿಟ್ಟು ಕೊಂಡಿ ಹೆಸರು ನಮೂದಿಸಿ',
@@ -1006,6 +1284,17 @@ class AppLocalizations {
       'no_matches_message':
           'ನಿಮ್ಮ ಆದ್ಯತೆಗಳಿಗೆ ಯಾವುದೇ ಸಾರ್ವಜನಿಕ ಕೊಠಡಿಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ। ವಿಭಿನ್ನ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಹೊಸ ಕೊಠಡಿಯನ್ನು ರಚಿಸಿ.',
       'try_again': 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+      'selected': 'ಎಂಚుಕోಬಡಿಂದಿ',
+      'team_a_is_full': 'ಟೀಮ್ A ತುಂಬಿಕೊಂಡಿದೆ',
+      'team_b_is_full': 'ಟೀಮ್ B ತುಂಬಿಕೊಂಡಿದೆ',
+      'please_select_the_other_team': 'ದಯವಿಟ್ಟು ಇನ್ನೊಂದು ತಂಡವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+
+      'animals': 'ಜನವರ్ತ్ತ',
+      'countries': 'ದేಶಾಲు',
+      'food': 'ಭోಜನ',
+      'everyday_objects': 'ರోಜರಾಮರ్ವತ్ತుಲు',
+      'historical_events': 'ಇತಿಹಾಸಿಕ ಘಟನಲు',
+      'movies': 'ಚಲನವీಕ్ಷಣಲు',
     },
     'ml': {
       // Guest Signup & Profile
@@ -1159,6 +1448,55 @@ class AppLocalizations {
       'usa': 'യുഎസ്എ',
       'uk': 'യുകെ',
       'japan': 'ജപ്പാൻ',
+      'spain': 'സ్പേന്',
+      'portugal': 'പോര്ച്ചുഗൽ',
+      'france': 'ഫ്രാന്സ്',
+      'germany': 'ജർമ്മനി',
+      'russia': 'റഷ്യ',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'ദയവായി റൂമിൻ്റെ പേര് നൽകുക',
+      'failed_to_create_room': 'റൂം സൃഷ്ടിക്കുന്നതിൽ പരാജയപ്പെട്ടു',
+      'code_copied_clipboard': 'കോഡ് ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി!',
+      'room_created': 'റൂം സൃഷ്ടിച്ചു!',
+      'share_code_with_friends': 'ഈ കോഡ് നിങ്ങളുടെ സുഹൃത്തുക്കളുമായി പങ്കിടുക:',
+      'enter_room': 'റൂമിൽ പ്രവേശിക്കുക',
+      'create_room_configure_lobby':
+          'റൂം സൃഷ്ടിക്കുകയും ലോബിയിൽ ക്രമീകരണങ്ങൾ കോൺഫിഗർ ചെയ്യുകയും ചെയ്യുക',
+      'enter_room_name_hint': 'റൂമിൻ്റെ പേര് നൽകുക',
+      'room_code_share_info':
+          'റൂം സൃഷ്ടിച്ച ശേഷം നിങ്ങൾക്ക് സുഹൃത്തുക്കളുമായി റൂം കോഡ് പങ്കിടാം',
+      'create_team_room': 'ടീം റൂം സൃഷ്ടിക്കുക',
+      'please_check_code':
+          'ദയവായി കോഡ് പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.',
+
+      // Random Match Screen
+      'random_match': 'റാൻഡം മാച്ച്',
+      'select_target_points': 'ടാർഗെറ്റ് പോയിന്റുകൾ തിരഞ്ഞെടുക്കുക',
+      'play_random_coins': 'റാൻഡം കളിക്കുക (250 നാണയങ്ങൾ)',
+      'please_select_all_fields': 'ദയവായി ടാർഗെറ്റ് പോയിന്റുകൾ ഉൾപ്പെടെ എല്ലാ ഫീൽഡുകളും തിരഞ്ഞെടുക്കുക',
+      'failed_to_find_match': 'മാച്ച് കണ്ടെത്തുന്നതിൽ പരാജയപ്പെട്ടു',
+      'watch_ads_coming_soon': 'പരസ്യങ്ങൾ കാണാനുള്ള സൗകര്യം ഉടൻ വരുന്നു!',
+      'buy_coins_coming_soon': 'നാണയങ്ങൾ വാങ്ങാനുള്ള സൗകര്യം ഉടൻ വരുന്നു!',
+      'insufficient_coins_title': 'മതിയായ നാണയങ്ങൾ ഇല്ല',
+      'insufficient_coins_message': 'ഗെയിമിൽ ചേരാൻ ആവശ്യമായ നാണയങ്ങൾ നിങ്ങളുടെ കൈവശമില്ല. തുടരാൻ പരസ്യങ്ങൾ കാണുക അല്ലെങ്കിൽ നാണയങ്ങൾ വാങ്ങുക.',
+      'watch_ads': 'പരസ്യങ്ങൾ കാണുക',
+      'buy_coins': 'നാണയങ്ങൾ വാങ്ങുക',
+      'no_matches_found': 'മാച്ചുകളൊന്നും കണ്ടെത്തിയില്ല',
+      'no_matches_message': 'നിങ്ങളുടെ മുൻഗണനകളുമായി പൊരുത്തപ്പെടുന്ന പബ്ലിക് റൂമുകളൊന്നുമില്ല. വ്യത്യസ്ത ക്രമീകരണങ്ങൾ പരീക്ഷിക്കുക അല്ലെങ്കിൽ പുതിയ റൂം സൃഷ്ടിക്കുക.',
+      'try_again': 'വീണ്ടും ശ്രമിക്കുക',
+      'selected': 'തിരഞ്ഞെടുത്തു',
+      'team_a_is_full': 'ടീം A നിറഞ്ഞിരിക്കുന്നു',
+      'team_b_is_full': 'ടീം B നിറഞ്ഞിരിക്കുന്നു',
+      'please_select_the_other_team': 'ദയവായി മറ്റൊരു ടീമിനെ തിരഞ്ഞെടുക്കൂ',
+
+      'animals': 'മൃഗങ്ങൾ',
+      'countries': 'രാജ്യങ്ങൾ',
+      'food': 'ഭക്ഷണം',
+      'everyday_objects': 'നിത്യോപയോഗ വസ്തുക്കൾ',
+      'historical_events': 'ചരിത്ര സംഭവങ്ങൾ',
+      'movies': 'സിനിമകൾ',
+        
     },
     'bn': {
       // Guest Signup & Profile
@@ -1312,6 +1650,54 @@ class AppLocalizations {
       'usa': 'আমেরিকা',
       'uk': 'যুক্তরাজ্য',
       'japan': 'জাপান',
+      'spain': 'স্পেন',
+      'portugal': 'পোরুগাল',
+      'france': 'ফ্রান্স',
+      'germany': 'জার্মানি',
+      'russia': 'রাশিয়া',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'দয়া করে রুমের নাম লিখুন',
+      'failed_to_create_room': 'রুম তৈরি করতে ব্যর্থ হয়েছে',
+      'code_copied_clipboard': 'কোড ক্লিপবোর্ডে কপি করা হয়েছে!',
+      'room_created': 'রুম তৈরি হয়েছে!',
+      'share_code_with_friends': 'এই কোডটি আপনার বন্ধুদের সাথে শেয়ার করুন:',
+      'enter_room': 'রুমে প্রবেশ করুন',
+      'create_room_configure_lobby':
+          'রুম তৈরি করুন এবং লবিতে সেটিংস কনফিগার করুন',
+      'enter_room_name_hint': 'রুমের নাম লিখুন',
+      'room_code_share_info':
+          'রুম তৈরি করার পরে আপনি বন্ধুদের সাথে রুম কোড শেয়ার করতে পারেন',
+      'create_team_room': 'টিম রুম তৈরি করুন',
+      'please_check_code':
+          'দয়া করে কোডটি যাচাই করুন এবং আবার চেষ্টা করুন।',
+
+      // Random Match Screen
+      'random_match': 'র্যান্ডম ম্যাচ',
+      'select_target_points': 'টার্গেট পয়েন্ট নির্বাচন করুন',
+      'play_random_coins': 'র্যান্ডম খেলুন (২৫০ কয়েন)',
+      'please_select_all_fields': 'দয়া করে টার্গেট পয়েন্ট সহ সমস্ত ফিল্ড নির্বাচন করুন',
+      'failed_to_find_match': 'ম্যাচ খুঁজে পেতে ব্যর্থ হয়েছে',
+      'watch_ads_coming_soon': 'বিজ্ঞাপন দেখার সুবিধা শীঘ্রই আসছে!',
+      'buy_coins_coming_soon': 'কয়েন কেনার সুবিধা শীঘ্রই আসছে!',
+      'insufficient_coins_title': 'পর্যাপ্ত কয়েন নেই',
+      'insufficient_coins_message': 'গেমটিতে যোগদানের জন্য আপনার কাছে পর্যাপ্ত কয়েন নেই। চালিয়ে যেতে বিজ্ঞাপন দেখুন বা কয়েন কিনুন।',
+      'watch_ads': 'বিজ্ঞাপন দেখুন',
+      'buy_coins': 'কয়েন কিনুন',
+      'no_matches_found': 'কোনো ম্যাচ পাওয়া যায়নি',
+      'no_matches_message': 'আপনার পছন্দের সাথে কোনো পাবলিক রুম মিলছে না। ভিন্ন সেটিংস চেষ্টা করুন বা একটি নতুন রুম তৈরি করুন।',
+      'try_again': 'আবার চেষ্টা করুন',
+      'selected': 'নির্বাচিত',
+      'team_a_is_full': 'টিম A পূর্ণ হয়ে গেছে',
+      'team_b_is_full': 'টিম B পূর্ণ হয়ে গেছে',
+      'please_select_the_other_team': 'অনুগ্রহ করে অন্য দলটি নির্বাচন করুন',
+
+      'animals': 'পশু',
+      'countries': 'দেশ',
+      'food': 'খাবার',
+      'everyday_objects': 'নিত্যব্যবহার্য বস্তু',
+      'historical_events': 'ঐতিহাসিক ঘটনা',
+      'movies': 'সিনেমা',
     },
     'ar': {
       // Guest Signup & Profile
@@ -1465,6 +1851,54 @@ class AppLocalizations {
       'usa': 'الولايات المتحدة الأمريكية',
       'uk': 'المملكة المتحدة',
       'japan': 'اليابان',
+      'spain': 'إسبانيا',
+      'portugal': 'البرتغال',
+      'france': 'فرنسا',
+      'germany': 'ألمانيا',
+      'russia': 'روسيا',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'الرجاء إدخال اسم الغرفة',
+      'failed_to_create_room': 'فشل إنشاء الغرفة',
+      'code_copied_clipboard': 'تم نسخ الرمز إلى الحافظة!',
+      'room_created': 'تم إنشاء الغرفة!',
+      'share_code_with_friends': 'شارك هذا الرمز مع أصدقائك:',
+      'enter_room': 'دخول الغرفة',
+      'create_room_configure_lobby':
+          'إنشاء غرفة وتكوين الإعدادات في الردهة',
+      'enter_room_name_hint': 'أدخل اسم الغرفة',
+      'room_code_share_info':
+          'يمكنك مشاركة رمز الغرفة مع الأصدقاء بعد الإنشاء',
+      'create_team_room': 'إنشاء غرفة فريق',
+      'please_check_code':
+          'الرجاء التحقق من الرمز والمحاولة مرة أخرى.',
+
+      // Random Match Screen
+      'random_match': 'مباراة عشوائية',
+      'select_target_points': 'حدد النقاط المستهدفة',
+      'play_random_coins': 'لعب عشوائي (250 عملة)',
+      'please_select_all_fields': 'الرجاء تحديد جميع الحقول بما في ذلك النقاط المستهدفة',
+      'failed_to_find_match': 'فشل العثور على مباراة',
+      'watch_ads_coming_soon': 'ميزة مشاهدة الإعلانات قادمة قريباً!',
+      'buy_coins_coming_soon': 'ميزة شراء العملات قادمة قريباً!',
+      'insufficient_coins_title': 'العملات غير كافية',
+      'insufficient_coins_message': 'ليس لديك عملات كافية للانضمام. شاهد الإعلانات أو اشترِ العملات للمتابعة.',
+      'watch_ads': 'شاهد الإعلانات',
+      'buy_coins': 'شراء العملات',
+      'no_matches_found': 'لم يتم العثور على مباريات',
+      'no_matches_message': 'لا توجد غرف عامة تطابق تفضيلاتك. جرب إعدادات مختلفة أو أنشئ غرفة جديدة.',
+      'try_again': 'حاول مرة أخرى',
+      'selected': 'تم الاختيار',
+      'team_a_is_full': 'الفريق A ممتلئ',
+      'team_b_is_full': 'الفريق B ممتلئ',
+      'please_select_the_other_team': 'يرجى اختيار الفريق الآخر',
+
+      'animals': 'حيوانات',
+      'countries': 'بلدان',
+      'food': 'طعام',
+      'everyday_objects': 'أشياء يومية',
+      'historical_events': 'أحداث تاريخية',
+      'movies': 'أفلام',
     },
     'es': {
       // Guest Signup & Profile
@@ -1618,6 +2052,54 @@ class AppLocalizations {
       'usa': 'EE.UU',
       'uk': 'Reino Unido',
       'japan': 'Japón',
+      'spain': 'España',
+      'portugal': 'Portugal',
+      'france': 'Francia',
+      'germany': 'Alemania',
+      'russia': 'Rusia',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Por favor, introduce el nombre de la sala',
+      'failed_to_create_room': 'Error al crear la sala',
+      'code_copied_clipboard': '¡Código copiado al portapapeles!',
+      'room_created': '¡Sala creada!',
+      'share_code_with_friends': 'Comparte este código con tus amigos:',
+      'enter_room': 'Entrar a la sala',
+      'create_room_configure_lobby':
+          'Crea una sala y configura los ajustes en el vestíbulo',
+      'enter_room_name_hint': 'Introduce el nombre de la sala',
+      'room_code_share_info':
+          'Puedes compartir el código de la sala con amigos después de crearla',
+      'create_team_room': 'Crear sala de equipo',
+      'please_check_code':
+          'Por favor, verifica el código e inténtalo de nuevo.',
+
+      // Random Match Screen
+      'random_match': 'Partida aleatoria',
+      'select_target_points': 'Seleccionar puntos objetivo',
+      'play_random_coins': 'Jugar aleatorio (250 monedas)',
+      'please_select_all_fields': 'Por favor, selecciona todos los campos',
+      'failed_to_find_match': 'Error al encontrar partida',
+      'watch_ads_coming_soon': '¡La función de ver anuncios llegará pronto!',
+      'buy_coins_coming_soon': '¡La función de comprar monedas llegará pronto!',
+      'insufficient_coins_title': 'Monedas insuficientes',
+      'insufficient_coins_message': 'No tienes suficientes monedas para unirte. Mira anuncios o compra monedas para continuar.',
+      'watch_ads': 'Ver anuncios',
+      'buy_coins': 'Comprar monedas',
+      'no_matches_found': 'No se encontraron partidas',
+      'no_matches_message': 'Ninguna sala pública coincide con tus preferencias. Prueba con una configuración diferente o crea una nueva sala.',
+      'try_again': 'Intentar de nuevo',
+      'selected': 'Seleccionado',
+      'team_a_is_full': 'El equipo A está completo',
+      'team_b_is_full': 'El equipo B está completo',
+      'please_select_the_other_team': 'Por favor seleccione el otro equipo',
+
+      'animals': 'Animales',
+      'countries': 'Países',
+      'food': 'Comida',
+      'everyday_objects': 'Objetos cotidianos',
+      'historical_events': 'Eventos históricos',
+      'movies': 'Películas',
     },
     'pt': {
       // Guest Signup & Profile
@@ -1771,6 +2253,54 @@ class AppLocalizations {
       'usa': 'EUA',
       'uk': 'Reino Unido',
       'japan': 'Japão',
+      'spain': 'Espanha',
+      'portugal': 'Portugal',
+      'france': 'França',
+      'germany': 'Alemanha',
+      'russia': 'Rússia',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Por favor, insira o nome da sala',
+      'failed_to_create_room': 'Falha ao criar sala',
+      'code_copied_clipboard': 'Código copiado para a área de transferência!',
+      'room_created': 'Sala criada!',
+      'share_code_with_friends': 'Compartilhe este código com seus amigos:',
+      'enter_room': 'Entrar na sala',
+      'create_room_configure_lobby':
+          'Crie uma sala e configure as definições no lobby',
+      'enter_room_name_hint': 'Insira o nome da sala',
+      'room_code_share_info':
+          'Você pode compartilhar o código da sala com amigos após criá-la',
+      'create_team_room': 'Criar sala de equipe',
+      'please_check_code':
+          'Por favor, verifique o código e tente novamente.',
+
+      // Random Match Screen
+      'random_match': 'Partida Aleatória',
+      'select_target_points': 'Selecione os pontos alvo',
+      'play_random_coins': 'Jogar Aleatório (250 moedas)',
+      'please_select_all_fields': 'Por favor, selecione todos os campos',
+      'failed_to_find_match': 'Falha ao encontrar partida',
+      'watch_ads_coming_soon': 'Recurso de assistir anúncios em breve!',
+      'buy_coins_coming_soon': 'Recurso de comprar moedas em breve!',
+      'insufficient_coins_title': 'Moedas insuficientes',
+      'insufficient_coins_message': 'Você não tem moedas suficientes para entrar. Assista a anúncios ou compre moedas para continuar.',
+      'watch_ads': 'Assistir anúncios',
+      'buy_coins': 'Comprar moedas',
+      'no_matches_found': 'Nenhuma partida encontrada',
+      'no_matches_message': 'Nenhuma sala pública corresponde às suas preferências. Tente configurações diferentes ou crie uma nova sala.',
+      'try_again': 'Tente novamente',
+      'selected': 'Selecionado',
+      'team_a_is_full': 'A equipe A está cheia',
+      'team_b_is_full': 'A equipe B está cheia',
+      'please_select_the_other_team': 'Por favor selecione a outra equipe',
+
+      'animals': 'Animais',
+      'countries': 'Países',
+      'food': 'Comida',
+      'everyday_objects': 'Objetos do dia a dia',
+      'historical_events': 'Eventos históricos',
+      'movies': 'Filmes',
     },
     'fr': {
       // Guest Signup & Profile
@@ -1925,6 +2455,54 @@ class AppLocalizations {
       'usa': 'USA',
       'uk': 'ROYAUME-UNI',
       'japan': 'Japon',
+      'spain': 'Espanha',
+      'portugal': 'Portugal',
+      'france': 'França',
+      'germany': 'Alemanha',
+      'russia': 'Rússia',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Veuillez entrer le nom de la salle',
+      'failed_to_create_room': 'Échec de la création de la salle',
+      'code_copied_clipboard': 'Code copié dans le presse-papiers !',
+      'room_created': 'Salle créée !',
+      'share_code_with_friends': 'Partagez ce code avec vos amis :',
+      'enter_room': 'Entrer dans la salle',
+      'create_room_configure_lobby':
+          'Créer une salle et configurer les paramètres dans le lobby',
+      'enter_room_name_hint': 'Entrez le nom de la salle',
+      'room_code_share_info':
+          'Vous pouvez partager le code de la salle avec des amis après la création',
+      'create_team_room': 'Créer une salle d\'équipe',
+      'please_check_code':
+          'Veuillez vérifier le code et réessayer.',
+
+      // Random Match Screen
+      'random_match': 'Match aléatoire',
+      'select_target_points': 'Sélectionner les points cibles',
+      'play_random_coins': 'Jouer en aléatoire (250 pièces)',
+      'please_select_all_fields': 'Veuillez sélectionner tous les champs',
+      'failed_to_find_match': 'Aucun match trouvé',
+      'watch_ads_coming_soon': 'Les publicités arrivent bientôt !',
+      'buy_coins_coming_soon': 'L\'achat de pièces arrive bientôt !',
+      'insufficient_coins_title': 'Pièces insuffisantes',
+      'insufficient_coins_message': 'Vous n\'avez pas assez de pièces pour rejoindre. Regardez des publicités ou achetez des pièces pour continuer.',
+      'watch_ads': 'Regarder des pubs',
+      'buy_coins': 'Acheter des pièces',
+      'no_matches_found': 'Aucun match trouvé',
+      'no_matches_message': 'Aucune salle publique ne correspond à vos préférences. Essayez d\'autres paramètres ou créez une nouvelle salle.',
+      'try_again': 'Réessayer',
+      'selected': 'Sélectionné',
+      'team_a_is_full': 'L\'équipe A est complète',
+      'team_b_is_full': 'L\'équipe B est complète',
+      'please_select_the_other_team': 'Veuillez sélectionner l\'autre équipe',
+
+      'animals': 'Animaux',
+      'countries': 'Pays',
+      'food': 'Nourriture',
+      'everyday_objects': 'Objets du quotidien',
+      'historical_events': 'Événements historiques',
+      'movies': 'Films',
     },
     'de': {
       // Guest Signup & Profile
@@ -2079,8 +2657,56 @@ class AppLocalizations {
       'usa': 'USA',
       'uk': 'Vereinigtes Königreich',
       'japan': 'Japan',
+      'spain': 'Espanha',
+      'portugal': 'Portugal',
+      'france': 'França',
+      'germany': 'Alemanha',
+      'russia': 'Rússia',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Bitte geben Sie den Raumnamen ein',
+      'failed_to_create_room': 'Erstellung des Raumes fehlgeschlagen',
+      'code_copied_clipboard': 'Code in die Zwischenablage kopiert!',
+      'room_created': 'Raum erstellt!',
+      'share_code_with_friends': 'Teilen Sie diesen Code mit Ihren Freunden:',
+      'enter_room': 'Raum betreten',
+      'create_room_configure_lobby':
+          'Erstellen Sie einen Raum und konfigurieren Sie die Einstellungen in der Lobby',
+      'enter_room_name_hint': 'Geben Sie den Raumnamen ein',
+      'room_code_share_info':
+          'Sie können den Raumcode nach der Erstellung mit Freunden teilen',
+      'create_team_room': 'Teamraum erstellen',
+      'please_check_code':
+          'Bitte überprüfen Sie den Code und versuchen Sie es erneut.',
+
+      // Random Match Screen
+      'random_match': 'Zufälliges Spiel',
+      'select_target_points': 'Zielpunkte auswählen',
+      'play_random_coins': 'Zufällig spielen (250 Münzen)',
+      'please_select_all_fields': 'Bitte wählen Sie alle Felder aus',
+      'failed_to_find_match': 'Kein Spiel gefunden',
+      'watch_ads_coming_soon': 'Werbung ansehen kommt bald!',
+      'buy_coins_coming_soon': 'Münzkauf kommt bald!',
+      'insufficient_coins_title': 'Nicht genügend Münzen',
+      'insufficient_coins_message': 'Sie haben nicht genügend Münzen, um beizutreten. Sehen Sie Werbung oder kaufen Sie Münzen, um fortzufahren.',
+      'watch_ads': 'Werbung ansehen',
+      'buy_coins': 'Münzen kaufen',
+      'no_matches_found': 'Keine Spiele gefunden',
+      'no_matches_message': 'Keine öffentlichen Räume entsprechen Ihren Einstellungen. Versuchen Sie andere Einstellungen oder erstellen Sie einen neuen Raum.',
+      'try_again': 'Erneut versuchen',
+      'selected': 'Ausgewählt',
+      'team_a_is_full': 'Team A ist voll',
+      'team_b_is_full': 'Team B ist voll',
+      'please_select_the_other_team': 'Bitte wählen Sie das andere Team aus',
+
+      'animals': 'Tiere',
+      'countries': 'Länder',
+      'food': 'Essen',
+      'everyday_objects': 'Alltagsgegenstände',
+      'historical_events': 'Historische Ereignisse',
+      'movies': 'Filme',
     },
-    'rn': {
+    'ru': {
       // Guest Signup & Profile
       'enter_username': 'Введите имя пользователя',
       'language': 'Язык',
@@ -2232,6 +2858,54 @@ class AppLocalizations {
       'usa': 'США',
       'uk': 'Великобритания',
       'japan': 'Япония',
+      'spain': 'Испания',
+      'portugal': 'Португалия',
+      'france': 'Франция',
+      'germany': 'Германия',
+      'russia': 'Россия',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Пожалуйста, введите название комнаты',
+      'failed_to_create_room': 'Не удалось создать комнату',
+      'code_copied_clipboard': 'Код скопирован в буфер обмена!',
+      'room_created': 'Комната создана!',
+      'share_code_with_friends': 'Поделитесь этим кодом с друзьями:',
+      'enter_room': 'Войти в комнату',
+      'create_room_configure_lobby':
+          'Создайте комнату и настройте параметры в лобби',
+      'enter_room_name_hint': 'Введите название комнаты',
+      'room_code_share_info':
+          'Вы можете поделиться кодом комнаты с друзьями после создания',
+      'create_team_room': 'Создать командную комнату',
+      'please_check_code':
+          'Пожалуйста, проверьте код и попробуйте снова.',
+
+      // Random Match Screen
+      'random_match': 'Случайный матч',
+      'select_target_points': 'Выберите целевые очки',
+      'play_random_coins': 'Случайная игра (250 монет)',
+      'please_select_all_fields': 'Пожалуйста, заполните все поля',
+      'failed_to_find_match': 'Не удалось найти матч',
+      'watch_ads_coming_soon': 'Просмотр рекламы скоро будет доступен!',
+      'buy_coins_coming_soon': 'Покупка монет скоро будет доступна!',
+      'insufficient_coins_title': 'Недостаточно монет',
+      'insufficient_coins_message': 'У вас недостаточно монет для входа. Посмотрите рекламу или купите монеты, чтобы продолжить.',
+      'watch_ads': 'Смотреть рекламу',
+      'buy_coins': 'Купить монеты',
+      'no_matches_found': 'Матчи не найдены',
+      'no_matches_message': 'Нет публичных комнат, соответствующих вашим предпочтениям. Попробуйте другие настройки или создайте новую комнату.',
+      'try_again': 'Попробовать снова',
+      'selected': 'Выбрано',
+      'team_a_is_full': 'Команда A заполнена',
+      'team_b_is_full': 'Команда B заполнена',
+      'please_select_the_other_team': 'Пожалуйста, выберите другую команду',
+
+      'animals': 'Животные',
+      'countries': 'Страны',
+      'food': 'Еда',
+      'everyday_objects': 'Предметы быта',
+      'historical_events': 'Исторические события',
+      'movies': 'Фильмы',
     },
     'ja': {
       // Guest Signup & Profile
@@ -2385,6 +3059,54 @@ class AppLocalizations {
       'usa': 'アメリカ合衆国',
       'uk': '英国',
       'japan': '日本',
+      'spain': 'スペイン',
+      'portugal': 'ポルトガル',
+      'france': 'フランス',
+      'germany': 'ドイツ',
+      'russia': 'ロシア',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'ルーム名を入力してください',
+      'failed_to_create_room': 'ルームの作成に失敗しました',
+      'code_copied_clipboard': 'コードをクリップボードにコピーしました！',
+      'room_created': 'ルームが作成されました！',
+      'share_code_with_friends': '友達にこのコードを共有：',
+      'enter_room': 'ルームに入室',
+      'create_room_configure_lobby':
+          'ルームを作成し、ロビーで設定を行ってください',
+      'enter_room_name_hint': 'ルーム名を入力',
+      'room_code_share_info':
+          '作成後にルームコードを友達と共有できます',
+      'create_team_room': 'チームルームを作成',
+      'please_check_code':
+          'コードを確認して再試行してください。',
+
+      // Random Match Screen
+      'random_match': 'ランダムマッチ',
+      'select_target_points': '目標ポイントを選択',
+      'play_random_coins': 'ランダムプレイ (250コイン)',
+      'please_select_all_fields': 'すべての項目を選択してください',
+      'failed_to_find_match': 'マッチが見つかりませんでした',
+      'watch_ads_coming_soon': '広告視聴機能は近日公開！',
+      'buy_coins_coming_soon': 'コイン購入機能は近日公開！',
+      'insufficient_coins_title': 'コイン不足',
+      'insufficient_coins_message': '参加に必要なコインが足りません。広告を見るかコインを購入して続けてください。',
+      'watch_ads': '広告を見る',
+      'buy_coins': 'コインを購入',
+      'no_matches_found': 'マッチが見つかりません',
+      'no_matches_message': '条件に合うパブリックルームがありません。設定を変更するか、新しいルームを作成してください。',
+      'try_again': '再試行',
+      'selected': '選択済み',
+      'team_a_is_full': 'チームAは満員です',
+      'team_b_is_full': 'チームBは満員です',
+      'please_select_the_other_team': '他のチームを選択してください',
+
+      'animals': '動物',
+      'countries': '国',
+      'food': '食べ物',
+      'everyday_objects': '日用品',
+      'historical_events': '歴史的な出来事',
+      'movies': '映画',
     },
     'pa': {
       // Guest Signup & Profile
@@ -2538,6 +3260,54 @@ class AppLocalizations {
       'usa': 'ਅਮਰੀਕਾ',
       'uk': 'ਯੂਕੇ',
       'japan': 'ਜਪਾਨ',
+      'spain': 'ਸਪੇਨ',
+      'portugal': 'ਪੋਰਚੁਗਾਲ',
+      'france': 'ਫਰਾਂਸ',
+      'germany': 'ਜਰਮਨੀ',
+      'russia': 'ਰੂਸੀ',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'ਕਿਰਪਾ ਕਰਕੇ ਕਮਰੇ ਦਾ ਨਾਮ ਦਰਜ ਕਰੋ',
+      'failed_to_create_room': 'ਕਮਰਾ ਬਣਾਉਣ ਵਿੱਚ ਅਸਫਲ',
+      'code_copied_clipboard': 'ਕੋਡ ਕਲਿੱਪਬੋਰਡ \'ਤੇ ਕਾਪੀ ਕੀਤਾ ਗਿਆ!',
+      'room_created': 'ਕਮਰਾ ਬਣਾਇਆ ਗਿਆ!',
+      'share_code_with_friends': 'ਇਹ ਕੋਡ ਆਪਣੇ ਦੋਸਤਾਂ ਨਾਲ ਸਾਂਝਾ ਕਰੋ:',
+      'enter_room': 'ਕਮਰੇ ਵਿੱਚ ਦਾਖਲ ਹੋਵੋ',
+      'create_room_configure_lobby':
+          'ਕਮਰਾ ਬਣਾਓ ਅਤੇ ਲਾਬੀ ਵਿੱਚ ਸੈਟਿੰਗਾਂ ਕੌਂਫਿਗਰ ਕਰੋ',
+      'enter_room_name_hint': 'ਕਮਰੇ ਦਾ ਨਾਮ ਦਰਜ ਕਰੋ',
+      'room_code_share_info':
+          'ਤੁਸੀਂ ਬਣਾਉਣ ਤੋਂ ਬਾਅਦ ਦੋਸਤਾਂ ਨਾਲ ਕਮਰਾ ਕੋਡ ਸਾਂਝਾ ਕਰ ਸਕੋਗੇ',
+      'create_team_room': 'ਟੀਮ ਰੂਮ ਬਣਾਓ',
+      'please_check_code':
+          'ਕਿਰਪਾ ਕਰਕੇ ਕੋਡ ਦੀ ਜਾਂਚ ਕਰੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+
+      // Random Match Screen
+      'random_match': 'ਰੈਂਡਮ ਮੈਚ',
+      'select_target_points': 'ਟੀਚਾ ਅੰਕ ਚੁਣੋ',
+      'play_random_coins': 'ਰੈਂਡਮ ਖੇਡੋ (250 ਸਿੱਕੇ)',
+      'please_select_all_fields': 'ਕਿਰਪਾ ਕਰਕੇ ਸਾਰੇ ਖੇਤਰ ਚੁਣੋ',
+      'failed_to_find_match': 'ਮੈਚ ਲੱਭਣ ਵਿੱਚ ਅਸਫਲ',
+      'watch_ads_coming_soon': 'ਵਿਗਿਆਪਨ ਦੇਖੋ ਵਿਸ਼ੇਸ਼ਤਾ ਜਲਦੀ ਆ ਰਹੀ ਹੈ!',
+      'buy_coins_coming_soon': 'ਸਿੱਕੇ ਖਰੀਦੋ ਵਿਸ਼ੇਸ਼ਤਾ ਜਲਦੀ ਆ ਰਹੀ ਹੈ!',
+      'insufficient_coins_title': 'ਨਾਕਾਫ਼ੀ ਸਿੱਕੇ',
+      'insufficient_coins_message': 'ਤੁਹਾਡੇ ਕੋਲ ਸ਼ਾਮਲ ਹੋਣ ਲਈ ਲੋੜੀਂਦੇ ਸਿੱਕੇ ਨਹੀਂ ਹਨ। ਖੇਡਣਾ ਜਾਰੀ ਰੱਖਣ ਲਈ ਵਿਗਿਆਪਨ ਦੇਖੋ ਜਾਂ ਸਿੱਕੇ ਖਰੀਦੋ।',
+      'watch_ads': 'ਵਿਗਿਆਪਨ ਦੇਖੋ',
+      'buy_coins': 'ਸਿੱਕੇ ਖਰੀਦੋ',
+      'no_matches_found': 'ਕੋਈ ਮੈਚ ਨਹੀਂ ਮਿਲਿਆ',
+      'no_matches_message': 'ਤੁਹਾਡੀਆਂ ਤਰਜੀਹਾਂ ਨਾਲ ਕੋਈ ਜਨਤਕ ਕਮਰਾ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ। ਵੱਖਰੀਆਂ ਸੈਟਿੰਗਾਂ ਅਜ਼ਮਾਓ ਜਾਂ ਨਵਾਂ ਕਮਰਾ ਬਣਾਓ।',
+      'try_again': 'ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ',
+      'selected': 'ਚੁਣਿਆ ਗਿਆ',
+      'team_a_is_full': 'ਟੀਮ A ਪੂਰ੍ਤਿਆਂਦਾ ਹੈ',
+      'team_b_is_full': 'ਟੀਮ B ਪੂਰ੍ਤਿਆਂਦਾ ਹੈ',
+      'please_select_the_other_team': 'ਦੇਖਾਉਂਦੇ ਹੋ ਜਾਂਦੇ ਹੈ',
+
+      'animals': 'ਜਾਨਵਰ',
+      'countries': 'ਦੇਸ਼',
+      'food': 'ਭੋਜਨ',
+      'everyday_objects': 'ਰੋਜ਼ਾਨਾ ਦੀਆਂ ਚੀਜ਼ਾਂ',
+      'historical_events': 'ਇਤਿਹਾਸਕ ਘਟਨਾਵਾਂ',
+      'movies': 'ਫਿਲਮਾਂ',
     },
     'gu': {
       // Guest Signup & Profile
@@ -2691,6 +3461,658 @@ class AppLocalizations {
       'usa': 'યુનાઈટેડ સ્ટેટ્સ',
       'uk': 'યુકે',
       'japan': 'જાપાન',
+      'spain': 'સਪੇન',
+      'portugal': 'પੋરਚੁગાલ',
+      'france': 'ફરાંસ',
+      'germany': 'જરਮનિ',
+      'russia': 'રੂસિયા',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'કૃપા કરીને રૂમનું નામ દાખલ કરો',
+      'failed_to_create_room': 'રૂમ બનાવવામાં નિષ્ફળ',
+      'code_copied_clipboard': 'ક્લિપબોર્ડ પર કોડ કોપી કર્યો!',
+      'room_created': 'રૂમ બનાવ્યો!',
+      'share_code_with_friends': 'આ કોડ તમારા મિત્રો સાથે શેર કરો:',
+      'enter_room': 'રૂમમાં દાખલ થાઓ',
+      'create_room_configure_lobby':
+          'રૂમ બનાવો અને લોબીમાં સેટિંગ્સ ગોઠવો',
+      'enter_room_name_hint': 'રૂમનું નામ દાખલ કરો',
+      'room_code_share_info':
+          'રૂમ બનાવ્યા પછી તમે મિત્રો સાથે કોડ શેર કરી શકશો',
+      'create_team_room': 'ટીમ રૂમ બનાવો',
+      'please_check_code':
+          'કૃપા કરીને કોડ તપાસો અને ફરી પ્રયાસ કરો.',
+
+      // Random Match Screen
+      'random_match': 'રેન્ડમ મેચ',
+      'select_target_points': 'લક્ષ્ય પોઈન્ટ પસંદ કરો',
+      'play_random_coins': 'રેન્ડમ રમો (250 સિક્કા)',
+      'please_select_all_fields': 'કૃપા કરીને બધા ક્ષેત્રો પસંદ કરો',
+      'failed_to_find_match': 'મેચ શોધવામાં નિષ્ફળ',
+      'watch_ads_coming_soon': 'જાહેરાતો જોવાની સુવિધા ટૂંક સમયમાં આવી રહી છે!',
+      'buy_coins_coming_soon': 'સિક્કા ખરીદવાની સુવિધા ટૂંક સમયમાં આવી રહી છે!',
+      'insufficient_coins_title': 'અપૂરતા સિક્કા',
+      'insufficient_coins_message': 'જોડાવા માટે તમારી પાસે પૂરતા સિક્કા નથી. ચાલુ રાખવા માટે જાહેરાતો જુઓ અથવા સિક્કા ખરીદો.',
+      'watch_ads': 'જાહેરાતો જુઓ',
+      'buy_coins': 'સિક્કા ખરીદો',
+      'no_matches_found': 'કોઈ મેચ મળી નથી',
+      'no_matches_message': 'તમારી પસંદગીઓ સાથે કોઈ જાહેર રૂમ મેળ ખાતો નથી. અલગ સેટિંગ્સ અજમાવો અથવા નવો રૂમ બનાવો.',
+      'try_again': 'ફરી પ્રયાસ કરો',
+      'selected': 'પસંદ કરેલ',
+      'team_a_is_full': 'ટీમ A પૂર్તી છે',
+      'team_b_is_full': 'ટీમ B પૂર్તી છે',
+      'please_select_the_other_team': 'દયસૂર પસંદ કરો',
+
+      'animals': 'પ્રાણીઓ',
+      'countries': 'દેશો',
+      'food': 'ખોરાક',
+      'everyday_objects': 'રોજિંદા વસ્તુઓ',
+      'historical_events': 'ઐતિહાસિક ઘટનાઓ',
+      'movies': 'ચલચિત્રો',
+    },
+    'it': {
+      // Guest Signup & Profile
+      'enter_username': 'Inserisci nome utente',
+      'language': 'Lingua',
+      'country': 'Paese',
+      'save': 'Salva',
+      'skip': 'Salta',
+      'next': 'Avanti',
+      'please_fill_all_fields': 'Si prega di compilare tutti i campi',
+      'coins': 'Monete',
+      'welcome': 'Benvenuto',
+
+      // Home Screen
+      'home': 'Home',
+      'play': 'Gioca',
+      'profile': 'Profilo',
+      'settings': 'Impostazioni',
+      'leaderboard': 'Classifica',
+      'friends': 'Amici',
+      'shop': 'Negozio',
+      'daily_bonus': 'Bonus Giornaliero',
+      'claim': 'Riscatta',
+      'claimed': 'Riscattato',
+
+      // Multiplayer Screen
+      'multiplayer': 'Multigiocatore',
+      'create_room': 'Crea Stanza',
+      'join_room': 'Entra nella Stanza',
+      'room_code': 'Codice Stanza',
+      'join': 'Unisciti',
+      'players': 'Giocatori',
+      'waiting_for_players': 'In attesa di giocatori...',
+      'start_game': 'Inizia Gioco',
+      'leave': 'Esci',
+      'mode': 'Modalità',
+      'individual': 'Individuale',
+      'team': 'Squadra',
+      'language_filter': 'Lingua',
+      'points': 'Punti',
+      'category': 'Categoria',
+      'all': 'Tutti',
+
+      // Game Room Screen
+      'game_room': 'Sala Giochi',
+      'gameplay': 'Gameplay',
+      'drawing': 'Disegno',
+      'guessing': 'Indovinello',
+      'selecting_drawer': 'Selezione disegnatore...',
+      'choosing_word': 'Scegli una parola!',
+      'drawer_is_choosing': 'Il disegnatore sta scegliendo...',
+      'draw': 'Disegna',
+      'guess_the_word': 'Indovina la parola',
+      'word_was': 'La parola era',
+      'next_round_starting': 'Il prossimo round inizia...',
+      'time_up': 'Tempo scaduto!',
+      'well_done': 'Ben fatto!',
+      'whos_next': 'Chi è il prossimo?',
+      'interval': 'Intervallo',
+      'host': 'Host',
+      'you': 'Tu',
+      'correct': 'Corretto!',
+      'good_job': 'Ottimo lavoro!',
+      'chat': 'Chat',
+      'send': 'Invia',
+      'type_message': 'Scrivi un messaggio...',
+      'answers_chat': 'Chat Risposte',
+      'general_chat': 'Chat Generale',
+      'team_chat': 'Chat Squadra',
+
+      // Room Preferences Screen
+      'room_preferences': 'Preferenze Stanza',
+      'select_language': 'Seleziona Lingua',
+      'select_points': 'Seleziona Punti',
+      'select_category': 'Seleziona Categoria',
+      'voice_enabled': 'Voce Abilitata',
+      'select_team': 'Seleziona Squadra',
+      'team_selection': 'Selezione Squadra',
+      'blue_team': 'Squadra Blu',
+      'orange_team': 'Squadra Arancione',
+
+      // Profile & Settings
+      'edit_profile': 'Modifica Profilo',
+      'profile_and_accounts': 'Profilo & Account',
+      'username': 'Nome utente',
+      'email': 'Email',
+      'phone': 'Telefono',
+      'logout': 'Disconnetti',
+      'delete_account': 'Elimina Account',
+      'version': 'Versione',
+      'about': 'Info',
+      'privacy_policy': 'Privacy Policy',
+      'terms_and_conditions': 'Termini e Condizioni',
+      'sound': 'Suono',
+      'privacy_and_safety': 'Privacy & Sicurezza',
+      'contact': 'Contatti',
+      'rate_app': 'Valuta App',
+      'connect_us_at': 'CONNETTITI CON NOI A',
+      'are_you_sure_logout': 'Sei sicuro di voler uscire?',
+      'loading_ads': 'Caricamento pubblicità...',
+
+      // Sign In
+      'ink_battle': 'Ink Battle',
+      'sign_in_with_google': 'Accedi con Google',
+      'sign_in_with_facebook': 'Accedi con Facebook',
+      'signing_in': 'Accesso in corso...',
+      'or': 'O',
+      'play_as_guest': 'Gioca come Ospite',
+      'progress_not_saved': 'I progressi potrebbero non essere salvati',
+
+      // Home Screen
+      'play_random': 'Gioca Casuale',
+
+      // Instructions
+      'instructions': 'Istruzioni',
+      'tutorial_guide': 'Guida Tutorial',
+      'instructions_text':
+          'Tocca lo schermo per iniziare la tua avventura! Usa le frecce per navigare tra i livelli. Raccogli monete completando le sfide. Evita gli ostacoli per mantenere alto il punteggio. Cambia modalità per un\'esperienza diversa.',
+
+      // Common
+      'ok': 'OK',
+      'cancel': 'Annulla',
+      'yes': 'Sì',
+      'no': 'No',
+      'confirm': 'Conferma',
+      'back': 'Indietro',
+      'close': 'Chiudi',
+      'loading': 'Caricamento...',
+      'error': 'Errore',
+      'success': 'Successo',
+      'warning': 'Attenzione',
+      'info': 'Info',
+
+      // Messages
+      'insufficient_coins': 'Monete insufficienti',
+      'room_full': 'Stanza piena',
+      'room_not_found': 'Stanza non trovata',
+      'already_in_room': 'Già nella stanza',
+      'connection_lost': 'Connessione persa',
+      'reconnecting': 'Riconnessione...',
+      'connected': 'Connesso',
+      'disconnected': 'Disconnesso',
+
+      // Languages
+      'hindi': 'Hindi',
+      'telugu': 'Telugu',
+      'english': 'Inglese',
+
+      // Countries
+      'india': 'India',
+      'usa': 'USA',
+      'uk': 'Regno Unito',
+      'japan': 'Giappone',
+      'spain': 'Spagna',
+      'portugal': 'Portogallo',
+      'france': 'Francia',
+      'germany': 'Germania',
+      'russia': 'Russia',
+
+      // Create Room & Join Room
+      'please_enter_room_name': 'Inserisci il nome della stanza',
+      'failed_to_create_room': 'Impossibile creare la stanza',
+      'code_copied_clipboard': 'Codice copiato negli appunti!',
+      'room_created': 'Stanza Creata!',
+      'share_code_with_friends': 'Condividi questo codice con i tuoi amici:',
+      'enter_room': 'Entra nella Stanza',
+      'create_room_configure_lobby':
+          'Crea una stanza e configura le impostazioni nella lobby',
+      'enter_room_name_hint': 'Inserisci nome stanza',
+      'room_code_share_info':
+          'Potrai condividere il codice della stanza con gli amici dopo la creazione',
+      'create_team_room': 'Crea Stanza Squadra',
+      'please_check_code': 'Controlla il codice e riprova.',
+
+      // Random Match Screen
+      'random_match': 'Partita Casuale',
+      'select_target_points': 'Seleziona Punti Obiettivo',
+      'play_random_coins': 'Gioca Casuale (250 Monete)',
+      'please_select_all_fields': 'Seleziona tutti i campi inclusi i Punti Obiettivo',
+      'failed_to_find_match': 'Impossibile trovare una partita',
+      'watch_ads_coming_soon': 'Funzione guarda pubblicità in arrivo!',
+      'buy_coins_coming_soon': 'Funzione acquista monete in arrivo!',
+      'insufficient_coins_title': 'Monete Insufficienti',
+      'insufficient_coins_message':
+          'Non hai abbastanza monete per unirti. Guarda pubblicità o acquista monete per continuare a giocare.',
+      'watch_ads': 'Guarda Pubblicità',
+      'buy_coins': 'Acquista Monete',
+      'no_matches_found': 'Nessuna Partita Trovata',
+      'no_matches_message':
+          'Nessuna stanza pubblica corrisponde alle tue preferenze. Prova impostazioni diverse o crea una nuova stanza.',
+      'try_again': 'Riprova',
+      'selected': 'selezionato',
+      'team_a_is_full': 'Il team A è pieno',
+      'team_b_is_full': 'Il team B è pieno',
+      'please_select_the_other_team': 'Seleziona il team B',
+      // Categories
+      'animals': 'Animali',
+      'countries': 'Paesi',
+      'everyday_objects': 'Oggetti Quotidiani',
+      'food': 'Cibo',
+      'historical_events': 'Eventi Storici',
+      'movies': 'Film',
+    },
+    'ko': {
+      // Guest Signup & Profile
+      'enter_username': '사용자 이름 입력',
+      'language': '언어',
+      'country': '국가',
+      'save': '저장',
+      'skip': '건너뛰기',
+      'next': '다음',
+      'please_fill_all_fields': '모든 필드를 채워주세요',
+      'coins': '코인',
+      'welcome': '환영합니다',
+
+      // Home Screen
+      'home': '홈',
+      'play': '플레이',
+      'profile': '프로필',
+      'settings': '설정',
+      'leaderboard': '순위표',
+      'friends': '친구',
+      'shop': '상점',
+      'daily_bonus': '일일 보너스',
+      'claim': '받기',
+      'claimed': '받음',
+
+      // Multiplayer Screen
+      'multiplayer': '멀티플레이어',
+      'create_room': '방 만들기',
+      'join_room': '방 참가',
+      'room_code': '방 코드',
+      'join': '참가',
+      'players': '플레이어',
+      'waiting_for_players': '플레이어 대기 중...',
+      'start_game': '게임 시작',
+      'leave': '나가기',
+      'mode': '모드',
+      'individual': '개인',
+      'team': '팀',
+      'language_filter': '언어',
+      'points': '포인트',
+      'category': '카테고리',
+      'all': '전체',
+
+      // Game Room Screen
+      'game_room': '게임 룸',
+      'gameplay': '게임플레이',
+      'drawing': '그리기',
+      'guessing': '추측',
+      'selecting_drawer': '그리는 사람 선택 중...',
+      'choosing_word': '단어를 선택하세요!',
+      'drawer_is_choosing': '그리는 사람이 선택 중입니다...',
+      'draw': '그리기',
+      'guess_the_word': '단어를 맞혀보세요',
+      'word_was': '단어는',
+      'next_round_starting': '다음 라운드 시작...',
+      'time_up': '시간 종료!',
+      'well_done': '잘했습니다!',
+      'whos_next': '다음은 누구?',
+      'interval': '인터벌',
+      'host': '호스트',
+      'you': '나',
+      'correct': '정답!',
+      'good_job': '잘했어요!',
+      'chat': '채팅',
+      'send': '전송',
+      'type_message': '메시지 입력...',
+      'answers_chat': '정답 채팅',
+      'general_chat': '일반 채팅',
+      'team_chat': '팀 채팅',
+
+      // Room Preferences Screen
+      'room_preferences': '방 환경설정',
+      'select_language': '언어 선택',
+      'select_points': '포인트 선택',
+      'select_category': '카테고리 선택',
+      'voice_enabled': '음성 사용',
+      'select_team': '팀 선택',
+      'team_selection': '팀 선택',
+      'blue_team': '블루 팀',
+      'orange_team': '오렌지 팀',
+
+      // Profile & Settings
+      'edit_profile': '프로필 편집',
+      'profile_and_accounts': '프로필 및 계정',
+      'username': '사용자 이름',
+      'email': '이메일',
+      'phone': '전화번호',
+      'logout': '로그아웃',
+      'delete_account': '계정 삭제',
+      'version': '버전',
+      'about': '정보',
+      'privacy_policy': '개인정보 처리방침',
+      'terms_and_conditions': '이용 약관',
+      'sound': '소리',
+      'privacy_and_safety': '개인정보 및 보안',
+      'contact': '연락처',
+      'rate_app': '앱 평가',
+      'connect_us_at': '다음에서 연결',
+      'are_you_sure_logout': '로그아웃하시겠습니까?',
+      'loading_ads': '광고 로딩 중...',
+
+      // Sign In
+      'ink_battle': '잉크 배틀',
+      'sign_in_with_google': 'Google로 로그인',
+      'sign_in_with_facebook': 'Facebook으로 로그인',
+      'signing_in': '로그인 중...',
+      'or': '또는',
+      'play_as_guest': '게스트로 플레이',
+      'progress_not_saved': '진행 상황이 저장되지 않을 수 있습니다',
+
+      // Home Screen
+      'play_random': '랜덤 플레이',
+
+      // Instructions
+      'instructions': '설명',
+      'tutorial_guide': '튜토리얼 가이드',
+      'instructions_text':
+          '화면을 탭하여 게임 모험을 시작하세요! 화살표를 사용하여 레벨을 이동하세요. 도전을 완료하여 코인을 모으세요. 장애물을 피하여 높은 점수를 유지하세요. 다른 경험을 위해 모드를 변경하세요.',
+
+      // Common
+      'ok': '확인',
+      'cancel': '취소',
+      'yes': '예',
+      'no': '아니요',
+      'confirm': '확인',
+      'back': '뒤로',
+      'close': '닫기',
+      'loading': '로딩 중...',
+      'error': '오류',
+      'success': '성공',
+      'warning': '경고',
+      'info': '정보',
+
+      // Messages
+      'insufficient_coins': '코인 부족',
+      'room_full': '방이 꽉 찼습니다',
+      'room_not_found': '방을 찾을 수 없습니다',
+      'already_in_room': '이미 방에 있습니다',
+      'connection_lost': '연결 끊김',
+      'reconnecting': '재연결 중...',
+      'connected': '연결됨',
+      'disconnected': '연결 끊김',
+
+      // Languages
+      'hindi': '힌디어',
+      'telugu': '텔루구어',
+      'english': '영어',
+
+      // Countries
+      'india': '인도',
+      'usa': '미국',
+      'uk': '영국',
+      'japan': '일본',
+      'spain': '스페인',
+      'portugal': '포르투갈',
+      'france': '프랑스',
+      'germany': '독일',
+      'russia': '러시아',
+
+      // Create Room & Join Room
+      'please_enter_room_name': '방 이름을 입력하세요',
+      'failed_to_create_room': '방 생성 실패',
+      'code_copied_clipboard': '코드가 클립보드에 복사되었습니다!',
+      'room_created': '방이 생성되었습니다!',
+      'share_code_with_friends': '친구들과 이 코드를 공유하세요:',
+      'enter_room': '방 입장',
+      'create_room_configure_lobby':
+          '방을 만들고 로비에서 설정을 구성하세요',
+      'enter_room_name_hint': '방 이름 입력',
+      'room_code_share_info':
+          '생성 후 친구들과 방 코드를 공유할 수 있습니다',
+      'create_team_room': '팀 방 만들기',
+      'please_check_code': '코드를 확인하고 다시 시도하세요.',
+
+      // Random Match Screen
+      'random_match': '랜덤 매치',
+      'select_target_points': '목표 포인트 선택',
+      'play_random_coins': '랜덤 플레이 (250 코인)',
+      'please_select_all_fields': '목표 포인트를 포함한 모든 필드를 선택하세요',
+      'failed_to_find_match': '매치를 찾지 못했습니다',
+      'watch_ads_coming_soon': '광고 보기 기능이 곧 제공됩니다!',
+      'buy_coins_coming_soon': '코인 구매 기능이 곧 제공됩니다!',
+      'insufficient_coins_title': '코인 부족',
+      'insufficient_coins_message':
+          '참가할 코인이 부족합니다. 광고를 보거나 코인을 구매하여 계속하세요.',
+      'watch_ads': '광고 보기',
+      'buy_coins': '코인 구매',
+      'no_matches_found': '매치 없음',
+      'no_matches_message':
+          '선호하는 설정과 일치하는 공개 방이 없습니다. 다른 설정을 시도하거나 새 방을 만드세요.',
+      'try_again': '다시 시도',
+      'selected': '선택됨',
+      'team_a_is_full': '팀 A 가득 찼습니다',
+      'team_b_is_full': '팀 B 가득 찼습니다',
+      'please_select_the_other_team': '다른 팀을 선택하세요',
+      // Categories
+      'animals': '동물',
+      'countries': '국가',
+      'everyday_objects': '일상 용품',
+      'food': '음식',
+      'historical_events': '역사적 사건',
+      'movies': '영화',
+    },
+    'zh': {
+      // Guest Signup & Profile
+      'enter_username': '输入用户名',
+      'language': '语言',
+      'country': '国家',
+      'save': '保存',
+      'skip': '跳过',
+      'next': '下一步',
+      'please_fill_all_fields': '请填写所有字段',
+      'coins': '金币',
+      'welcome': '欢迎',
+
+      // Home Screen
+      'home': '首页',
+      'play': '开始游戏',
+      'profile': '个人资料',
+      'settings': '设置',
+      'leaderboard': '排行榜',
+      'friends': '好友',
+      'shop': '商店',
+      'daily_bonus': '每日奖励',
+      'claim': '领取',
+      'claimed': '已领取',
+
+      // Multiplayer Screen
+      'multiplayer': '多人游戏',
+      'create_room': '创建房间',
+      'join_room': '加入房间',
+      'room_code': '房间代码',
+      'join': '加入',
+      'players': '玩家',
+      'waiting_for_players': '等待玩家...',
+      'start_game': '开始游戏',
+      'leave': '离开',
+      'mode': '模式',
+      'individual': '个人',
+      'team': '团队',
+      'language_filter': '语言',
+      'points': '分数',
+      'category': '类别',
+      'all': '全部',
+
+      // Game Room Screen
+      'game_room': '游戏房间',
+      'gameplay': '游戏进行中',
+      'drawing': '绘画',
+      'guessing': '猜词',
+      'selecting_drawer': '正在选人绘画...',
+      'choosing_word': '选择一个词！',
+      'drawer_is_choosing': '绘画者正在选择...',
+      'draw': '画',
+      'guess_the_word': '猜这个词',
+      'word_was': '词语是',
+      'next_round_starting': '下一轮即将开始...',
+      'time_up': '时间到！',
+      'well_done': '干得好！',
+      'whos_next': '下一个是谁？',
+      'interval': '休息',
+      'host': '房主',
+      'you': '你',
+      'correct': '正确！',
+      'good_job': '做得好！',
+      'chat': '聊天',
+      'send': '发送',
+      'type_message': '输入消息...',
+      'answers_chat': '答案聊天',
+      'general_chat': '综合聊天',
+      'team_chat': '团队聊天',
+
+      // Room Preferences Screen
+      'room_preferences': '房间偏好',
+      'select_language': '选择语言',
+      'select_points': '选择分数',
+      'select_category': '选择类别',
+      'voice_enabled': '启用语音',
+      'select_team': '选择团队',
+      'team_selection': '团队选择',
+      'blue_team': '蓝队',
+      'orange_team': '橙队',
+
+      // Profile & Settings
+      'edit_profile': '编辑资料',
+      'profile_and_accounts': '资料与账户',
+      'username': '用户名',
+      'email': '电子邮箱',
+      'phone': '电话',
+      'logout': '登出',
+      'delete_account': '删除账户',
+      'version': '版本',
+      'about': '关于',
+      'privacy_policy': '隐私政策',
+      'terms_and_conditions': '条款和条件',
+      'sound': '声音',
+      'privacy_and_safety': '隐私与安全',
+      'contact': '联系我们',
+      'rate_app': '评价应用',
+      'connect_us_at': '联系方式',
+      'are_you_sure_logout': '确定要登出吗？',
+      'loading_ads': '加载广告中...',
+
+      // Sign In
+      'ink_battle': '墨水大作战',
+      'sign_in_with_google': '使用 Google 登录',
+      'sign_in_with_facebook': '使用 Facebook 登录',
+      'signing_in': '登录中...',
+      'or': '或',
+      'play_as_guest': '游客登录',
+      'progress_not_saved': '进度可能不会保存',
+
+      // Home Screen
+      'play_random': '随机匹配',
+
+      // Instructions
+      'instructions': '说明',
+      'tutorial_guide': '新手指南',
+      'instructions_text':
+          '点击屏幕开始你的游戏冒险！使用箭头在关卡中导航。通过完成挑战收集金币。避开障碍物以保持高分。切换模式体验不同的玩法。',
+
+      // Common
+      'ok': '确定',
+      'cancel': '取消',
+      'yes': '是',
+      'no': '否',
+      'confirm': '确认',
+      'back': '返回',
+      'close': '关闭',
+      'loading': '加载中...',
+      'error': '错误',
+      'success': '成功',
+      'warning': '警告',
+      'info': '信息',
+
+      // Messages
+      'insufficient_coins': '金币不足',
+      'room_full': '房间已满',
+      'room_not_found': '未找到房间',
+      'already_in_room': '已在房间中',
+      'connection_lost': '连接丢失',
+      'reconnecting': '正在重新连接...',
+      'connected': '已连接',
+      'disconnected': '已断开',
+
+      // Languages
+      'hindi': '印地语',
+      'telugu': '泰卢固语',
+      'english': '英语',
+
+      // Countries
+      'india': '印度',
+      'usa': '美国',
+      'uk': '英国',
+      'japan': '日本',
+      'spain': '西班牙',
+      'portugal': '葡萄牙',
+      'france': '法国',
+      'germany': '德国',
+      'russia': '俄罗斯',
+
+      // Create Room & Join Room
+      'please_enter_room_name': '请输入房间名',
+      'failed_to_create_room': '创建房间失败',
+      'code_copied_clipboard': '代码已复制到剪贴板！',
+      'room_created': '房间已创建！',
+      'share_code_with_friends': '与朋友分享此代码：',
+      'enter_room': '进入房间',
+      'create_room_configure_lobby':
+          '创建房间并在大厅配置设置',
+      'enter_room_name_hint': '输入房间名',
+      'room_code_share_info':
+          '创建后您可以与朋友分享房间代码',
+      'create_team_room': '创建团队房间',
+      'please_check_code': '请检查代码并重试。',
+
+      // Random Match Screen
+      'random_match': '随机匹配',
+      'select_target_points': '选择目标分数',
+      'play_random_coins': '随机游玩 (250 金币)',
+      'please_select_all_fields': '请选择包括目标分数在内的所有字段',
+      'failed_to_find_match': '未找到比赛',
+      'watch_ads_coming_soon': '观看广告功能即将推出！',
+      'buy_coins_coming_soon': '购买金币功能即将推出！',
+      'insufficient_coins_title': '金币不足',
+      'insufficient_coins_message': '您的金币不足以加入。请观看广告或购买金币以继续游玩。',
+      'watch_ads': '观看广告',
+      'buy_coins': '购买金币',
+      'no_matches_found': '未找到匹配',
+      'no_matches_message': '没有符合您偏好的公共房间。请尝试不同的设置或创建一个新房间。',
+      'try_again': '重试',
+      'selected': '已选',
+      'team_a_is_full': '团队 A 已满',
+      'team_b_is_full': '团队 B 已满',
+      'please_select_the_other_team': '请选择其他团队',
+      // Categories
+      'animals': '动物',
+      'countries': '国家',
+      'everyday_objects': '日常用品',
+      'food': '食物',
+      'historical_events': '历史事件',
+      'movies': '电影',
     },
   };
 
@@ -2915,6 +4337,12 @@ class AppLocalizations {
   static String get correctAnswerParty => translate('correct_answer_party');
   static String get generalChatWelcome => translate('general_chat_welcome');
   static String get typeAnything => translate('type_anything');
+  static String get script => translate('script');
+  static String get noRoomsAvailable => translate('no_rooms_available');
+  static String get selectAllFiltersToViewRooms => translate('select_all_filters_to_view_rooms');
+  static String get noMatchesFound => translate('no_matches_found');
+  static String get noMatchesMessage => translate('no_matches_message');
+  static String get tryAgain => translate('try_again');
 
   // Create Room & Join Room
   static String get pleaseEnterRoomName => translate('please_enter_room_name');
@@ -2945,8 +4373,16 @@ class AppLocalizations {
   static String get insufficientCoinsMessage =>
       translate('insufficient_coins_message');
   static String get watchAds => translate('watch_ads');
+  static String get buy => translate('buy');
   static String get buyCoins => translate('buy_coins');
-  static String get noMatchesFound => translate('no_matches_found');
-  static String get noMatchesMessage => translate('no_matches_message');
-  static String get tryAgain => translate('try_again');
+  static String get teamAIsFull => translate('team_a_is_full');
+  static String get teamBIsFull => translate('team_b_is_full'); 
+  static String get pleaseSelectTheOtherTeam => translate('please_select_the_other_team');
+
+  static String get animals => translate('animals');
+  static String get countries => translate('countries');
+  static String get food => translate('food');
+  static String get everydayObjects => translate('everyday_objects');
+  static String get historicalEvents => translate('historical_events');
+  static String get movies => translate('movies');
 }

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:inkbattle_frontend/constants/app_colors.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/repositories/room_repository.dart';
 import 'package:inkbattle_frontend/repositories/theme_repository.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
-import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/widgets/text_widget.dart';
+import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class RoomPreferencesScreen extends StatefulWidget {
   const RoomPreferencesScreen({super.key});
@@ -31,8 +30,10 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
   int? selectedTargetPoints;
   bool voiceEnabled = false;
   bool _isLoading = false;
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
+  
+  // REMOVED: Ad variables
+  // BannerAd? _bannerAd;
+  // bool _isBannerAdLoaded = false;
 
   List<String> languages = [];
   final List<String> countries = [
@@ -53,41 +54,16 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
   void initState() {
     super.initState();
     _loadLanguagesAndCategories();
-    _loadBannerAd();
+    // REMOVED: _loadBannerAd();
   }
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
+    // REMOVED: _bannerAd?.dispose();
     super.dispose();
   }
 
-  Future<void> _loadBannerAd() async {
-    try {
-      await AdService.initializeMobileAds();
-      await AdService.loadBannerAd(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = ad as BannerAd;
-              _isBannerAdLoaded = true;
-            });
-            print('✅ Banner ad loaded successfully');
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('❌ Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = false;
-            });
-          }
-        },
-      );
-    } catch (e) {
-      print('Error loading banner ad: $e');
-    }
-  }
+  // REMOVED: _loadBannerAd() function
 
   Future<void> _loadLanguagesAndCategories() async {
     // Load languages
@@ -177,10 +153,11 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
 
     try {
       // Call play random API (backend will check coins)
+      final category = selectedCategory;
       final result = await _roomRepository.playRandom(
         language: selectedLanguage,
         country: selectedCountry,
-        category: selectedCategory,
+        categories: category != null ? [category] : null,
         targetPoints: selectedTargetPoints,
         voiceEnabled: voiceEnabled,
       );
@@ -190,7 +167,7 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
           if (mounted) {
             // Check if it's insufficient coins error
             if (failure.message.contains('insufficient_coins')) {
-              _showInsufficientCoinsDialog();
+              _showInsufficientCoinsSnackBar();
             }
             // Check if it's a "no matches found" error
             else if (failure.message.contains('no_matches_found')) {
@@ -239,66 +216,83 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
     }
   }
 
-  void _showInsufficientCoinsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        title: TextWidget(
-          text: AppLocalizations.insufficientCoinsTitle,
-          fontSize: 18.sp,
-          fontWeight: FontWeight.bold,
-          color: AppColors.whiteColor,
-        ),
+  // void _showInsufficientCoinsDialog() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       backgroundColor: const Color(0xFF1A1A2E),
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(20.r),
+  //       ),
+  //       title: TextWidget(
+  //         text: AppLocalizations.insufficientCoinsTitle,
+  //         fontSize: 18.sp,
+  //         fontWeight: FontWeight.bold,
+  //         color: AppColors.whiteColor,
+  //       ),
+  //       content: TextWidget(
+  //         text: AppLocalizations.insufficientCoinsMessage,
+  //         fontSize: 14.sp,
+  //         color: Colors.grey,
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: TextWidget(
+  //             text: AppLocalizations.cancel,
+  //             fontSize: 14.sp,
+  //             color: Colors.grey,
+  //           ),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             // TODO: Navigate to watch ads screen
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(content: Text(AppLocalizations.watchAdsComingSoon)),
+  //             );
+  //           },
+  //           child: TextWidget(
+  //             text: AppLocalizations.watchAds,
+  //             fontSize: 14.sp,
+  //             color: Colors.orange,
+  //           ),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             // TODO: Navigate to buy coins screen
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(content: Text(AppLocalizations.buyCoinsComingSoon)),
+  //             );
+  //           },
+  //           child: TextWidget(
+  //             text: AppLocalizations.buyCoins,
+  //             fontSize: 14.sp,
+  //             color: Colors.green,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  void _showInsufficientCoinsSnackBar() {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: TextWidget(
-          text: AppLocalizations.insufficientCoinsMessage,
+          text: "${AppLocalizations.insufficientCoinsTitle}. ${AppLocalizations.insufficientCoinsMessage}",
           fontSize: 14.sp,
           color: Colors.grey,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: TextWidget(
-              text: AppLocalizations.cancel,
-              fontSize: 14.sp,
-              color: Colors.grey,
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Navigate to watch ads screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppLocalizations.watchAdsComingSoon)),
-              );
-            },
-            child: TextWidget(
-              text: AppLocalizations.watchAds,
-              fontSize: 14.sp,
-              color: Colors.orange,
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Navigate to buy coins screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppLocalizations.buyCoinsComingSoon)),
-              );
-            },
-            child: TextWidget(
-              text: AppLocalizations.buyCoins,
-              fontSize: 14.sp,
-              color: Colors.green,
-            ),
-          ),
-        ],
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
+
+
 
   void _showNoMatchesDialog() {
     showDialog(
@@ -350,10 +344,11 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
     });
 
     try {
+      final category = selectedCategory;
       final result = await _roomRepository.createPublicRoom(
-        name: '${selectedCategory!} Room',
+        name: '${category!} Room',
         language: selectedLanguage,
-        category: selectedCategory,
+        categories: category != null ? [category] : null,
         country: selectedCountry,
         targetPoints: selectedTargetPoints,
       );
@@ -405,6 +400,7 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
 
     return BlueBackgroundScaffold(
       child: SafeArea(
+        bottom: true, // Protect bottom for ad visibility
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
           child: Column(
@@ -481,14 +477,6 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
                       ),
                       SizedBox(height: 15.h),
 
-                      // Voice toggle
-                      // _buildCheckbox(
-                      //   width: controlWidth,
-                      //   title: "Voice Chat",
-                      //   imageurl: AppImages.mp6,
-                      //   value: voiceEnabled,
-                      //   onChanged: (v) => setState(() => voiceEnabled = v ?? false),
-                      // ),
                       SizedBox(height: 30.h),
 
                       // Join button
@@ -497,31 +485,9 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 10.h),
-              // Banner Ad
-              if (_isBannerAdLoaded && _bannerAd != null)
-                Container(
-                  width: double.infinity,
-                  height: 60.h,
-                  color: Colors.black.withOpacity(0.3),
-                  child: AdWidget(ad: _bannerAd!),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  height: 60.h,
-                  color: Colors.grey.withOpacity(0.2),
-                  child: Center(
-                    child: Text(
-                      'Loading ads...',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              SizedBox(height: 10.h),
+              
+              // Persistent Banner Ad (app-wide, loaded once)
+              const PersistentBannerAdWidget(),
             ],
           ),
         ),
