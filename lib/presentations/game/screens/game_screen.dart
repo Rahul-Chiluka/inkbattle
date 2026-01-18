@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -46,6 +47,7 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  final String _logTag = 'GameScreen';
   RoomStatus? _roomStatus;
   StreamSubscription<RoomStatus>? _roomSub;
   final List<ChatMessage> _generalChat = [];
@@ -123,7 +125,7 @@ class _GameScreenState extends State<GameScreen> {
           _onGameStarted();
         }
       },
-      onError: (err) => debugPrint('Room updates error: $err'),
+      onError: (err) => developer.log('Room updates error: $err', name: _logTag),
     );
   }
 
@@ -153,6 +155,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onGameStarted() {
+    developer.log('Game started', name: _logTag);
     _generalChat.clear();
     _answersChat.clear();
     setState(() {});
@@ -161,6 +164,7 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isPlaying => _roomStatus?.status == 'started';
 
   void _addGeneralMessage(ChatMessage msg) {
+    developer.log('Adding general message: ${msg.text}', name: _logTag);
     setState(() {
       _generalChat.add(msg);
     });
@@ -171,6 +175,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _addAnswerMessage(ChatMessage msg) {
+    developer.log('Adding answer message: ${msg.text}', name: _logTag);
     setState(() {
       _answersChat.add(msg);
     });
@@ -181,6 +186,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _sendAnswerMessage(String text) {
+    developer.log('Sending answer message: $text', name: _logTag);
     if (text.trim().isNotEmpty) {
       final isCorrect = text.toLowerCase() == 'pen';
       final msg = ChatMessage(
@@ -195,6 +201,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _sendGeneralMessage(String text) {
+    developer.log('Sending general message: $text', name: _logTag);
     if (text.trim().isNotEmpty) {
       final msg = ChatMessage(
         user: 'You',
@@ -209,6 +216,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    developer.log('Building game screen', name: _logTag);
     ScreenUtil.init(context, designSize: const Size(360, 800));
     final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final double screenH = MediaQuery.of(context).size.height * 0.48;
@@ -269,6 +277,7 @@ class _GameScreenState extends State<GameScreen> {
             SizedBox(width: 5.w),
             GestureDetector(
               onTap: () {
+                developer.log('Showing team winner popup', name: _logTag);
                 List<Team> teams = [
                   Team(
                     name: "Alpha",
@@ -306,6 +315,7 @@ class _GameScreenState extends State<GameScreen> {
             SizedBox(width: 5.w),
             GestureDetector(
               onTap: () {
+                developer.log('Showing exit popup', name: _logTag);
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -326,6 +336,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _copyableRoomIdPill(String roomId) {
     return GestureDetector(
       onTap: () async {
+        developer.log('Copying room id: $roomId', name: _logTag);
         await Clipboard.setData(ClipboardData(text: roomId));
         setState(() => _copied = true);
         Future.delayed(const Duration(seconds: 5), () {
@@ -349,6 +360,7 @@ class _GameScreenState extends State<GameScreen> {
     required Color textColor,
     Widget? leading,
   }) {
+    developer.log('Building pill: $text', name: _logTag);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
       decoration: BoxDecoration(
@@ -376,6 +388,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildTeamsImage() {
+    developer.log('Building teams image', name: _logTag);
     return SizedBox(
       width: 120.w,
       height: 40.h,
@@ -410,6 +423,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildScoreboard() {
     final a = _roomStatus?.teamScores['A'] ?? 0;
     final b = _roomStatus?.teamScores['B'] ?? 0;
+    developer.log('Building scoreboard: $a vs $b', name: _logTag);
     return SizedBox(
       width: 120.w,
       height: 40.h,
@@ -424,6 +438,7 @@ class _GameScreenState extends State<GameScreen> {
             left: 25.w,
             child: GestureDetector(
               onTap: () {
+                developer.log('Showing team display popup for team A', name: _logTag);
                 showDialog(
                   context: context,
                   barrierColor: Colors.black54,
@@ -453,6 +468,7 @@ class _GameScreenState extends State<GameScreen> {
             right: 25.w,
             child: GestureDetector(
               onTap: () {
+                developer.log('Showing team display popup for team B', name: _logTag);
                 showDialog(
                   context: context,
                   barrierColor: Colors.black54,
@@ -506,6 +522,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildBoardArea(double height) {
+    developer.log('Building board area: $height', name: _logTag);
     final players = _roomStatus?.players ?? [];
 
     return Container(
@@ -559,6 +576,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _waitingForPlayersView(List<Player> players) {
+    developer.log('Waiting for players view', name: _logTag);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -582,6 +600,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _drawingBoardPlaceholder() {
+    developer.log('Drawing board placeholder', name: _logTag);
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFF0B0B0B), width: 1),
@@ -598,6 +617,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildControlsRow() {
+    developer.log('Building controls row', name: _logTag);
     return Padding(
       padding: EdgeInsets.fromLTRB(10.w, 6.h, 10.w, 6.h),
       child: Row(
@@ -677,6 +697,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildIconBox({required Widget child, required VoidCallback onTap}) {
+    developer.log('Building icon box', name: _logTag);
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -693,6 +714,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildChatArea() {
+    developer.log('Building chat area', name: _logTag);
     return Expanded(
       child: Container(
         padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 12.h),

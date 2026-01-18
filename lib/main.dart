@@ -36,6 +36,9 @@ void main() async {
 
   // Initialize notifications (FCM + local notifications)
   await NotificationService().initialize();
+  
+  // Set navigator key for notification navigation
+  NotificationService().setNavigatorKey(navigatorKey);
 
   await AdService.initializeMobileAds();
   // Load persistent banner ad (app-wide, loaded once)
@@ -111,6 +114,11 @@ class _MyAppState extends State<MyApp> {
       if (mounted) {
         setState(() {});
       }
+    });
+    
+    // Set router for notification navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().setRouter(appRoutes.router);
     });
   }
 

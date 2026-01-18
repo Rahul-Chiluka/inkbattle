@@ -70,7 +70,7 @@ class BillingService {
       await _iap.buyConsumable(purchaseParam: purchaseParam);
     } catch (e) {
       final platformName = Platform.isAndroid ? 'Google Play' : 'App Store';
-      print('❌ Exception during purchase: $e');
+      print('Exception during purchase: $e');
       _onError?.call('Failed to initiate purchase on $platformName: $e');
     }
   }

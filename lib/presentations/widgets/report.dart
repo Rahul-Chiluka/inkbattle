@@ -3,8 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
-import 'package:inkbattle_frontend/presentations/game/widgets/form.dart';
-import 'package:inkbattle_frontend/presentations/game/widgets/submitted.dart';
+import 'package:inkbattle_frontend/presentations/widgets/form.dart';
+import 'package:inkbattle_frontend/presentations/widgets/submitted.dart';
+import 'dart:developer' as developer;
 
 class ErrorPopup extends StatelessWidget {
   ErrorPopup({super.key, required this.participants, required this.roomId});
@@ -13,8 +14,8 @@ class ErrorPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String _logTag = 'ReportPopupScreen';
     final bool isTablet = MediaQuery.of(context).size.width > 600;
-
     return AlertDialog(
       backgroundColor: const Color(0xFF000000),
       shape: RoundedRectangleBorder(
@@ -77,12 +78,13 @@ class ErrorPopup extends StatelessWidget {
                 subtitle: 'Report inappropriate chat, name, or behavior',
                 imagePath: AppImages.reportmember,
                 onPressed: () {
+                  developer.log('Report Member button pressed', name: _logTag);
                   Navigator.pop(context);
                   showDialog(
                     context: context,
                     builder: (context) => FormPopup(
-                      participants: participants,
                       roomId: roomId,
+                      participants: participants,
                     ),
                   );
                 },
@@ -95,6 +97,7 @@ class ErrorPopup extends StatelessWidget {
                     'Report if someone draws answers or offensive content',
                 imagePath: AppImages.reportdrawing,
                 onPressed: () {
+                  developer.log('Report Drawing button pressed', name: _logTag);
                   Navigator.pop(context);
                   showDialog(
                     context: context,

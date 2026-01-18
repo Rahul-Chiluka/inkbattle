@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:inkbattle_frontend/presentations/game/widgets/winner.dart';
+import 'package:inkbattle_frontend/presentations/widgets/winner.dart';
 
 class TeamWinnerPopup extends StatelessWidget {
   final List<Team> teams;

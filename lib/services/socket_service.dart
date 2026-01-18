@@ -82,9 +82,13 @@ class SocketService {
   }
 
   // Room events
-  void joinRoom(String roomId) {
-    _socket?.emit('join_room', {'roomId': roomId});
-    log('Joining room: $roomId');
+  void joinRoom(String roomId, {String? team}) {
+    final data = <String, dynamic>{'roomId': roomId};
+    if (team != null) {
+      data['team'] = team;
+    }
+    _socket?.emit('join_room', data);
+    log('Joining room: $roomId${team != null ? ' with team: $team' : ''}');
   }
 
   void leaveRoom(String roomId) {
@@ -187,7 +191,7 @@ class SocketService {
     _socket?.on('drawing_data', callback);
   }
 
-  // ✅ PHASE 2: Acknowledgment listener for drawing data
+  //  Acknowledgment listener for drawing data
   void onDrawingAck(Function(dynamic) callback) {
     _socket?.on('drawing_ack', callback);
   }

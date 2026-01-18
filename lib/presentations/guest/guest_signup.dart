@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:inkbattle_frontend/constants/app_colors.dart';
@@ -15,6 +15,7 @@ import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:video_player/video_player.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
+import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
 
 class GuestSignUpScreen extends StatefulWidget {
   const GuestSignUpScreen({super.key});
@@ -25,6 +26,7 @@ class GuestSignUpScreen extends StatefulWidget {
 
 class _GuestSignUpScreenState extends State<GuestSignUpScreen>
     with TickerProviderStateMixin {
+  final String _logTag = 'GuestSignUpScreen';
   final UserRepository _userRepository = UserRepository();
   late final TextEditingController _usernameController;
   final FocusNode _usernameFocusNode = FocusNode();
@@ -77,18 +79,7 @@ final List<String> languages = [
     "한국어",      // Korean
     "中文",        // Chinese
   ];
-  // final List<String> countries = ["India", "USA", "UK", "Japan"];
-    final List<String> countries = [
-    "🇮🇳 India",
-    "🇺🇸 USA",
-    "🇬🇧 UK",
-    "🇯🇵 Japan",
-    "🇪🇸 Spain",
-    "🇵🇹 Portugal",
-    "🇫🇷 France",
-    "🇩🇪 Germany",
-    "🇷🇺 Russia"
-  ];
+  // Countries are now handled via CountryPickerWidget with ISO-2 codes
 
   void _selectAvatar(int index) {
     if (_movingAvatarIndex != null) return; // Prevent multiple animations
@@ -523,23 +514,17 @@ final List<String> languages = [
                           SizedBox(height: isTablet ? 20.h : 15.h),
                           SizedBox(
                             width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                            child: _buildGradientDropdown(
-                              hint: AppLocalizations.country,
-                              value: selectedCountry,
-                              items: countries,
-                              prefixIcon: Padding(
-                                padding: EdgeInsets.all(12.w),
-                                child: CustomSvgImage(
-                                  imageUrl: AppImages.coutrySvg,
-                                  height: isTablet ? 24.h : 21.h,
-                                  width: isTablet ? 24.w : 21.w,
-                                ),
-                              ),
-                              onChanged: (val) {
-                                setState(() => selectedCountry = val);
+                            child: CountryPickerWidget(
+                              selectedCountryCode: selectedCountry,
+                              onCountrySelected: (countryCode) {
+                                setState(() => selectedCountry = countryCode);
                                 // Trigger rebuild to update button state
                                 if (mounted) setState(() {});
                               },
+                              hintText: AppLocalizations.country,
+                              imageUrl: AppImages.coutrySvg,
+                              isTablet: isTablet,
+                              useGradientDesign: true, // Use gradient design to match _buildGradientDropdown
                             ),
                           ),
                           SizedBox(height: isTablet ? 30.h : 25.h),
@@ -879,6 +864,7 @@ final List<String> languages = [
       result.fold(
         (failure) {
           if (!mounted) return;
+          developer.log('Guest signup failed: ${failure.message}', name: _logTag);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(failure.message)),
           );
@@ -893,6 +879,7 @@ final List<String> languages = [
       );
     } catch (e) {
       if (mounted) {
+        developer.log('Guest signup error: $e', name: _logTag);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${AppLocalizations.error}: $e')),
         );

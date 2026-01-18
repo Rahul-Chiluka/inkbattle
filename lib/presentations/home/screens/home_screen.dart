@@ -15,8 +15,9 @@ import 'package:inkbattle_frontend/models/user_model.dart';
 import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
-
+import 'package:inkbattle_frontend/services/notification_service.dart';
 import '../../../widgets/video_reward_dialog.dart';
+import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const String _logTag = 'HomeScreen';
   final UserRepository _userRepository = UserRepository();
   UserModel? _currentUser;
   bool _isLoading = true;
@@ -37,6 +39,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Clear any pending notifications when app is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService().cancelAllReminders();
+    });
     _loadUserData();
     _hasInitialized = true;
     _lastRefreshTime = DateTime.now();
@@ -51,7 +57,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused) {
+      // User just minimized the app. Set the 24-hour timer!
+      NotificationService().schedule24HourReminder();
+    } else if (state == AppLifecycleState.resumed) {
+      // User came back. Cancel the reminder so it doesn't fire later.
+      NotificationService().cancelAllReminders();
       // Refresh user data when app resumes
       _loadUserData();
     }
@@ -99,7 +110,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final result = await _userRepository.getMe();
         result.fold(
           (failure) {
-            print('Failed to load user data: ${failure.message}');
+            developer.log(
+              'Failed to load user data: ${failure.message}',
+              name: _logTag,
+              error: failure,
+            );
             if (mounted) {
               setState(() {
                 _isLoading = false;
@@ -120,7 +135,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final result = await _userRepository.getMe();
         result.fold(
           (failure) {
-            print('Failed to load user data: ${failure.message}');
+            developer.log(
+              'Failed to load user data: ${failure.message}',
+              name: _logTag,
+              error: failure,
+            );
             if (mounted) {
               setState(() {
                 _isLoading = false;
@@ -138,7 +157,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
     } catch (e) {
-      print('Error loading user data: $e');
+      developer.log(
+        'Error loading user data: $e',
+        name: _logTag,
+        error: e,
+      );
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -341,8 +364,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                       context,
                                                       coinsAwarded: coins,
                                                       onComplete: () {
-                                                        print(
-                                                            '📍 Video animation completed');
+                                                        developer.log(
+                                                          'Video animation completed after ad watched',
+                                                          name: _logTag,
+                                                        );
                                                       },
                                                     );
                                                     // Refresh user data after ad watched

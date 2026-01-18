@@ -6,6 +6,7 @@ import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
+import 'dart:developer' as developer;
 
 class InstructionsScreen extends StatefulWidget {
   const InstructionsScreen({super.key});
@@ -15,6 +16,7 @@ class InstructionsScreen extends StatefulWidget {
 }
 
 class _InstructionsScreenState extends State<InstructionsScreen> {
+  final String _logTag = 'InstructionsScreen';
   // REMOVED: Ad variables
   // BannerAd? _bannerAd;
   // bool _isBannerAdLoaded = false;
@@ -126,6 +128,7 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                               onPressed: () {
                                 setState(() {
                                   isToggleOn = !isToggleOn;
+                                  developer.log('Toggle status changed: $isToggleOn', name: _logTag);
                                   LocalStorageUtils.setTutorialShown(isToggleOn);
                                 });
                               },
@@ -144,11 +147,11 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                                   borderRadius: BorderRadius.circular(10.r),
                                   splashColor: Colors.blue,
                                   highlightColor: Colors.blue,
-                                  onTap: () {
-                                    setState(() {
-                                      isToggleOn = !isToggleOn;
-                                    });
-                                  },
+                                  // onTap: () {
+                                  //   setState(() {
+                                  //     isToggleOn = !isToggleOn;
+                                  //   });
+                                  // },
                                   child: Container(
                                     width: MediaQuery.of(context).size.width > 600
                                         ? 270.w
@@ -179,11 +182,11 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                                         ),
                                         SizedBox(width: 15.w),
                                         GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              isToggleOn = !isToggleOn;
-                                            });
-                                          },
+                                          // onTap: () {
+                                          //   setState(() {
+                                          //     isToggleOn = !isToggleOn;
+                                          //   });
+                                          // },
                                           child: SizedBox(
                                             width: 25.w,
                                             height: 30.h,

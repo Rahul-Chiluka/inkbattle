@@ -16,6 +16,7 @@ import 'package:inkbattle_frontend/logic/auth/facebook_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 import 'package:inkbattle_frontend/services/ad_service.dart';
+import 'dart:developer' as developer;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,6 +26,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final String _logTag = 'SettingsScreen';
   double soundValue = 0.5;
   final UserRepository _userRepo = UserRepository();
   final GoogleAuthService _googleAuthService = GoogleAuthService();
@@ -53,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await AdService.loadPersistentBannerAd();
       }
     } catch (e) {
-      print('Error loading banner ad in settings screen: $e');
+      developer.log('Error loading banner ad in settings screen: $e', name: _logTag);
     }
   }
 
@@ -427,12 +429,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await _googleAuthService.signOut();
       } catch (e) {
-        print('Error signing out from Google: $e');
+        developer.log('Error signing out from Google: $e', name: _logTag);
       }
       try {
         await _facebookAuthService.signOut();
       } catch (e) {
-        print('Error signing out from Facebook: $e');
+        developer.log('Error signing out from Facebook: $e', name: _logTag);
       }
 
       // Clear all stored data - ensure everything is cleared

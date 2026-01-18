@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'dart:ui' as ui;
+import 'dart:developer' as developer;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,7 @@ import 'package:inkbattle_frontend/services/ad_service.dart';
 import 'package:inkbattle_frontend/services/socket_service.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
+import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
 import 'package:inkbattle_frontend/presentations/drawing_board/presentation/widgets/drawing_canvas.dart';
 import 'package:inkbattle_frontend/presentations/drawing_board/domain/models/stroke.dart'
     as fdb;
@@ -164,6 +166,7 @@ class _DrawerMessageOption {
 
 class _GameRoomScreenState extends State<GameRoomScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
+  static const String _logTag = 'GameRoomScreen';
   final RoomRepository _roomRepository = RoomRepository();
   final UserRepository _userRepository = UserRepository();
   final ThemeRepository _themeRepository = ThemeRepository();
@@ -258,6 +261,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   bool _showPencilTools = false;
   bool _isGameEnded = false;
   bool _shouldExitAfterAd = false;
+  bool _isWaitingForHostOrMembers = false; // Track if we're waiting for host/members after returning to lobby
   final GlobalKey _pencilKey = GlobalKey();
   bool _showOptionMenu = false;
   static const String _drawerMessagePrefix = 'drawer_message:';
@@ -412,17 +416,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     'default',
     'english'
   ]; // Updated to new word_script options
-  List<String> countries = [
-    '🇮🇳 India',
-    '🇺🇸 USA',
-    '🇬🇧 UK',
-    '🇯🇵 Japan',
-    '🇪🇸 Spain',
-    '🇵🇹 Portugal',
-    '🇫🇷 France',
-    '🇩🇪 Germany',
-    '🇷🇺 Russia'
-  ];
+  // Countries are now handled via CountryPickerWidget with ISO-2 codes
   List<int> pointsOptions = [50, 100, 150, 200];
   List<String> categories = [];
 
@@ -720,7 +714,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     // Don't check room status if game has ended and we're showing ad/leaderboard
     // This prevents premature exits when room is being cleaned up
     if (_isGameEnded) {
-      print("⚠️ Game ended - skipping room check on resume");
+      developer.log(
+        "Game ended - skipping room check on resume",
+        name: _logTag,
+      );
       return;
     }
     
@@ -742,13 +739,30 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     });
     
+    // Additional clear after a longer delay to catch any delayed snackbars
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+    
+    // Final clear after 1 second to ensure all snackbars are gone
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+    
     setState(() => _isResuming = true);
 
     // SAFEGUARD: Set a maximum timeout to ensure loading doesn't run forever
     // If resume takes more than 15 seconds, turn off loading and continue
     Future.delayed(const Duration(seconds: 15), () {
       if (mounted && _isResuming) {
-        print("⚠️ Resume timeout - turning off loading indicator");
+        developer.log(
+          "Resume timeout - turning off loading indicator",
+          name: _logTag,
+        );
         setState(() => _isResuming = false);
       }
     });
@@ -758,7 +772,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
       // Reconnect Socket if disconnected - this is the primary way to stay in the room
       if (_socketService.socket?.connected != true) {
-        print("Socket disconnected, attempting to reconnect...");
+        developer.log(
+          "Socket disconnected, attempting to reconnect...",
+          name: _logTag,
+        );
       
         // Fetch token and properly reconnect
         final token = await LocalStorageUtils.fetchToken();
@@ -775,16 +792,29 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           if (_socketService.socket?.connected == true) {
             // Wait a bit more to ensure socket is fully authenticated before joining
             await Future.delayed(const Duration(milliseconds: 300));
-            _socketService.joinRoom(widget.roomId);
+            _socketService.joinRoom(
+              widget.roomId,
+              team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
+                  ? widget.selectedTeam
+                  : null,
+            );
           } else {
-            print("⚠️ Failed to reconnect socket after resume");
+            developer.log(
+              "Failed to reconnect socket after resume",
+              name: _logTag,
+            );
           }
         }
       } else {
         // Even if connected, re-join to ensure we're still registered in the room
         // Add small delay to ensure socket is fully ready
         await Future.delayed(const Duration(milliseconds: 300));
-        _socketService.joinRoom(widget.roomId);
+        _socketService.joinRoom(
+          widget.roomId,
+          team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
+              ? widget.selectedTeam
+              : null,
+        );
       }
       
       // Try to validate room status, but don't exit on failures unless it's a confirmed 404
@@ -801,7 +831,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       (failure) {
         // Only exit if it's a 404 (Room not found).
         // If it's a network error, we stay in the screen and let the socket try to sync.
-        print("⚠️ Failed to fetch room details: ${failure.message}");
+        developer.log(
+          "Failed to fetch room details: ${failure.message}",
+          name: _logTag,
+        );
 
         // Only exit on confirmed 404 - room truly doesn't exist
         // For all other errors (network, auth, etc.), stay in the screen and trust the socket
@@ -860,7 +893,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               );
             } catch (e) {
               // Timeout or other error - turn off loading and stay in room
-              print("⚠️ Retry error: $e - staying in room");
+              developer.log(
+                "Retry error: $e - staying in room",
+                name: _logTag,
+              );
               if (mounted) {
                 setState(() => _isResuming = false);
               }
@@ -869,7 +905,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         } else {
           // Not a 404 error - likely network or temporary issue
           // Stay in the room and trust the socket connection
-          print("⚠️ Non-404 error, staying in room and trusting socket connection");
+          developer.log(
+            "Non-404 error, staying in room and trusting socket connection",
+            name: _logTag,
+          );
           if (mounted) {
             setState(() => _isResuming = false);
           }
@@ -899,7 +938,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
     } catch (e) {
       // Any exception - stay in room and trust socket
-      print("⚠️ Exception during resume check: $e - staying in room");
+      developer.log(
+        "Exception during resume check: $e - staying in room",
+        name: _logTag,
+      );
       if (mounted) {
         setState(() => _isResuming = false);
       }
@@ -947,11 +989,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   // Buffer to hold the active drawing so we don't lose it when the finger lifts.
   fdb.Stroke? _lastInProgressStroke;
   
-  // ✅ PHASE 1: Canvas versioning for race condition prevention
+  // Canvas versioning for race condition prevention
   int _canvasVersion = 0;  // Increments when canvas is cleared
   int _strokeSequenceNumber = 0;  // Increments for each stroke packet
   
-  // ✅ PHASE 2: Acknowledgment system for reliability
+  // Acknowledgment system for reliability
   final Map<int, Map<String, dynamic>> _pendingStrokes = {};  // Track pending strokes by sequence number
   final Map<int, Timer> _retryTimers = {};  // Track retry timers
   static const int _ackTimeoutMs = 200;  // Timeout before retry (200ms)
@@ -967,7 +1009,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     try {
       final userResult = await _userRepository.getMe();
       userResult.fold(
-        (failure) => print('Failed to get user'),
+        (failure) => developer.log('Failed to get user', name: _logTag),
         (user) => _currentUser = user,
       );
 
@@ -1043,7 +1085,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _resetTeamScoreboardAnimation(withSetState: false);
           }
           
-          // Preload rewarded ad if game is already playing (optimal pattern: load early)
+          // Preload close rewarded ad if game is already playing (optimal pattern: load early)
           if (room.status == 'playing') {
             _loadCloseRewardedAd();
           }
@@ -1204,7 +1246,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     if (token == null || token.isEmpty) return;
 
     _socketService.connect(token);
-    _socketService.joinRoom(widget.roomId);
+    _socketService.joinRoom(
+      widget.roomId,
+      team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
+          ? widget.selectedTeam
+          : null,
+    );
 
     _socketService.onRoomJoined((data) {
       if (mounted) {
@@ -1217,9 +1264,47 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 participants.map((p) => RoomParticipant.fromJson(p)).toList();
           }
           if (room != null && room['status'] != null) {
-            _waitingForPlayers = room['status'] == 'waiting';
+            final roomStatus = room['status'] as String;
+            _waitingForPlayers = roomStatus == 'waiting' || roomStatus == 'lobby';
+            
+            // If backend changed status to lobby (after game ended), ensure we're in waiting state
+            if (roomStatus == 'lobby' && _room != null) {
+              _room!.status = 'lobby';
+              // If we're not already waiting, start waiting for host/members
+              if (!_isWaitingForHostOrMembers && _isGameEnded) {
+                _isWaitingForHostOrMembers = true;
+              }
+            }
           }
         });
+        
+        // Check if we're waiting for host/members and they're now ready
+        if (_isWaitingForHostOrMembers && _room != null && _currentUser != null) {
+          final isHost = _currentUser!.id == _room!.ownerId;
+          final activeParticipants = _participants.where((p) => p.isActive == true).toList();
+          
+          bool canProceed = false;
+          if (isHost) {
+            // Host: check if at least one other member is active
+            final otherMembers = activeParticipants.where((p) => 
+              p.userId != _room!.ownerId && p.isActive == true
+            ).toList();
+            canProceed = otherMembers.isNotEmpty;
+          } else {
+            // Member: check if host is active
+            final hostParticipant = activeParticipants.firstWhere(
+              (p) => p.userId == _room!.ownerId,
+              orElse: () => RoomParticipant(),
+            );
+            canProceed = hostParticipant.isActive == true && hostParticipant.userId != null;
+          }
+          
+          if (canProceed) {
+            setState(() {
+              _isWaitingForHostOrMembers = false;
+            });
+          }
+        }
       }
     });
 
@@ -1234,8 +1319,73 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _participants = newParticipants;
           });
           for (var participant in _participants) {
-            if (participant.id == _currentUser?.id) {
+            if (participant.id == _currentUser?.id || 
+                participant.userId == _currentUser?.id ||
+                participant.user?.id == _currentUser?.id) {
               _currentParticipant = participant;
+              // Sync selectedTeam with server's team assignment for current user
+              if (selectedGameMode == 'team_vs_team' && participant.team != null) {
+                selectedTeam = participant.team;
+              }
+            }
+          }
+          
+          // Validate team requirements in team mode (only in lobby, not during gameplay)
+          if (selectedGameMode == 'team_vs_team' && 
+              _participants.isNotEmpty && 
+              _room?.status != 'playing' && 
+              !_waitingForPlayers) {
+            // Only count participants who have actually selected a team
+            final blueTeamCount = _participants.where((p) => p.team == 'blue' && p.team != null).length;
+            final orangeTeamCount = _participants.where((p) => p.team == 'orange' && p.team != null).length;
+            
+            // If any team has less than 2 players, exit the room
+            // This ensures both teams have minimum 2 players before game can start
+            if (blueTeamCount < 2 || orangeTeamCount < 2) {
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted && _room?.status != 'playing') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Both teams need at least 2 players. Exiting room...'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  Future.delayed(const Duration(seconds: 2), () {
+                    if (mounted && _room?.status != 'playing') {
+                      context.go('/home');
+                    }
+                  });
+                }
+              });
+            }
+          }
+          
+          // Check if we're waiting for host/members and they're now ready
+          if (_isWaitingForHostOrMembers && _room != null && _currentUser != null) {
+            final isHost = _currentUser!.id == _room!.ownerId;
+            final activeParticipants = _participants.where((p) => p.isActive == true).toList();
+            
+            bool canProceed = false;
+            if (isHost) {
+              // Host: check if at least one other member is active
+              final otherMembers = activeParticipants.where((p) => 
+                p.userId != _room!.ownerId && p.isActive == true
+              ).toList();
+              canProceed = otherMembers.isNotEmpty;
+            } else {
+              // Member: check if host is active
+              final hostParticipant = activeParticipants.firstWhere(
+                (p) => p.userId == _room!.ownerId,
+                orElse: () => RoomParticipant(),
+              );
+              canProceed = hostParticipant.isActive == true && hostParticipant.userId != null;
+            }
+            
+            if (canProceed) {
+              setState(() {
+                _isWaitingForHostOrMembers = false;
+              });
             }
           }
         }
@@ -1249,6 +1399,34 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _chatMessages
               .add({'type': 'system', 'message': '${data['userName']} joined'});
         });
+        
+        // Check if we're waiting for host/members and they're now ready
+        if (_isWaitingForHostOrMembers && _room != null && _currentUser != null) {
+          final isHost = _currentUser!.id == _room!.ownerId;
+          final activeParticipants = _participants.where((p) => p.isActive == true).toList();
+          
+          bool canProceed = false;
+          if (isHost) {
+            // Host: check if at least one other member is active
+            final otherMembers = activeParticipants.where((p) => 
+              p.userId != _room!.ownerId && p.isActive == true
+            ).toList();
+            canProceed = otherMembers.isNotEmpty;
+          } else {
+            // Member: check if host is active
+            final hostParticipant = activeParticipants.firstWhere(
+              (p) => p.userId == _room!.ownerId,
+              orElse: () => RoomParticipant(),
+            );
+            canProceed = hostParticipant.isActive == true && hostParticipant.userId != null;
+          }
+          
+          if (canProceed) {
+            setState(() {
+              _isWaitingForHostOrMembers = false;
+            });
+          }
+        }
       }
     });
     _socketService.onPlayerRemoved((data){
@@ -1306,11 +1484,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       try {
         if (data is! Map<String, dynamic>) return;
 
-        // ✅ PHASE 1: Check canvas version to prevent race conditions
+        // Check canvas version to prevent race conditions
         // If this packet is from an old canvas version (before clear), ignore it
         final int packetCanvasVersion = (data['canvasVersion'] as int?) ?? 0;
         if (packetCanvasVersion < _canvasVersion) {
-          print("⚠️ Ignoring drawing packet from old canvas version: $packetCanvasVersion < $_canvasVersion");
+          developer.log("Ignoring drawing packet from old canvas version: $packetCanvasVersion < $_canvasVersion", name: _logTag);
           return;  // Ignore packets from before canvas was cleared
         }
 
@@ -1333,14 +1511,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         }
       } catch (e, stackTrace) {
-        // ✅ PHASE 2: Improved error handling with stack trace
-        print("❌ Error handling drawing data: $e");
-        print("Stack trace: $stackTrace");
+        // Improved error handling with stack trace
+        developer.log(
+          "Error handling drawing data: $e",
+          name: _logTag,
+        );
+        developer.log(
+          "Stack trace: $stackTrace",
+          name: _logTag,
+        );
         // Don't crash the app, just log the error
       }
     });
 
-    // ✅ PHASE 2: Acknowledgment handler for drawing data reliability
+    // Acknowledgment handler for drawing data reliability
     _socketService.onDrawingAck((data) {
       try {
         if (data is! Map<String, dynamic>) return;
@@ -1355,15 +1539,21 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _pendingStrokes.remove(sequence);
         }
       } catch (e, stackTrace) {
-        // ✅ PHASE 2: Improved error handling
-        print("❌ Error handling drawing ack: $e");
-        print("Stack trace: $stackTrace");
+        // Improved error handling
+        developer.log(
+          "Error handling drawing ack: $e",
+          name: _logTag,
+        );
+        developer.log(
+          "Stack trace: $stackTrace",
+          name: _logTag,
+        );
       }
     });
 
     _socketService.onClearCanvas((data) {
       if (mounted) {
-        // ✅ PHASE 1: Update canvas version when cleared to prevent race conditions
+        // Update canvas version when cleared to prevent race conditions
         final int newVersion = (data['canvasVersion'] as int?) ?? (_canvasVersion + 1);
         _canvasVersion = newVersion;
         
@@ -1371,7 +1561,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _strokes.value = [];
           _currentStroke.clear();
         });
-        print("🧹 Canvas cleared, version updated to: $_canvasVersion");
+        developer.log(
+          "Canvas cleared, version updated to: $_canvasVersion",
+          name: _logTag,
+        );
       }
     });
 
@@ -1490,8 +1683,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                   m['type'] == 'incorrect');
 
               if (existingIndex == -1) {
-                print(
-                    '${_currentUser?.avatar ?? _currentUser?.profilePicture}');
+                developer.log(
+                    '${_currentUser?.avatar ?? _currentUser?.profilePicture}',
+                    name: _logTag,
+                  );
                 _answersChatMessages.add({
                   'type': 'incorrect',
                   'userName': _currentUser?.name ?? 'You',
@@ -1557,8 +1752,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onSettingsUpdated((data) {
-      print(
-          '🟢 CLIENT: Received settings_updated event with data: ${data['maxPlayers']}');
+      developer.log(
+          'Received settings_updated event with data: ${data['maxPlayers']}',
+          name: _logTag,
+        );
       if (mounted) {
         setState(() {
           selectedGameMode = data['gameMode'];
@@ -1600,9 +1797,44 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           players = maxPlayers; // Sync players variable with maxPlayers
           
           if (data['status'] != null && _room != null) {
-            _room!.status = data['status'];
+            final roomStatus = data['status'] as String;
+            _room!.status = roomStatus;
             _waitingForPlayers =
-                data['status'] == 'lobby' || data['status'] == 'waiting';
+                roomStatus == 'lobby' || roomStatus == 'waiting';
+            
+            // If backend changed status to lobby (after game ended), ensure we're in waiting state
+            if (roomStatus == 'lobby' && _isGameEnded) {
+              // Start waiting for host/members if not already waiting
+              if (!_isWaitingForHostOrMembers) {
+                _isWaitingForHostOrMembers = true;
+              }
+            }
+          }
+          
+          // Check if we're waiting for host/members and they're now ready
+          if (_isWaitingForHostOrMembers && _room != null && _currentUser != null) {
+            final isHost = _currentUser!.id == _room!.ownerId;
+            final activeParticipants = _participants.where((p) => p.isActive == true).toList();
+            
+            bool canProceed = false;
+            if (isHost) {
+              // Host: check if at least one other member is active
+              final otherMembers = activeParticipants.where((p) => 
+                p.userId != _room!.ownerId && p.isActive == true
+              ).toList();
+              canProceed = otherMembers.isNotEmpty;
+            } else {
+              // Member: check if host is active
+              final hostParticipant = activeParticipants.firstWhere(
+                (p) => p.userId == _room!.ownerId,
+                orElse: () => RoomParticipant(),
+              );
+              canProceed = hostParticipant.isActive == true && hostParticipant.userId != null;
+            }
+            
+            if (canProceed) {
+              _isWaitingForHostOrMembers = false;
+            }
           }
           if (selectedGameMode != 'team_vs_team' || _waitingForPlayers) {
             _hasShownTeamScoreIntro = false;
@@ -1629,6 +1861,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (mounted) {
         setState(() {
           _waitingForPlayers = false;
+          _isWaitingForHostOrMembers = false; // Stop waiting when game starts
           if (_room != null) {
             _room!.status = 'playing';
           }
@@ -1772,8 +2005,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         });
         _showDrawerInfo = false;
-        print(
-            '📐 Phase changed to $nextPhase. Board size preserved: $_drawerBoardSize');
+        developer.log(
+            'Phase changed to $nextPhase. Board size preserved: $_drawerBoardSize',
+            name: _logTag,
+          );
         if (nextPhase != 'choosing_word') {
           _cancelWordSelectionCountdown();
         }
@@ -1843,8 +2078,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                   }
                   _lastKnownBoardSize = capturedSize;
                 });
-                print(
-                    '📐 Board size recaptured after drawer selection: $capturedSize');
+                developer.log(
+                    'Board size recaptured after drawer selection: $capturedSize',
+                    name: _logTag,
+                  );
               }
             }
           });
@@ -1960,6 +2197,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         setState(() {
           _waitingForPlayers = false;
           _isLoading = false;
+          _isWaitingForHostOrMembers = false; // Stop waiting when game starts
           if (_room != null) {
             _room!.status = 'playing';
           }
@@ -1985,7 +2223,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _isGameEnded = true;
         });
         _resetTeamScoreboardAnimation();
-        _loadCloseRewardedAd(); // Load ad when game ends
         final rankings = data['rankings'] as List?;
         Future.delayed(const Duration(milliseconds: 7000), () {
           if (mounted) {
@@ -2014,7 +2251,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           if (participantIndex != -1) {
             _participants[participantIndex].score = newScore;
             
-            // ✅ FIX 1v1: If this is the current user (drawer), ensure UI reflects update
+            // 1v1: If this is the current user (drawer), ensure UI reflects update
             // Score update happens before winner check, so UI will show correct score
             if (userId == _currentUser?.id && _isDrawer && selectedGameMode == '1v1') {
               // Score is updated, UI will reflect it immediately
@@ -2034,11 +2271,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _usersWhoAnswered.clear();
           _currentDrawerMessageKey = null;
 
-          // ✅ PHASE 1: Reset canvas version and sequence on new round
+          // Reset canvas version and sequence on new round
           _canvasVersion = 0;
           _strokeSequenceNumber = 0;
 
-          // ✅ CLEAR CANVAS on round start
+          // Clear canvas on round start
           _strokes.value = [];
           _currentStroke.clear();
           try {
@@ -2130,9 +2367,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           // Backend adds points to all team members' scores (they all have same score = team score)
           // Score updates come via score_update events for all team members
           
-          // Trigger points animation for ALL team members on the scoring team
+          // Get the current user's team - check both selectedTeam and participant team
+          // For drawer, use their team from _currentDrawerInfo or _currentParticipant
+          String? currentUserTeam = selectedTeam;
+          if (_isDrawer && _currentDrawerInfo != null) {
+            // Drawer's team from drawer info
+            currentUserTeam = _currentDrawerInfo!['team'] as String?;
+          } else if (_currentParticipant != null) {
+            // Use participant's team as fallback
+            currentUserTeam = _currentParticipant!.team ?? selectedTeam;
+          }
+          
+          // Trigger points animation for ALL team members on the scoring team (including drawer)
           // All team members see the team points animation (not individual points)
-          if (selectedTeam != null && selectedTeam == teamThatScored) {
+          if (currentUserTeam != null && currentUserTeam == teamThatScored) {
             setState(() {
               _earnedPointsDisplay = pointsEarned; // Show team points earned
             });
@@ -2244,7 +2492,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
     _socketService.onCanvasClear((data) {
       if (mounted) {
-        // ✅ PHASE 1: Update canvas version when cleared to prevent race conditions
+        // Update canvas version when cleared to prevent race conditions
         final int newVersion = (data['canvasVersion'] as int?) ?? (_canvasVersion + 1);
         _canvasVersion = newVersion;
         
@@ -2260,7 +2508,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         // Restore the board size immediately after setState
         _drawerBoardSize = savedSize;
 
-        print("🧹 Canvas cleared (guesser), version updated to: $_canvasVersion");
+        developer.log(
+          "Canvas cleared (guesser), version updated to: $_canvasVersion",
+          name: _logTag,
+        );
 
         // If size was lost (Size.zero), try to recapture it
         if (_drawerBoardSize == Size.zero) {
@@ -2273,8 +2524,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                   activeKey.currentContext?.findRenderObject() as RenderBox?;
               if (renderBox != null && renderBox.hasSize) {
                 _drawerBoardSize = renderBox.size;
-                print(
-                    '📐 Board size recaptured after clear: $_drawerBoardSize');
+                developer.log(
+                    'Board size recaptured after clear: $_drawerBoardSize',
+                    name: _logTag,
+                  );
               }
             }
           });
@@ -2287,11 +2540,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         // If game has ended and we're showing ad/leaderboard, don't exit immediately
         // Let the ad/leaderboard flow complete first
         if (_isGameEnded) {
-          print("⚠️ Room closed but game ended - will exit after ad/leaderboard");
+          developer.log(
+            "Room closed but game ended - will exit after ad/leaderboard",
+            name: _logTag,
+          );
           // Set a flag to exit after ad is shown
           _shouldExitAfterAd = true;
+          // Stop waiting for host/members since room is closed
+          _isWaitingForHostOrMembers = false;
           return;
         }
+        
+        // Stop waiting for host/members since room is closed
+        _isWaitingForHostOrMembers = false;
         
         // Don't show snackbar if app is resuming (prevents obstruction)
         if (!_isResuming) {
@@ -2320,7 +2581,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         // Suppress "room_not_found" errors during resume - they're often false positives
         // The room exists, but there might be a timing issue with socket reconnection
         if (_isResuming && message == 'room_not_found') {
-          print("⚠️ Suppressing room_not_found error during resume - room should exist");
+          developer.log(
+            "Suppressing room_not_found error during resume - room should exist",
+            name: _logTag,
+          );
           return;
         }
 
@@ -2433,7 +2697,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   void _clearCanvas() {
-    // ✅ PHASE 1: Increment canvas version when clearing to prevent race conditions
+    // Increment canvas version when clearing to prevent race conditions
     _canvasVersion++;
     
     final savedSize = _drawerBoardSize;
@@ -2443,7 +2707,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _drawerBoardSize = savedSize;
     _lastKnownBoardSize = savedSize;
     _socketService.clearCanvas(widget.roomId, _canvasVersion);
-    print("🧹 Canvas cleared by drawer, version: $_canvasVersion");
+    developer.log(
+      "Canvas cleared by drawer, version: $_canvasVersion",
+      name: _logTag,
+    );
   }
 
   Size _getGuesserBoardSize() {
@@ -2678,42 +2945,70 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           final isTeamMode = selectedGameMode == 'team_vs_team';
           List<Team> teams = [];
           if (isTeamMode) {
-            // Team score = any team member's score (all members have same score)
-            int orangeScore = 0;
-            int blueScore = 0;
-            String? avatarTeamA;
-            String? avatarTeamB;
-            for (var participant in _participants) {
-              if (participant.team == 'orange') {
-                if (orangeScore == 0) orangeScore = participant.score ?? 0; // Take first member's score
-                if (avatarTeamB == null) avatarTeamB = participant.user?.avatar;
-              } else if (participant.team == 'blue') {
-                if (blueScore == 0) blueScore = participant.score ?? 0; // Take first member's score
-                if (avatarTeamA == null) avatarTeamA = participant.user?.avatar;
+            // Team mode: Use rankings to determine winning team and build leaderboard
+            // Group rankings by team to find team scores
+            Map<String, int> teamScores = {};
+            Map<String, String?> teamAvatars = {};
+            
+            for (var rank in rankings) {
+              final team = rank['team'] as String?;
+              if (team != null) {
+                final score = rank['score'] as int? ?? 0;
+                // In team mode, all team members have same score (team score)
+                if (!teamScores.containsKey(team)) {
+                  teamScores[team] = score;
+                  // Get avatar from first team member found
+                  for (var participant in _participants) {
+                    if (participant.team == team && participant.user?.avatar != null) {
+                      teamAvatars[team] = participant.user?.avatar;
+                      break;
+                    }
+                  }
+                }
               }
             }
-            teams = [
-              Team(
-                name: "Team A",
-                score: blueScore,
-                avatar: avatarTeamA ?? AppImages.profile,
-              ),
-              Team(
-                name: "Team B",
-                score: orangeScore,
-                avatar: avatarTeamB ?? AppImages.profile,
-              ),
-            ];
+            
+            // Sort teams by score (descending) to determine winner
+            final sortedTeams = teamScores.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            
+            // Build teams list with proper ordering (winner first)
+            for (var entry in sortedTeams) {
+              final teamName = entry.key == 'blue' ? 'Team A' : 'Team B';
+              teams.add(Team(
+                name: teamName,
+                score: entry.value,
+                avatar: teamAvatars[entry.key] ?? AppImages.profile,
+              ));
+            }
           } else {
-            _participants.sort((a, b) => b.score!.compareTo(a.score!));
-
-            var topPlayers = _participants.take(3).toList();
-            teams = topPlayers.map((player) {
+            // 1v1 mode: Use rankings to show top 3 players (handles ties correctly)
+            // Rankings are already sorted by backend with proper place assignments
+            final topRankings = rankings.where((rank) {
+              final place = rank['place'] as int? ?? 999;
+              return place <= 3;
+            }).toList();
+            
+            // Sort by place to maintain order
+            topRankings.sort((a, b) {
+              final placeA = a['place'] as int? ?? 999;
+              final placeB = b['place'] as int? ?? 999;
+              return placeA.compareTo(placeB);
+            });
+            
+            teams = topRankings.map((rank) {
+              // Find participant for avatar
+              final userId = rank['userId'];
+              final participant = _participants.firstWhere(
+                (p) => p.userId == userId || p.user?.id == userId,
+                orElse: () => RoomParticipant(),
+              );
+              
               return Team(
-                name: player.user?.name ?? 'Player',
-                score: player.score ?? 0,
-                avatar: player.user?.avatar ??
-                    player.user?.profilePicture ??
+                name: rank['name'] as String? ?? 'Player',
+                score: rank['score'] as int? ?? 0,
+                avatar: participant.user?.avatar ??
+                    participant.user?.profilePicture ??
                     AppImages.profile,
               );
             }).toList();
@@ -2732,9 +3027,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                     isTeamvTeam: isTeamMode,
                     onNext: () {
                       // _toggleLeaderboard(closeRoom: true);
-                      Navigator.of(context).pop(); // ✅ Close popup
+                      Navigator.of(context).pop(); // Close popup
                       if (mounted) {
-                        _showCloseAdAndNavigate();   // ✅ Show ad
+                        _showCloseAdAndNavigate();   // Show ad
                       }
                     },
                   ),
@@ -2745,31 +3040,47 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         },
       );
     } else {
+      // No coins won - show leaderboard without coin animation
       final isTeamMode = selectedGameMode == 'team_vs_team';
       List<Team> teams = [];
       if (isTeamMode) {
-        int orangeScore = 0;
-        int blueScore = 0;
-        for (var participant in _participants) {
-          if (participant.team == 'orange') {
-            orangeScore += participant.score ?? 0;
-          } else if (participant.team == 'blue') {
-            blueScore += participant.score ?? 0;
+        // Team mode: Use rankings to determine team scores
+        Map<String, int> teamScores = {};
+        Map<String, String?> teamAvatars = {};
+        
+        for (var rank in rankings) {
+          final team = rank['team'] as String?;
+          if (team != null) {
+            final score = rank['score'] as int? ?? 0;
+            // In team mode, all team members have same score (team score)
+            if (!teamScores.containsKey(team)) {
+              teamScores[team] = score;
+              // Get avatar from first team member found
+              for (var participant in _participants) {
+                if (participant.team == team && participant.user?.avatar != null) {
+                  teamAvatars[team] = participant.user?.avatar;
+                  break;
+                }
+              }
+            }
           }
         }
-        teams = [
-          Team(
-            name: "Alpha",
-            score: blueScore,
-            avatar: AppImages.profile,
-          ),
-          Team(
-            name: "Beta",
-            score: orangeScore,
-            avatar: AppImages.profile,
-          ),
-        ];
+        
+        // Sort teams by score (descending)
+        final sortedTeams = teamScores.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        
+        // Build teams list
+        for (var entry in sortedTeams) {
+          final teamName = entry.key == 'blue' ? 'Team A' : 'Team B';
+          teams.add(Team(
+            name: teamName,
+            score: entry.value,
+            avatar: teamAvatars[entry.key] ?? AppImages.profile,
+          ));
+        }
       } else {
+        // 1v1 mode: Sort participants by score and take top 3 for podium display
         _participants.sort((a, b) => b.score!.compareTo(a.score!));
         var topPlayers = _participants.take(3).toList();
         teams = topPlayers.map((player) {
@@ -2796,9 +3107,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 isTeamvTeam: isTeamMode,
                 onNext: () {
                   // _toggleLeaderboard(closeRoom: true);
-                  Navigator.of(context).pop(); // ✅ Close popup
+                  Navigator.of(context).pop(); // Close popup
                   if (mounted) {
-                    _showCloseAdAndNavigate();   // ✅ Show ad
+                    _showCloseAdAndNavigate();   // Show ad
                   }
                 },
               ),
@@ -2818,11 +3129,17 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     if (_closeRewardedAd != null && _adLoadTime != null) {
       final hoursSinceLoad = DateTime.now().difference(_adLoadTime!).inHours;
       if (hoursSinceLoad < 1) {
-        print("✅ Ad already loaded and fresh (loaded ${hoursSinceLoad}h ago)");
+        developer.log(
+          "Ad already loaded and fresh (loaded ${hoursSinceLoad}h ago)",
+          name: _logTag,
+        );
         return;
       } else {
         // Ad is too old, dispose it and load a new one
-        print("⚠️ Ad is too old (${hoursSinceLoad}h), disposing and reloading");
+        developer.log(
+          "Ad is too old (${hoursSinceLoad}h), disposing and reloading",
+          name: _logTag,
+        );
         _closeRewardedAd?.dispose();
         _closeRewardedAd = null;
         _adLoadTime = null;
@@ -2842,11 +3159,17 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               _adLoadTime = DateTime.now(); // Store load time
               _isLoadingCloseAd = false;
             });
-            print("✅ Rewarded ad loaded and stored successfully");
+            developer.log(
+              "Rewarded ad loaded and stored successfully",
+              name: _logTag,
+            );
           }
         },
         onAdFailedToLoad: (error) {
-          print("❌ Failed to load rewarded ad: $error");
+          developer.log(
+            "Failed to load close rewarded ad: $error",
+            name: _logTag,
+          );
           if (mounted) {
             setState(() {
               _isLoadingCloseAd = false;
@@ -2855,7 +3178,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         },
       );
     } catch (e) {
-      print("❌ Error loading rewarded ad: $e");
+      developer.log(
+        "Error loading close rewarded ad: $e",
+        name: _logTag,
+      );
       if (mounted) {
         setState(() {
           _isLoadingCloseAd = false;
@@ -2864,8 +3190,42 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     }
   }
 
+  /// Optimized helper to preload next ad after current ad is shown/dismissed
+  /// Uses delayed execution to avoid blocking and ensures ad is ready for next game
+  void _preloadNextAd() {
+    // Use delayed execution to avoid blocking current flow
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _loadCloseRewardedAd();
+      }
+    });
+  }
+
   Future<void> _showCloseAdAndNavigate({bool shouldGoHome = false}) async {
     if (!mounted) return;
+    
+    // Helper function to check if host/members are ready
+    bool _areHostOrMembersReady() {
+      if (_room == null || _currentUser == null) return false;
+      
+      final isHost = _currentUser!.id == _room!.ownerId;
+      final activeParticipants = _participants.where((p) => p.isActive == true).toList();
+      
+      if (isHost) {
+        // Host: wait for at least one other member (not just host)
+        final otherMembers = activeParticipants.where((p) => 
+          p.userId != _room!.ownerId && p.isActive == true
+        ).toList();
+        return otherMembers.isNotEmpty;
+      } else {
+        // Member: wait for host to be active
+        final hostParticipant = activeParticipants.firstWhere(
+          (p) => p.userId == _room!.ownerId,
+          orElse: () => RoomParticipant(),
+        );
+        return hostParticipant.isActive == true && hostParticipant.userId != null;
+      }
+    }
     
     // Helper function to return to lobby screen (where categories are selected and start button is clicked)
     void returnToLobby() {
@@ -2878,17 +3238,21 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _room!.status = 'lobby';
           }
           _waitingForPlayers = true;
+          _isWaitingForHostOrMembers = true; // Start waiting for host/members
         });
         // Reset all game data when returning to lobby
         _resetGameState();
         
-        // Preload ad for next game (optimal pattern: load early, store, use when needed)
-        // This ensures ad is ready when the next game ends
-        Future.delayed(const Duration(milliseconds: 1000), () {
-          if (mounted) {
-            _loadCloseRewardedAd();
+        // Check if host/members are already ready
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _areHostOrMembersReady()) {
+            setState(() {
+              _isWaitingForHostOrMembers = false;
+            });
           }
         });
+        
+        // Note: Ad is already preloaded after showing (in ad callbacks), no need to preload here
       }
     }
     
@@ -2935,7 +3299,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         try {
           Navigator.of(context, rootNavigator: true).pop(); // Close the loading dialog
         } catch (e) {
-          print("⚠️ Error dismissing loading dialog: $e");
+          developer.log(
+            "Error dismissing loading dialog: $e",
+            name: _logTag,
+          );
         }
       }
     }
@@ -2961,11 +3328,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         onAdDismissedFullScreenContent: (dismissedAd) {
           dismissedAd.dispose();
           
-          // CRITICAL: Immediately load a new ad for next time (preload pattern)
-          // This ensures ad is ready for the next game end
-          Future.delayed(const Duration(milliseconds: 500), () {
-            _loadCloseRewardedAd();
-          });
+          // CRITICAL: Immediately preload next ad for next game (optimistic preload pattern)
+          _preloadNextAd();
           
           if (mounted) {
             // If room was closed while showing ad, exit to home
@@ -2981,13 +3345,14 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         },
         onAdFailedToShowFullScreenContent: (failedAd, error) {
-          print("❌ Ad failed to show: $error");
+          developer.log(
+            "Ad failed to show: $error",
+            name: _logTag,
+          );
           failedAd.dispose();
           
-          // Load a new ad even if this one failed
-          Future.delayed(const Duration(milliseconds: 500), () {
-            _loadCloseRewardedAd();
-          });
+          // Preload next ad even if this one failed (optimistic preload pattern)
+          _preloadNextAd();
           
           if (mounted) {
             // If room was closed while showing ad, exit to home
@@ -3005,12 +3370,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
       await ad.show(onUserEarnedReward: (ad, reward) {});
     } catch (e) {
-      print("❌ Error showing ad: $e");
+      developer.log(
+        "Error showing close rewarded ad: $e",
+        name: _logTag,
+      );
       
-      // Load a new ad even if there was an error
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _loadCloseRewardedAd();
-      });
+      // Preload next ad even if there was an error (optimistic preload pattern)
+      _preloadNextAd();
       
       if (mounted) {
         // If room was closed while showing ad, exit to home
@@ -3153,7 +3519,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _teamScoreboardTimer?.cancel();
     _speakingCleanupTimer?.cancel(); // Add this line
     
-    // ✅ PHASE 2: Cleanup retry timers
+    // Cleanup retry timers
     for (final timer in _retryTimers.values) {
       timer.cancel();
     }
@@ -3244,37 +3610,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     // PopScope wrapper logic
     Widget wrapWithExitPopup(Widget child) {
       return PopScope(
-        canPop: false, // Prevents immediate exit
+        canPop: false, // Prevents default back exit
         onPopInvokedWithResult: (bool didPop, dynamic result) async {
           if (didPop) {
             return;
           }
-          // Don't show exit dialog if already leaving or during resume
-          if (_isResuming) {
-            return;
-          }
-          // Show your existing ExitPopUp dialog
-          if (mounted) {
-            showDialog(
-              context: context,
-              barrierDismissible: false, // Prevent dismissing by tapping outside
-              builder: (BuildContext context) {
-                return ExitPopUp(
-                  text: "Do you really want to leave the game?",
-                  imagePath: AppImages.inactiveexit,
-                  onExit: () {
-                    // This method already handles leaving the room and navigating home
-                    _leaveRoom();
-                  },
-                  // When user clicks Resume, just close the dialog
-                  continueWaiting: () {
-                    // User wants to stay, just close the dialog
-                    Navigator.of(context).pop();
-                  },
-                );
-              },
-            );
-          }
+          _showExitDialog();
         },
         child: child,
       );
@@ -3439,7 +3780,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        // ⬇️ FIX: Removed the illegal top-level Expanded widget ⬇️
         child: Stack(
           // Stack naturally fills its parent (SafeArea) if not constrained
           children: [
@@ -3521,12 +3861,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                   ),
 
                                   onDrawingStrokeChanged: (stroke) {
-                                    // ✅ PHASE 2 FIX: Enhanced helper function with proper sequence handling and normalization
+                                    // helper function with proper sequence handling and normalization
                                     void _sendDrawingData(fdb.Stroke strokeToSend, bool isFinished, {int? sequenceOverride, int retryCount = 0}) {
-                                      // ✅ FIX 2: Only increment sequence on first send, not on retries
+                                      // Only increment sequence on first send, not on retries
                                       final sequence = sequenceOverride ?? (++_strokeSequenceNumber);
                                       
-                                      // ✅ FIX 1: Ensure coordinates are normalized before serializing
+                                      // Ensure coordinates are normalized before serializing
                                       // Get canvas size for normalization (use drawer board size)
                                       final canvasSize = _drawerBoardSize;
                                       if (canvasSize != Size.zero && strokeToSend.points.isNotEmpty) {
@@ -3559,21 +3899,27 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                       // Send the packet
                                       _socketService.socket?.emit('drawing_data', packetData);
                                       
-                                      // ✅ PHASE 2: Track pending stroke for acknowledgment (only on first send)
+                                      // Track pending stroke for acknowledgment (only on first send)
                                       if (retryCount == 0) {
                                         _pendingStrokes[sequence] = Map<String, dynamic>.from(packetData);
                                       }
-                                      
-                                      // ✅ PHASE 2: Set up retry timer if no acknowledgment received
+
+                                      // Set up retry timer if no acknowledgment received
                                       _retryTimers[sequence]?.cancel(); // Cancel any existing timer
                                       _retryTimers[sequence] = Timer(Duration(milliseconds: _ackTimeoutMs), () {
                                         if (_pendingStrokes.containsKey(sequence) && retryCount < _maxRetries) {
-                                          // ✅ FIX 2: Retry with SAME sequence number
-                                          print("⚠️ Retrying drawing packet seq: $sequence (attempt ${retryCount + 1}/$_maxRetries)");
+                                          // Retry with SAME sequence number
+                                          developer.log(
+                                            "Retrying drawing packet seq: $sequence (attempt ${retryCount + 1}/$_maxRetries)",
+                                            name: _logTag,
+                                          );
                                           _sendDrawingData(strokeToSend, isFinished, sequenceOverride: sequence, retryCount: retryCount + 1);
                                         } else if (_pendingStrokes.containsKey(sequence)) {
                                           // Max retries reached
-                                          print("❌ Failed to send drawing packet seq: $sequence after $_maxRetries retries");
+                                          developer.log(
+                                            "Failed to send drawing packet seq: $sequence after $_maxRetries retries",
+                                            name: _logTag,
+                                          );
                                           _pendingStrokes.remove(sequence);
                                           _retryTimers.remove(sequence);
                                         }
@@ -3592,11 +3938,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                     }
 
                                     // 2. ACTIVE DRAWING (User is dragging)
-                                    // ✅ PHASE 1: Optimized throttle - reduced from 60ms to 33ms (30fps) for smoother drawing
+                                    // Optimized throttle - reduced from 60ms to 33ms (30fps) for smoother drawing
                                     final now = DateTime.now().millisecondsSinceEpoch;
                                     _lastInProgressStroke = stroke; // Capture the stroke
 
-                                    // ✅ PHASE 2: CHOP LARGE STROKES with continuity fix
+                                    // CHOP LARGE STROKES with continuity fix
                                     // If the stroke is getting too heavy, split it while ensuring no gaps
                                     if (stroke.points.length >= 750) {
                                       // Split at 749 points, keeping the last point for continuity
@@ -3611,7 +3957,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                       _strokes.value = List<fdb.Stroke>.from(_strokes.value)
                                         ..add(firstSegment); // Add to local history
 
-                                      // ✅ PHASE 2: Start new stroke from the split point (not last point)
+                                      // Start new stroke from the split point (not last point)
                                       // This ensures seamless continuation without gaps
                                       _currentStroke.startStroke(
                                         stroke.points[splitPoint],  // Use split point for continuity
@@ -3649,7 +3995,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                     }
 
                                     // 2. REGULAR THROTTLE: Send real-time updates every 33ms (30fps)
-                                    if (now - _lastDrawingEmitTime > 33) {  // ✅ PHASE 1: Optimized from 60ms to 33ms
+                                    if (now - _lastDrawingEmitTime > 33) {  // Optimized from 60ms to 33ms
                                       _lastDrawingEmitTime = now;
                                       _sendDrawingData(stroke, false); // Guesser updates _currentStroke for live preview
                                     }
@@ -4501,6 +4847,30 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
   }
 
+  void _showExitDialog() {
+    // 1. Safety check for resume state or unmounted widget
+    if (_isResuming || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return ExitPopUp(
+          text: "Do you really want to leave the room?",
+          imagePath: AppImages.inactiveexit,
+          onExit: () {
+            // This method handles leaving the room and navigating home
+            _leaveRoom();
+          },
+          continueWaiting: () {
+            // User wants to stay - ExitPopUp widget will handle closing the dialog
+            // No need to pop here as ExitPopUp already calls Navigator.pop
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildLobbyScreen() {
     final bool isTablet = MediaQuery.of(context).size.width > 600;
     final isOwner = _currentUser?.id == _room?.ownerId;
@@ -4519,21 +4889,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: _leaveRoom,
+                    onTap: _showExitDialog,
                     child: Icon(Icons.arrow_back_ios,
                         color: Colors.white, size: backIconSize),
                   ),
                 ],
               ),
             ),
-            // Main content area - Flexible to prevent overflow
+            // Main content area - Responsive layout
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-
+                    // Settings dropdowns - Flexible to take available space
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final double controlWidth =
@@ -4598,19 +4967,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                 isTablet: isTablet,
                                 onChanged: null,
                               ),
-                            _buildGradientDropdown(
+                            SizedBox(
                               width: controlWidth,
-                              hint: 'Country',
-                              value: selectedCountry,
-                              items: countries,
-                              icon: Icons.flag,
-                              isTablet: isTablet,
-                              onChanged: isOwner
-                                  ? (v) {
-                                      setState(() => selectedCountry = v);
-                                      _updateSettings();
-                                    }
-                                  : null,
+                              child: CountryPickerWidget(
+                                selectedCountryCode: selectedCountry,
+                                onCountrySelected: isOwner
+                                    ? (countryCode) {
+                                        setState(() => selectedCountry = countryCode);
+                                        _updateSettings();
+                                      }
+                                    : (_) {}, // Provide empty function instead of null
+                                hintText: 'Country',
+                                icon: Icons.flag,
+                                isTablet: isTablet,
+                              ),
                             ),
                             _buildGradientDropdown(
                               width: controlWidth,
@@ -4675,19 +5045,23 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                         );
                       },
                     ),
+                    // ),
 
-                    SizedBox(height: 10.h),
+                    SizedBox(height: 8.h),
 
                     // Room code, player count, team color select
                     _buildCreateRoomTopStrip(isOwner),
 
-                    SizedBox(height: 10.h),
+                    SizedBox(height: 8.h),
 
-                    // Players list panel - Fixed height with scrollable content
-                    Container(
-                      width: double.infinity,
-                      height: 280.h, // Fixed height
-                      decoration: BoxDecoration(
+                    // Players list panel - Flexible height with scrollable content
+                    // Flexible(
+                    //   flex: 2,
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(),
+                        decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
                             Color(0xFF002547),
@@ -4715,7 +5089,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                     ),
                                     SizedBox(height: 10.h),
                                     _buildWaitingText()
-                                  ],
+                                  ], 
                                 ),
                               ),
                             )
@@ -4728,14 +5102,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                   final participant = _participants[index];
                                   final userName =
                                       participant.user?.name ?? 'Guest';
+                                  final isCurrentUser = participant.user?.id?.toString() == _currentUser?.id?.toString();
 
                                   // Determine border color based on game mode and team
                                   Color? borderColor;
                                   if (selectedGameMode == 'team_vs_team') {
+                                    // Use participant.team from server for all participants (most accurate)
+                                    // This ensures Team-A and Team-B players are displayed correctly
+                                    // For current user, we also sync selectedTeam in onRoomParticipants
+                                    final String? teamToUse = participant.team;
+                                    
                                     // Show team color for team vs team mode
-                                    borderColor = participant.team == 'orange'
+                                    borderColor = teamToUse == 'orange'
                                         ? Colors.orange
-                                        : participant.team == 'blue'
+                                        : teamToUse == 'blue'
                                             ? Colors.blue
                                             : null;
                                   }
@@ -4832,32 +5212,110 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                         ),
                                         SizedBox(width: 12.w),
                                         // Player name
+                                        // Expanded(
+                                        //   child: Column(
+                                        //     crossAxisAlignment:
+                                        //         CrossAxisAlignment.start,
+                                        //     mainAxisSize: MainAxisSize.min,
+                                        //     children: [
+                                        //       Text(
+                                        //         userName,
+                                        //         style: GoogleFonts.lato(
+                                        //           color: Colors.white,
+                                        //           fontSize: 16.sp,
+                                        //           fontWeight: FontWeight.w500,
+                                        //         ),
+                                        //         overflow: TextOverflow.ellipsis,
+                                        //       ),
+                                        //       // Show "Host" in red if user is the owner
+                                        //       if (participant.user?.id ==
+                                        //           _room?.ownerId)
+                                        //         Text(
+                                        //           AppLocalizations.host,
+                                        //           style: GoogleFonts.lato(
+                                        //             color: Colors.red,
+                                        //             fontSize: 12.sp,
+                                        //             fontWeight: FontWeight.w500,
+                                        //           ),
+                                        //         ),
+                                        //     ],
+                                        //   ),
+
+                                        // Expanded(
+                                        //   child: Row(
+                                        //     mainAxisSize: MainAxisSize.min,
+                                        //     children: [
+                                        //       Flexible(
+                                        //         child: Text(
+                                        //           userName,
+                                        //           style: GoogleFonts.lato(
+                                        //             color: Colors.white,
+                                        //             fontSize: 16.sp,
+                                        //             fontWeight: FontWeight.w500,
+                                        //           ),
+                                        //           overflow: TextOverflow.ellipsis,
+                                        //         ),
+                                        //       ),
+                                        //       if (isHost) ...[
+                                        //         SizedBox(width: 8.w),
+                                        //         Container(
+                                        //           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                        //           decoration: BoxDecoration(
+                                        //             color: Colors.red.withOpacity(0.2),
+                                        //             borderRadius: BorderRadius.circular(4.r),
+                                        //             border: Border.all(color: Colors.red, width: 0.5),
+                                        //           ),
+                                        //           child: Text(
+                                        //             "HOST", // Or AppLocalizations.host
+                                        //             style: GoogleFonts.lato(
+                                        //               color: Colors.red,
+                                        //               fontSize: 10.sp,
+                                        //               fontWeight: FontWeight.bold,
+                                        //             ),
+                                        //           ),
+                                        //         ),
+                                        //       ],
+                                        //     ],
+                                        //   ),
+                                        // ),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                          child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                userName,
-                                                style: GoogleFonts.lato(
-                                                  color: Colors.white,
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              // Show "Host" in red if user is the owner
-                                              if (participant.user?.id ==
-                                                  _room?.ownerId)
-                                                Text(
-                                                  AppLocalizations.host,
+                                              // 1. Flexible wraps the name to allow it to shrink and ellipse
+                                              Flexible(
+                                                child: Text(
+                                                  userName,
                                                   style: GoogleFonts.lato(
-                                                    color: Colors.red,
-                                                    fontSize: 12.sp,
+                                                    color: Colors.white,
+                                                    fontSize: 16.sp,
                                                     fontWeight: FontWeight.w500,
                                                   ),
+                                                  overflow: TextOverflow.ellipsis, // Ellipse if name is too long
+                                                  maxLines: 1,
                                                 ),
+                                              ),
+                                              
+                                              // 2. Add the Host tag with fixed space if the participant is the owner
+                                              if (participant.user?.id?.toString() == _room?.ownerId?.toString()) ...[
+                                                SizedBox(width: 8.w),
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(4.r),
+                                                    border: Border.all(color: Colors.red, width: 0.5.w),
+                                                  ),
+                                                  child: Text(
+                                                    AppLocalizations.host.toUpperCase(), // Using localized string
+                                                    style: GoogleFonts.lato(
+                                                      color: Colors.red,
+                                                      fontSize: 10.sp,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -4867,6 +5325,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                 },
                               ),
                             ),
+                      ),
                     ),
 
                     SizedBox(height: 10.h),
@@ -4900,13 +5359,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                _isLobbyFormComplete()
-                                    ? Icons.rocket_launch
-                                    : Icons.monetization_on,
-                                color: Colors.white,
-                                size: isTablet ? 32.sp : 25.h,
-                              ),
+                              _isLobbyFormComplete()
+                                ? Icon(
+                                    Icons.rocket_launch,
+                                    color: Colors.white,
+                                    size: isTablet ? 32.sp : 25.h,
+                                  )
+                                : Image.asset(
+                                    AppImages.gameCoin,
+                                    height: isTablet ? 32.sp : 25.h,
+                                    width: isTablet ? 32.sp : 25.h,
+                                    fit: BoxFit.contain,
+                                  ),
                               SizedBox(width: 8.w),
                               Text(
                                 _isLobbyFormComplete()
@@ -4920,10 +5384,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                               ),
                             ],
                           ),
-                        ),
                       ),
+                    ),
 
-                    SizedBox(height: 10.h),
+                    // Minimal bottom padding before ad
+                    SizedBox(height: 4.h),
                   ],
                 ),
               ),
@@ -5094,7 +5559,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
           // SizedBox(width: 6.w),
 
-          // Team color arrows (enabled only in team mode)
+          // Team color arrows (enabled only in team mode) - Circular selection
           Expanded(
             flex: 1,
             child: Row(
@@ -5104,7 +5569,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 Flexible(
                   child: GestureDetector(
                     onTap: isTeamMode
-                        ? () => _selectTeam('blue', explicitlyUpdate: true)
+                        ? () {
+                            // Circular: if orange, go to blue; if blue or null, go to orange
+                            final nextTeam = (selectedTeam == 'orange') ? 'blue' : 'orange';
+                            _selectTeam(nextTeam, explicitlyUpdate: true);
+                          }
                         : null,
                     child: Icon(Icons.arrow_back_ios_new,
                         size: 20.sp,
@@ -5126,7 +5595,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                       color: isTeamMode
                           ? (selectedTeam == 'orange'
                               ? Colors.orange
-                              : Colors.blue)
+                              : selectedTeam == 'blue'
+                                  ? Colors.blue
+                                  : Colors.grey.withOpacity(0.3))
                           : Colors.grey.withOpacity(0.3),
                     ),
                   ),
@@ -5135,7 +5606,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 Flexible(
                   child: GestureDetector(
                     onTap: isTeamMode
-                        ? () => _selectTeam('orange', explicitlyUpdate: true)
+                        ? () {
+                            // Circular: if blue, go to orange; if orange or null, go to blue
+                            final nextTeam = (selectedTeam == 'blue') ? 'orange' : 'blue';
+                            _selectTeam(nextTeam, explicitlyUpdate: true);
+                          }
                         : null,
                     child: Icon(Icons.arrow_forward_ios,
                         size: 20.sp,
@@ -6156,27 +6631,25 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   void _selectTeam(String team, {bool explicitlyUpdate = false}) {
-    if (!explicitlyUpdate && selectedTeam != null) return;
+    // Only allow team selection in team vs team mode
     if (selectedGameMode != 'team_vs_team') return;
+    
+    // Convert 'A'/'B' to 'blue'/'orange' if needed
     if (team == 'A') team = 'blue';
     if (team == 'B') team = 'orange';
-    if (team == 'orange') {
-      if (selectedTeam == 'orange') {
-        team = 'blue';
-      }
-    } else {
-      if (selectedTeam == 'blue') {
-        team = 'orange';
-      }
-    }
+    
+    // Only allow 'blue' or 'orange' teams
+    if (team != 'blue' && team != 'orange') return;
+    
+    // If not explicitly updating and team is already selected, don't change
+    if (!explicitlyUpdate && selectedTeam == team) return;
+    
+    // Update local state immediately for UI feedback
     setState(() {
       selectedTeam = team;
-      // if (_voiceService.engine != null) {
-      //   _voiceService.engine!.leaveChannel();
-      //   _voiceService.joinChannel("${widget.roomId}_$selectedTeam");
-      // }
     });
 
+    // Send team selection to server
     try {
       _socketService.selectTeam(widget.roomId, team);
     } catch (e) {
@@ -6412,17 +6885,17 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         Row(
           children: [
             Expanded(
-                child: _buildLobbyDropdown(
+                child: CountryPickerWidget(
+              selectedCountryCode: selectedCountry,
+              onCountrySelected: isOwner
+                  ? (countryCode) {
+                      setState(() => selectedCountry = countryCode);
+                      _updateSettings();
+                    }
+                  : (_) {}, // Provide empty function instead of null
+              hintText: 'Country',
               icon: Icons.flag,
-              hint: 'Country',
-              value: selectedCountry,
-              items: countries,
-              enabled: isOwner,
               isTablet: isTablet,
-              onChanged: (v) {
-                setState(() => selectedCountry = v);
-                _updateSettings();
-              },
             )),
             SizedBox(width: 10.w),
             Expanded(
@@ -6814,14 +7287,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               ],
             ),
             SizedBox(width: 5.w),
-            // Color selector (only visible in team mode)
+            // Color selector (only visible in team mode) - Circular selection
             if (isTeamMode)
               Flexible(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     GestureDetector(
-                      onTap: () => _selectTeam('blue', explicitlyUpdate: true),
+                      onTap: () {
+                        // Circular: if orange, go to blue; if blue or null, go to orange
+                        final nextTeam = (selectedTeam == 'orange') ? 'blue' : 'orange';
+                        _selectTeam(nextTeam, explicitlyUpdate: true);
+                      },
                       child: Icon(Icons.arrow_left,
                           size: 25.sp, color: Colors.white),
                     ),
@@ -6845,8 +7322,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                     ),
                     SizedBox(width: 4.w),
                     GestureDetector(
-                      onTap: () =>
-                          _selectTeam('orange', explicitlyUpdate: true),
+                      onTap: () {
+                        // Circular: if blue, go to orange; if orange or null, go to blue
+                        final nextTeam = (selectedTeam == 'blue') ? 'orange' : 'blue';
+                        _selectTeam(nextTeam, explicitlyUpdate: true);
+                      },
                       child: Icon(Icons.arrow_right,
                           size: 25.sp, color: Colors.white),
                     ),
@@ -7510,7 +7990,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         _isLeaderboardVisible = !_isLeaderboardVisible;
       });
     }
-    print('Toggling leaderboard visibility. Current state: $_isLeaderboardVisible');
+    developer.log(
+      'Toggling leaderboard visibility. Current state: $_isLeaderboardVisible',
+      name: _logTag,
+    );
   }
 
   _DrawerMessageOption? _findDrawerMessageOption(String? key) {
@@ -7676,7 +8159,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               rank: teamPlayers.indexOf(participant) + 1,
               name: participant.user?.name ?? 'Player',
               avatarPath: participant.user?.avatar ?? AppImages.profile,
-              flagEmoji: '🇮🇳',
+              flagEmoji: CountryPickerWidget.getCountryFlag(participant.user?.country),
             ))
         .toList();
     
@@ -7694,96 +8177,144 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       ),
     );
   }
-
-Widget _buildTeamScoreboardView() {
-  // Team score = any team member's score (all members have same score)
-  int blueScore = 0;
-  int orangeScore = 0;
-
-  // Take first team member's score for each team (all members have same score)
-  for (final participant in _participants) {
-    if (participant.team == 'blue' && blueScore == 0) {
-      blueScore = participant.score ?? 0;
-    } else if (participant.team == 'orange' && orangeScore == 0) {
-      orangeScore = participant.score ?? 0;
-    }
+  Widget _buildAnimatedScore({
+    required int score,
+    required Color color,
+    required bool isTablet,
+  }) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      transitionBuilder: (child, animation) {
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: Text(
+        score.toString(),
+        key: ValueKey(score),
+        style: GoogleFonts.orbitron(
+          fontSize: isTablet ? 22.sp : 18.sp,
+          fontWeight: FontWeight.w900,
+          color: color,
+          letterSpacing: 1,
+          shadows: [
+            // Base depth shadow
+            Shadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+            // Subtle team-color glow (InkBattle vibe)
+            Shadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Text buildScoreText(int score) => Text(
-        '$score',
-        style: GoogleFonts.lato(
-          color: Colors.white,
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w700,
-        ),
-      );
 
-  final isTablet = MediaQuery.of(context).size.width > 600;
+  Widget _buildTeamScoreboardView() {
+    // Team score = any team member's score (all members have same score)
+    int blueScore = 0;
+    int orangeScore = 0;
 
-  return FittedBox(
-    fit: BoxFit.scaleDown,
-    child: Stack(
-      clipBehavior: Clip.none, // Correctly placed to allow points to float up
-      alignment: Alignment.center,
-      children: [
-        // 1. The Main Scoreboard Container
-        Container(
-          key: ValueKey('team-scoreboard-$blueScore-$orangeScore'),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0C0C0C),
-            borderRadius: BorderRadius.circular(28.r),
-            border: Border.all(color: Colors.white, width: 1.4),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 12.r,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    // Take first team member's score for each team (all members have same score)
+    for (final participant in _participants) {
+      if (participant.team == 'blue' && blueScore == 0) {
+        blueScore = participant.score ?? 0;
+      } else if (participant.team == 'orange' && orangeScore == 0) {
+        orangeScore = participant.score ?? 0;
+      }
+    }
+
+    Text buildScoreText(int score) => Text(
+          '$score',
+          style: GoogleFonts.lato(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w700,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              teamBadge(
-                label: 'A',
-                color: const Color(0xFF02A9F7),
-                onTap: () => _showTeamPlayers('blue', 'Team A'),
-                isTablet: isTablet,
-              ),
-              SizedBox(width: 14.w),
-              buildScoreText(blueScore),
-              SizedBox(width: 18.w),
-              Transform.scale(
-                scale: 1.5,
-                child: _buildVsBadge(
-                  size: 30.h,
-                  backgroundColor: Colors.black,
-                  textColor: Colors.white,
+        );
+
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Stack(
+        clipBehavior: Clip.none, // Correctly placed to allow points to float up
+        alignment: Alignment.center,
+        children: [
+          // 1. The Main Scoreboard Container
+          Container(
+            key: ValueKey('team-scoreboard-$blueScore-$orangeScore'),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0C0C0C),
+              borderRadius: BorderRadius.circular(28.r),
+              border: Border.all(color: Colors.white, width: 1.4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 12.r,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              SizedBox(width: 18.w),
-              buildScoreText(orangeScore),
-              SizedBox(width: 14.w),
-              teamBadge(
-                label: 'B',
-                color: const Color(0xFFF59E0B),
-                onTap: () => _showTeamPlayers('orange', 'Team B'),
-                isTablet: isTablet,
-              ),
-            ],
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                teamBadge(
+                  label: 'A',
+                  color: const Color(0xFF02A9F7),
+                  onTap: () => _showTeamPlayers('blue', 'Team A'),
+                  isTablet: isTablet,
+                ),
+                SizedBox(width: 14.w),
+                // buildScoreText(blueScore),
+                _buildAnimatedScore(
+                  score: blueScore,
+                  color: const Color(0xFF02A9F7),
+                  isTablet: isTablet,
+                ),
+                SizedBox(width: 18.w),
+                Transform.scale(
+                  scale: isTablet ? 1.6 : 1.4,
+                  child: _buildVsBadge(
+                    size: isTablet ? 34.h : 30.h,
+                    backgroundColor: Colors.black,
+                    textColor: Colors.white,
+                  ),
+                ),
+                SizedBox(width: 18.w),
+                _buildAnimatedScore(
+                  score: orangeScore,
+                  color: const Color(0xFFF59E0B),
+                  isTablet: isTablet,
+                ),
+                SizedBox(width: 14.w),
+                teamBadge(
+                  label: 'B',
+                  color: const Color(0xFFF59E0B),
+                  onTap: () => _showTeamPlayers('orange', 'Team B'),
+                  isTablet: isTablet,
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // 2. The Floating Points (Direct children of the Stack)
-        if (selectedTeam == 'blue' && _earnedPointsDisplay != null)
-          _buildFloatingTeamPoints(left: 30.w),
+          // 2. The Floating Points (Direct children of the Stack)
+          if (selectedTeam == 'blue' && _earnedPointsDisplay != null)
+            _buildFloatingTeamPoints(left: 30.w),
 
-        if (selectedTeam == 'orange' && _earnedPointsDisplay != null)
-          _buildFloatingTeamPoints(right: 30.w),
-      ],
-    ),
-  );
-}
+          if (selectedTeam == 'orange' && _earnedPointsDisplay != null)
+            _buildFloatingTeamPoints(right: 30.w),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFloatingTeamPoints({double? left, double? right}) {
     return Positioned(
@@ -8368,6 +8899,9 @@ Widget _buildTeamScoreboardView() {
         : 'Player';
     final String? avatar = participant.user?.avatar;
     final int score = participant.score ?? 0;
+    
+    // Check if this is the current user
+    final bool isCurrentUser = participant.user?.id == _currentUser?.id;
 
     final bool isFirst = rank == 1;
     final double avatarSize = isFirst ? 76.w : 64.w;
@@ -8447,11 +8981,18 @@ Widget _buildTeamScoreboardView() {
               Text(
                 '$score',
                 style: GoogleFonts.lato(
-                  color: Colors.white,
+                  color: isCurrentUser ? const Color(0xFFFFD700) : Colors.white, // Gold color for current user
                   fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: isCurrentUser ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
+              if (isCurrentUser) ...[
+                SizedBox(width: 4.w),
+                Text(
+                  '⭐',
+                  style: TextStyle(fontSize: 12.sp),
+                ),
+              ],
             ],
           ),
         ],
@@ -8566,11 +9107,18 @@ Widget _buildTeamScoreboardView() {
               Text(
                 '$score',
                 style: GoogleFonts.lato(
-                  color: Colors.white,
+                  color: isCurrentUser ? const Color(0xFFFFD700) : Colors.white, // Gold color for current user
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: isCurrentUser ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
+              if (isCurrentUser) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '⭐',
+                  style: TextStyle(fontSize: 16.sp),
+                ),
+              ],
             ],
           ),
 
@@ -8758,20 +9306,33 @@ Widget _buildTeamScoreboardView() {
                  return;
                 List<Team> teams = [];
                 if (isTeamMode) {
+                  // In team mode, all team members have the same score (team score)
+                  // So we just need to get the score from any team member
                   int orangeScore = 0;
                   int blueScore = 0;
                   String? avatarTeamA;
                   String? avatarTeamB;
+                  
                   for (var participant in _participants) {
                     if (participant.team == 'orange') {
-                      orangeScore += participant.score ?? 0;
-                      if (avatarTeamB != null) {
+                      // In team mode, all orange team members have same score
+                      // So we only need to set it once
+                      if (orangeScore == 0) {
+                        orangeScore = participant.score ?? 0;
+                      }
+                      // Get avatar from first orange team member found
+                      if (avatarTeamB == null) {
                         avatarTeamB = participant.user?.avatar ??
                             participant.user?.profilePicture;
                       }
                     } else if (participant.team == 'blue') {
-                      blueScore += participant.score ?? 0;
-                      if (avatarTeamA != null) {
+                      // In team mode, all blue team members have same score
+                      // So we only need to set it once
+                      if (blueScore == 0) {
+                        blueScore = participant.score ?? 0;
+                      }
+                      // Get avatar from first blue team member found
+                      if (avatarTeamA == null) {
                         avatarTeamA = participant.user?.avatar ??
                             participant.user?.profilePicture;
                       }
@@ -9217,11 +9778,8 @@ Widget _buildTeamScoreboardView() {
           textColor: Colors.white,
           width: 100.w,
           spacing: 25.w,
-          leading: Image.asset(
-            AppImages.circleflag,
-            height: 18.h,
-            width: 18.w,
-          )),
+          leading: _buildCountryFlag(selectedCountry, false),
+      ),
     );
   }
 
@@ -9259,6 +9817,32 @@ Widget _buildTeamScoreboardView() {
       ),
     );
   }
+
+  Widget _buildCountryFlag(String? countryCode, bool isProfile) {
+    if (countryCode == null) {
+      return const SizedBox.shrink();
+    }
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    double addParam = 0;
+    if (isTablet) addParam = 5.w;
+    return ClipOval(
+      child: Image.asset(
+        'asset/flags/${countryCode.toLowerCase()}.png',
+        width: isProfile ? 18.w + addParam : 14.w + addParam,
+        height: isProfile ? 18.h + addParam : 14.h + addParam,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          // Fallback if flag missing
+          return Image.asset(
+            AppImages.circleflag,
+            width: isProfile ? 18.w + addParam : 14.w + addParam,
+            height: isProfile ? 18.h + addParam : 14.h + addParam,
+          );
+        },
+      ),
+    );
+  }
+
 
   Widget _buildTeamsImage() {
     return SizedBox(
@@ -9426,7 +10010,10 @@ Widget _buildTeamScoreboardView() {
   }
 
   List<Widget> _buildModalOverlays() {
-    debugPrint("CURRENT PHASE : $_currentPhase");
+    developer.log(
+      "CURRENT PHASE : $_currentPhase",
+      name: _logTag,
+    );
     // 1. HIGHEST PRIORITY: Word Selection Dialog (Blocks all others)
     if (_isWordSelectionDialogVisible) {
       return [_showWordSelectionDialog()];
@@ -10207,6 +10794,10 @@ Widget _buildTeamScoreboardView() {
   //   );
   // }
   OverlayEntry _buildComplimentWidget() {
+    // Don't show overlay if app is paused or resuming
+    if (_isResuming) {
+      return OverlayEntry(builder: (context) => const SizedBox.shrink());
+    }
     
     Widget buildGuessCompliment() {
       final guessed = _usersWhoAnswered.length;
@@ -12286,13 +12877,13 @@ class TeamScoreBar extends StatelessWidget {
     double inverseWidth = width * (1 - (safeScore / safeMax));
     double finalWidth = inverseWidth.clamp(10, width);
 
-    print((width /
-            ((width - 20) /
-                ((width - 20) * (score <= 0 ? 1 : score / maxScore)))) -
-        40);
+    // print((width /
+    //         ((width - 20) /
+    //             ((width - 20) * (score <= 0 ? 1 : score / maxScore)))) -
+    //     40);
     
-    print(
-        ((width - 20) / ((width - 20) * (score <= 0 ? 1 : score / maxScore))));
+    // print(
+    //     ((width - 20) / ((width - 20) * (score <= 0 ? 1 : score / maxScore))));
     final isTablet = MediaQuery.of(context).size.width > 600;
     return Container(
       width: width,
@@ -12351,13 +12942,15 @@ class TeamScoreBar extends StatelessWidget {
   }
 }
 
+const String _teamBadgeLogTag = 'TeamBadge';
+
 Widget teamBadge({
   required String label,
   required Color color,
   required VoidCallback onTap,
   bool isTablet = false,
 }) {
-  debugPrint("ISTABLET: $isTablet");
+  developer.log("ISTABLET: $isTablet", name: _teamBadgeLogTag);
   final Widget circle = Container(
     width: isTablet ? 25.w : 32.w,
     height: isTablet ? 32.h : 35.h,

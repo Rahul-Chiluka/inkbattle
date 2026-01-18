@@ -4,13 +4,23 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:inkbattle_frontend/utils/routes/routes.dart';
+import 'dart:developer' as developer;
 
 /// Top-level background handler for FCM messages.
 /// Must be a global function and annotated as an entry-point so it works
 /// after tree-shaking in release builds.
+const String _logTag = 'NotificationService';
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('🔔 [BG] Message ID: ${message.messageId}, data: ${message.data}');
+  developer.log(
+    'Background message: ${message.messageId}, data: ${message.data}',
+    name: _logTag,
+  );
 }
 
 class NotificationService {
@@ -23,32 +33,110 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  GlobalKey<NavigatorState>? _navigatorKey;
+  GoRouter? _router;
+
+  /// Set the navigator key for navigation handling
+  void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) {
+    _navigatorKey = navigatorKey;
+  }
+
+  /// Set the router for navigation handling
+  void setRouter(GoRouter router) {
+    _router = router;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
 
     try {
+      // Initialize Timezone
+      tz.initializeTimeZones();
+
       // Register the background handler
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       // Request notification permissions
       await _requestPermissions();
 
-      // Initialize local notifications
+      // Initialize local notifications with tap handler
       await _initLocalNotifications();
+
+      // Handle notification taps when app is opened from terminated state
+      _messaging.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          developer.log(
+            'App opened from notification: ${message.messageId}',
+            name: _logTag,
+          );
+          _navigateToHome();
+        }
+      });
+
+      // Handle notification taps when app is in background
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        developer.log(
+          'Notification tapped (background): ${message.messageId}',
+          name: _logTag,
+        );
+        _navigateToHome();
+      });
 
       // Log and expose the FCM token
       // The white screen often happens here if entitlements are missing
       final token = await _messaging.getToken();
-      debugPrint('📱 FCM Device Token: $token');
+      developer.log(
+        'FCM Device Token: $token',
+        name: _logTag,
+      );
 
       // Listen for foreground messages
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     } catch (e) {
       // This catch block prevents the "White Screen" by allowing main() to finish
-      debugPrint('❌ Notification initialization failed: $e');
+      developer.log(
+        'Notification initialization failed: $e',
+        name: _logTag,
+        error: e,
+      );
     }
+  }
+
+  // NEW METHOD: Schedule the 24-hour reminder
+  Future<void> schedule24HourReminder() async {
+    // Cancel old ones so we don't spam the user
+    await _flutterLocalNotificationsPlugin.cancel(101); 
+
+    // Set time for 24 hours from now
+    final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(hours: 24));
+
+    const androidDetails = AndroidNotificationDetails(
+      'daily_reminder_channel',
+      'Daily Reminders',
+      channelDescription: 'Reminds you to play InkBattle',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
+      101, // Unique ID
+      'The arena is calling! 🎨',
+      'Come back and claim your daily spot in InkBattle.',
+      scheduledDate,
+      const NotificationDetails(android: androidDetails, iOS: DarwinNotificationDetails()),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'local_reminder', // Payload to identify local notifications
+    );
+    developer.log(
+      'Reminder scheduled for: $scheduledDate',
+      name: _logTag,
+    );
+  }
+
+  // NEW METHOD: Clear notifications when user opens app
+  Future<void> cancelAllReminders() async {
+    await _flutterLocalNotificationsPlugin.cancel(101);
   }
 
   Future<void> _requestPermissions() async {
@@ -76,12 +164,55 @@ class NotificationService {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
 
-    const initSettings = InitializationSettings(
+    // Handle notification taps (both local and push notifications)
+    void onDidReceiveNotificationResponse(NotificationResponse response) {
+      developer.log(
+        'Notification tapped: ${response.id} - ${response.payload}',
+        name: _logTag,
+      );
+      _navigateToHome();
+    }
+
+    final initSettings = InitializationSettings(
       android: androidInit,
       iOS: iosInit,
     );
 
-    await _flutterLocalNotificationsPlugin.initialize(initSettings);
+    await _flutterLocalNotificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+    );
+  }
+
+  /// Navigate to home screen when notification is tapped
+  void _navigateToHome() {
+    // Try using GoRouter first (preferred method)
+    if (_router != null) {
+      _router!.go(Routes.homeScreen);
+      developer.log(
+        'Navigated to home via GoRouter successfully',
+        name: _logTag,
+      );
+      return;
+    }
+    
+    // Fallback to Navigator key if GoRouter not available
+    if (_navigatorKey?.currentContext != null) {
+      final context = _navigatorKey!.currentContext!;
+      if (context.mounted) {
+        context.go(Routes.homeScreen);
+        developer.log(
+          'Navigated to home via Navigator context successfully',
+          name: _logTag,
+        );
+        return;
+      }
+    }
+    
+    developer.log(
+      'Router/Navigator not set, cannot navigate to home successfully',
+      name: _logTag,
+    );
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
@@ -112,11 +243,14 @@ class NotificationService {
       notification.title ?? 'Notification',
       notification.body ?? '',
       notificationDetails,
-      payload: message.data.toString(),
+      payload: 'push_notification', // Payload to identify push notifications
     );
 
     if (kDebugMode) {
-      debugPrint('🔔 [FG] Message: ${notification.title} - ${notification.body}');
+      developer.log(
+        'Foreground message: ${notification.title} - ${notification.body}',
+        name: _logTag,
+      );
     }
   }
 }

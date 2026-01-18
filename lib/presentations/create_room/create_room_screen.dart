@@ -46,17 +46,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
   List<String> languages = [];
   final List<String> scripts = ["Latin", "Devanagari", "Telugu"];
-  final List<String> countries = [
-    "🇮🇳 India",
-    "🇺🇸 USA",
-    "🇬🇧 UK",
-    "🇯🇵 Japan",
-    "🇪🇸 Spain",
-    "🇵🇹 Portugal",
-    "🇫🇷 France",
-    "🇩🇪 Germany",
-    "🇷🇺 Russia"
-  ];
+  // Countries are now handled via CountryPickerWidget with ISO-2 codes
   final List<String> points = ["50", "100", "150", "200"];
   List<String> categories = [];
   final List<String> maxPlayersOptions = ["5", "10", "15"];

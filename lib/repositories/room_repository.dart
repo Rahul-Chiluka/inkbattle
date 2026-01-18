@@ -338,7 +338,7 @@ class RoomRepository {
       if (gameMode != null) queryParams['gameMode'] = gameMode;
       if (language != null) queryParams['language'] = language;
       if (country != null) queryParams['country'] = country;
-      if (categories != null && categories.isNotEmpty) queryParams['category'] = categories.join(",");
+      if (categories != null && categories.isNotEmpty) queryParams['category'] = categories;
       if (page != null) queryParams['page'] = page;
       if (limit != null) queryParams['limit'] = limit;
       if (script != null) queryParams['script'] = script;
@@ -347,10 +347,17 @@ class RoomRepository {
 
       String url = ApiEndPoints.listRooms;
       if (queryParams.isNotEmpty) {
-        final queryString = queryParams.entries
-            .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
-            .join('&');
-        url = '$url?$queryString';
+        final queryParts = <String>[];
+        queryParams.forEach((key, value) {
+          if (value is List) {
+            // Handle arrays by sending multiple query parameters or comma-separated
+            // For category array, send as comma-separated string
+            queryParts.add('$key=${Uri.encodeComponent(value.join(','))}');
+          } else {
+            queryParts.add('$key=${Uri.encodeComponent(value.toString())}');
+          }
+        });
+        url = '$url?${queryParts.join('&')}';
       }
 
       var jsonResponse = await _apiManager.get(
