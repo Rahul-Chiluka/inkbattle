@@ -7,6 +7,7 @@ import Foundation
 
 import agora_rtc_engine
 import audioplayers_darwin
+import dotlottie_flutter
 import facebook_auth_desktop
 import file_saver
 import file_selector_macos
@@ -32,6 +33,7 @@ import webview_flutter_wkwebview
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AgoraRtcNgPlugin.register(with: registry.registrar(forPlugin: "AgoraRtcNgPlugin"))
   AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
+  DotLottieFlutterPlugin.register(with: registry.registrar(forPlugin: "DotLottieFlutterPlugin"))
   FacebookAuthDesktopPlugin.register(with: registry.registrar(forPlugin: "FacebookAuthDesktopPlugin"))
   FileSaverPlugin.register(with: registry.registrar(forPlugin: "FileSaverPlugin"))
   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))

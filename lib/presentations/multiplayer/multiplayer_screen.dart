@@ -10,6 +10,8 @@ import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
+import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
+import 'dart:developer' as developer;
 
 class MultiplayerScreen extends StatefulWidget {
   const MultiplayerScreen({super.key});
@@ -19,6 +21,7 @@ class MultiplayerScreen extends StatefulWidget {
 }
 
 class _MultiplayerScreenState extends State<MultiplayerScreen> {
+  static const String _logTag = 'MultiplayerScreen';
   final RoomRepository _roomRepository = RoomRepository();
   final UserRepository _userRepository = UserRepository();
   final ThemeRepository _themeRepository = ThemeRepository();
@@ -41,30 +44,17 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
 
   List<String> languages = [];
   final List<String> scripts = ["default", "english"];
-  final List<String> countries = [
-    "🇮🇳 India",
-    "🇺🇸 USA",
-    "🇬🇧 UK",
-    "🇯🇵 Japan",
-    "🇪🇸 Spain",
-    "🇵🇹 Portugal",
-    "🇫🇷 France",
-    "🇩🇪 Germany",
-    "🇷🇺 Russia"
-  ];
+  // Countries are now handled via CountryPickerWidget with ISO-2 codes
   final List<String> points = ["50", "100", "150", "200"];
   List<String> categories = [];
 
   @override
   void initState() {
     super.initState();
-    _loadLanguagesAndCategories();
-    // Initialize default values to satisfy `allFilled` on load
     selectedScript = scripts.first;
     selectedPoints = points.first;
-    // selectedCountry = countries.first; // No default country selection
-
-    _loadRooms();
+    // Load languages/categories first, then load rooms (so allFilled is true when we fetch)
+    _loadLanguagesAndCategories();
     // REMOVED: _loadBannerAd();
   }
 
@@ -77,78 +67,56 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   // REMOVED: _loadBannerAd() function
 
   Future<void> _loadLanguagesAndCategories() async {
-    // Load languages
+    // Load languages and categories in parallel so rooms can be fetched once both are ready
     final languagesResult = await _userRepository.getLanguages();
+    final categoriesResult = await _themeRepository.getCategories();
+
+    String? lang;
+    List<String> langList = ["English", "Hindi", "Marathi", "Telugu"];
     languagesResult.fold(
       (failure) {
-        if (mounted) {
-          setState(() {
-            languages = ["English", "Hindi", "Marathi", "Telugu"];
-            selectedLanguage = languages.first;
-          });
-        }
+        lang = langList.isNotEmpty ? langList.first : null;
       },
       (languagesList) {
         if (languagesList.isEmpty) {
-          if (mounted) {
-            setState(() {
-              languages = ["English", "Hindi", "Marathi", "Telugu"];
-              selectedLanguage = languages.first;
-            });
-          }
-          return;
+          lang = langList.isNotEmpty ? langList.first : null;
         } else {
-          if (mounted) {
-            setState(() {
-              languages = languagesList
-                  .map((lang) => lang['languageName'] as String? ?? '')
-                  .where((name) => name.isNotEmpty)
-                  .toList();
-              // Set default language after loading
-              selectedLanguage = languages.isNotEmpty ? languages.first : null;
-            });
-          }
+          langList = languagesList
+              .map((l) => l['languageName'] as String? ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList();
+          lang = langList.isNotEmpty ? langList.first : null;
         }
       },
     );
 
-    // Load categories
-    final categoriesResult = await _themeRepository.getCategories();
+    List<String> catList = ["Fruits", "Animals", "Food", "Movies"];
     categoriesResult.fold(
       (failure) {
-        if (mounted) {
-          setState(() {
-            categories = ["Fruits", "Animals", "Food", "Movies"];
-            // selectedCategory = categories.first;
-            selectedCategories = categories;
-          });
-        }
+        catList = ["Fruits", "Animals", "Food", "Movies"];
       },
       (categoriesList) {
         if (categoriesList.isEmpty) {
-          if (mounted) {
-            setState(() {
-              categories = ["Fruits", "Animals", "Food", "Movies"];
-              // selectedCategory = categories.first;
-              selectedCategories = categories;
-            });
-          }
-          return;
-        }
-
-        if (mounted) {
-          setState(() {
-            categories = categoriesList
-                .map((cat) => cat['title'] as String? ?? '')
-                .where((title) => title.isNotEmpty)
-                .toList();
-            // Set default category after loading
-            // selectedCategory = categories.isNotEmpty ? categories.first : null;
-            selectedCategories = categories.isNotEmpty ? categories : [];
-          });
+          catList = ["Fruits", "Animals", "Food", "Movies"];
+        } else {
+          catList = categoriesList
+              .map((cat) => cat['title'] as String? ?? '')
+              .where((title) => title.isNotEmpty)
+              .toList();
         }
       },
     );
+
+    if (mounted) {
+      setState(() {
+        languages = langList;
+        selectedLanguage = lang;
+        categories = catList;
+        selectedCategories = catList.isNotEmpty ? List.from(catList) : [];
+      });
+      // Now allFilled is true (selectedCategories.isNotEmpty); fetch rooms
+      _loadRooms();
+    }
   }
 
   Future<void> _loadRooms() async {
@@ -173,7 +141,11 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
 
       result.fold(
         (failure) {
-          print('Failed to load rooms: ${failure.message}');
+          developer.log(
+            'Failed to load rooms: ${failure.message}',
+            name: _logTag,
+            error: failure,
+          );
         },
         (roomListResponse) {
           if (mounted) {
@@ -193,7 +165,11 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
         },
       );
     } catch (e) {
-      print('Error loading rooms: $e');
+      developer.log(
+        'Error loading rooms: $e',
+        name: _logTag,
+        error: e,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -397,7 +373,10 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           items: languages,
                           onChanged: (val) {
                             setState(() => selectedLanguage = val);
-                            print(selectedLanguage);
+                            developer.log(
+                              'Selected language: $selectedLanguage',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.language,
@@ -414,6 +393,10 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           items: scripts,
                           onChanged: (val) {
                             setState(() => selectedScript = val);
+                            developer.log(
+                              'Selected script: $selectedScript',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.script,
@@ -434,16 +417,18 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildFilterPill(
-                          image: AppImages.country,
-                          icon: Icons.public,
-                          value: selectedCountry,
-                          items: countries,
-                          onChanged: (val) {
-                            setState(() => selectedCountry = val);
+                        child: CountryPickerWidget(
+                          selectedCountryCode: selectedCountry,
+                          onCountrySelected: (countryCode) {
+                            setState(() => selectedCountry = countryCode);
+                            developer.log(
+                              'Selected country code: $selectedCountry',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.country,
+                          imageUrl: AppImages.country,
                           iconColor: Colors.lightGreenAccent,
                           isTablet: isTablet,
                         ),
@@ -457,6 +442,10 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           items: points,
                           onChanged: (val) {
                             setState(() => selectedPoints = val);
+                            developer.log(
+                              'Selected points: $selectedPoints',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.points,
@@ -477,16 +466,19 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildFilterPill(
+                        child: _buildMultiSelectCategoryPill(
                           image: AppImages.category,
                           icon: Icons.category,
-                          // value: selectedCategory,
-                          value: selectedCategories.isEmpty ? null : selectedCategories.join(", "),
+                          selectedValues: selectedCategories,
                           items: categories,
                           onChanged: (val) {
                             setState(() {
-                              selectedCategories = val != null ? [val] : [];
+                              selectedCategories = val;
                             });
+                            developer.log(
+                              'Selected categories: $selectedCategories',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.category,
@@ -512,6 +504,10 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                                 selectedGameMode = "1v1";
                               });
                             }
+                            developer.log(
+                              'Selected game mode: $selectedGameMode',
+                              name: _logTag,
+                            );
                             _loadRooms();
                           },
                           hintText: AppLocalizations.mode,
@@ -724,12 +720,249 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                 ),
                 if (isDropdown) ...[
                   SizedBox(width: isTablet ? 8.w : 6.w),
-                  Image.asset(
-                    "asset/image/arrow_down.png",
-                    height: isTablet ? 16.sp : 14.sp,
-                    width: isTablet ? 16.sp : 14.sp,
-                  ),
+                  Icon(Icons.arrow_drop_down,
+                      color: Colors.white70, size: isTablet ? 20.sp : 16.sp),
                 ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMultiSelectCategoryPill({
+    required IconData icon,
+    required List<String> selectedValues,
+    required List<String> items,
+    required ValueChanged<List<String>> onChanged,
+    required String hintText,
+    Color iconColor = Colors.white,
+    String? image,
+    bool isTablet = false,
+  }) {
+    final GlobalKey tapKey = GlobalKey();
+    final displayText = selectedValues.isEmpty
+        ? hintText
+        : selectedValues.length == 1
+            ? selectedValues.first
+            : '${selectedValues.length} selected';
+
+    return Container(
+      height: isTablet ? 52.h : 45.h,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25.r),
+        border: Border.all(color: Colors.white, width: isTablet ? 1.5.w : 1.w),
+        color: const Color(0xFF0E0E0E),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: tapKey,
+          borderRadius: BorderRadius.circular(25.r),
+          onTap: () async {
+            final box = tapKey.currentContext?.findRenderObject() as RenderBox?;
+            if (box == null) return;
+            
+            final Offset position = box.localToGlobal(Offset.zero);
+            final Size size = box.size;
+            const double gap = -2.0;
+            
+            // Initialize tempSelected BEFORE showing the menu
+            List<String> tempSelected = List.from(selectedValues);
+            
+            final selected = await showMenu<List<String>>(
+              context: context,
+              position: RelativeRect.fromLTRB(
+                position.dx,
+                position.dy + size.height + gap,
+                position.dx + size.width,
+                position.dy + size.height + gap,
+              ),
+              color: Colors.transparent,
+              constraints: BoxConstraints(
+                minWidth: size.width,
+                maxWidth: size.width * 1.5,
+                maxHeight: 300.h,
+              ),
+              items: [
+                PopupMenuItem<List<String>>(
+                  enabled: false,
+                  padding: EdgeInsets.zero,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.r),
+                      color: const Color(0xFF1A2942),
+                    ),
+                    child: StatefulBuilder(
+                      builder: (context, setMenuState) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Select All / Deselect All buttons
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w, vertical: 8.h),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      setMenuState(() {
+                                        if (tempSelected.length == items.length) {
+                                          tempSelected.clear();
+                                        } else {
+                                          tempSelected = List.from(items);
+                                        }
+                                      });
+                                    },
+                                    child: Text(
+                                      tempSelected.length == items.length
+                                          ? 'Deselect All'
+                                          : 'Select All',
+                                      style: TextStyle(
+                                        color: const Color(0xFF4A90E2),
+                                        fontSize: isTablet ? 14.sp : 12.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.pop(context, tempSelected);
+                                    },
+                                    child: Text(
+                                      'Done',
+                                      style: TextStyle(
+                                        color: const Color(0xFF4A90E2),
+                                        fontSize: isTablet ? 14.sp : 12.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Divider(
+                              color: Colors.white.withOpacity(0.2),
+                              height: 1,
+                            ),
+                            // Category items with checkboxes
+                            Flexible(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: items.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final e = entry.value;
+                                    final isSelected = tempSelected.contains(e);
+                                    
+                                    return Container(
+                                      decoration: index < items.length - 1
+                                          ? const BoxDecoration(
+                                              border: Border(
+                                                bottom: BorderSide(
+                                                  color: Color.fromRGBO(
+                                                      255, 255, 255, 0.2),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                      child: InkWell(
+                                        onTap: () {
+                                          setMenuState(() {
+                                            if (isSelected) {
+                                              tempSelected.remove(e);
+                                            } else {
+                                              tempSelected.add(e);
+                                            }
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 12.w, vertical: 8.h),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                isSelected
+                                                    ? Icons.check_box
+                                                    : Icons.check_box_outline_blank,
+                                                size: isTablet ? 20.sp : 18.sp,
+                                                color: isSelected
+                                                    ? const Color(0xFF4A90E2)
+                                                    : Colors.white54,
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Text(
+                                                  e,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: isTablet ? 15.sp : 13.sp,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            );
+            if (selected != null) {
+              onChanged(selected);
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: isTablet ? 14.w : 10.w,
+                vertical: isTablet ? 12.h : 10.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (image != null) ...[
+                  Image.asset(
+                    image,
+                    height: isTablet ? 22.h : 18.h,
+                    width: isTablet ? 22.w : 18.w,
+                  ),
+                  SizedBox(width: isTablet ? 10.w : 8.w),
+                ] else ...[
+                  Icon(icon, 
+                      color: iconColor, 
+                      size: isTablet ? 22.sp : 18.sp),
+                  SizedBox(width: isTablet ? 10.w : 8.w),
+                ],
+                Expanded(
+                  child: Text(
+                    displayText,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.lato(
+                      color: selectedValues.isEmpty ? Colors.white54 : Colors.white,
+                      fontSize: isTablet ? 15.sp : 13.sp,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                SizedBox(width: isTablet ? 8.w : 6.w),
+                Icon(Icons.arrow_drop_down,
+                    color: Colors.white70, size: isTablet ? 20.sp : 16.sp),
               ],
             ),
           ),
@@ -796,7 +1029,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   Widget _buildCountryPill() => _buildGradientDropdown(
         icon: Icons.public,
         value: selectedCountry,
-        items: countries,
+        items: const <String>[], // Countries are now handled via CountryPickerWidget
         onChanged: (val) {
           setState(() => selectedCountry = val);
           _loadRooms();
@@ -925,7 +1158,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           width: 15.w,
                         ),
                         Text(
-                          _getCountryFlag(room.country ?? 'India'),
+                          _getCountryFlag(room.country),
                           style: TextStyle(fontSize: 16.sp),
                         ),
                         const Spacer(),
@@ -992,37 +1225,6 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     );
   }
 
-  Widget _buildMultiSelectCategoryPill() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Categories",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: categories.map((category) {
-            final isSelected = selectedCategories.contains(category);
-            return FilterChip(
-              label: Text(category),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  selected
-                      ? selectedCategories.add(category)
-                      : selectedCategories.remove(category);
-                });
-                _loadRooms();
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
 
 
   Widget _buildBadge(String text) {
@@ -1039,16 +1241,33 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     );
   }
 
-  String _getCountryFlag(String country) {
-    Map<String, String> flags = {
-      'India': '🇮🇳',
-      'USA': '🇺🇸',
-      'UK': '🇬🇧',
-      'Russia': '🇷🇺',
-      'Ukraine': '🇺🇦',
-      'Canada': '🇨🇦',
+  String _getCountryFlag(String? country) {
+    // Handle both ISO-2 codes and old country names for backward compatibility
+    if (country == null || country.isEmpty) return '🏳️';
+    
+    // If it's already an ISO-2 code (2 characters), use CountryPickerWidget helper
+    if (country.length == 2) {
+      return CountryPickerWidget.getCountryFlag(country);
+    }
+    
+    // Backward compatibility: Map old country names to ISO-2 codes
+    final Map<String, String> countryNameToCode = {
+      'India': 'IN',
+      'USA': 'US',
+      'UK': 'GB',
+      'United Kingdom': 'GB',
+      'Russia': 'RU',
+      'Ukraine': 'UA',
+      'Canada': 'CA',
+      'Japan': 'JP',
+      'Spain': 'ES',
+      'Portugal': 'PT',
+      'France': 'FR',
+      'Germany': 'DE',
     };
-    return flags[country] ?? '🏳️';
+    
+    final code = countryNameToCode[country] ?? country;
+    return CountryPickerWidget.getCountryFlag(code);
   }
 
   bool get allFilled =>

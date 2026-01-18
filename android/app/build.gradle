@@ -52,10 +52,10 @@ android {
             signingConfig = signingConfigs.release
 
             // Enables code shrinking, obfuscation, and optimization
-            minifyEnabled true
+            minifyEnabled false
 
             // Removes unused resource files (images, layouts) from the APK
-            shrinkResources true
+            shrinkResources false
         }
     }
 }

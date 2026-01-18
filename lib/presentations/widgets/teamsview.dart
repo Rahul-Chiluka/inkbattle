@@ -60,7 +60,8 @@ class TeamDisplayPopup extends StatelessWidget {
                 height: 100.h,
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage(teamName == "Team A"
+                    // Blue = Team A, Orange = Team B (match game_room_screen mapping)
+                    image: AssetImage((teamName == "Team A" || teamName == "A")
                         ? AppImages.redflg_teamA
                         : AppImages.redflg_teamB),
                     fit: BoxFit.cover,
@@ -68,6 +69,22 @@ class TeamDisplayPopup extends StatelessWidget {
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  teamName,
+                  style: GoogleFonts.lato(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w700,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.8),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                 ),
               ),

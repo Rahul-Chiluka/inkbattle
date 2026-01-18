@@ -1,22 +1,17 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/widgets/video_reward_dialog.dart';
-import 'package:video_player/video_player.dart';
+import 'package:lottie/lottie.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 
 class DailyCoinsPopup extends StatefulWidget {
   final Function(dynamic)? onClaimed;
-  // final VoidCallback? onBuyClicked; // 1. Added callback for Buy button
 
-  // const DailyCoinsPopup({
-  //   super.key, 
-  //   this.onClaimed, 
-  //   this.onBuyClicked // 2. Added to constructor
-  // });
+  const DailyCoinsPopup({super.key, this.onClaimed});
 
   @override
   State<DailyCoinsPopup> createState() => _DailyCoinsPopupState();
@@ -24,40 +19,55 @@ class DailyCoinsPopup extends StatefulWidget {
 
 class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
   final UserRepository _userRepository = UserRepository();
+  final AudioPlayer _soundPlayer = AudioPlayer();
+
   bool _isLoading = true;
   bool _canClaim = false;
   int _hoursRemaining = 0;
   int _coinsToAward = 1000;
   bool _claimed = false;
-  VideoPlayerController? _videoController;
-  bool _isVideoInitialized = false;
+  bool _playedOpenSound = false;
 
   @override
   void initState() {
     super.initState();
     _checkDailyBonusStatus();
-    _initializeVideo();
+    _playOpenSound();
   }
 
-  Future<void> _initializeVideo() async {
-    _videoController = VideoPlayerController.asset(
-      AppImages.treasureBoxVideo,
-    );
-    await _videoController!.initialize();
-    _videoController!.setLooping(true);
-    _videoController!.play();
-    if (mounted) {
-      setState(() {
-        _isVideoInitialized = true;
-      });
-    }
+  // ================= SOUND =================
+
+  Future<void> _playOpenSound() async {
+    if (_playedOpenSound) return;
+    _playedOpenSound = true;
+
+    try {
+      final volume = await LocalStorageUtils.getVolume();
+      await _soundPlayer.setVolume(volume.clamp(0.0, 1.0));
+      await _soundPlayer.play(
+        AssetSource('sounds/treasure-open.mp3'),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _playRewardSound() async {
+    try {
+      final volume = await LocalStorageUtils.getVolume();
+      await _soundPlayer.setVolume(volume.clamp(0.0, 1.0));
+      await _soundPlayer.play(
+        AssetSource('sounds/coin-reward.mp3'),
+      );
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _videoController?.dispose();
+    _soundPlayer.stop();
+    _soundPlayer.dispose();
     super.dispose();
   }
+
+  // ================= API =================
 
   Future<void> _checkDailyBonusStatus() async {
     final result = await _userRepository.getDailyBonusStatus();
@@ -85,196 +95,148 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
   Future<void> _claimDailyBonus() async {
     if (!_canClaim || _claimed) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final result = await _userRepository.claimDailyBonus();
     result.fold(
       (failure) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
-          setState(() {
-            _isLoading = false;
-          });
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(failure.message)));
+          setState(() => _isLoading = false);
         }
       },
-      (data) {
+      (data) async {
         if (mounted) {
           const coinsAwarded = 1000;
           _coinsToAward = coinsAwarded;
           _claimed = true;
-          // widget.onClaimed?.call(coinsAwarded);
-          // Close daily coins popup and show coin animation
+
+          await _playRewardSound();
           Navigator.pop(context);
+
           VideoRewardDialog.show(
             context,
             coinsAwarded: coinsAwarded,
-            onComplete: () {
-              widget.onClaimed?.call(coinsAwarded);
-            },
+            onComplete: () => widget.onClaimed?.call(coinsAwarded),
           );
         }
       },
     );
   }
 
+  // ================= UI =================
+
+  double _animationHeight(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery.of(context).size.width;
+    final isTablet = w > 600;
+
+    if (isTablet) return h * 0.30;      // tablets
+    if (h < 700) return h * 0.32;       // small phones
+    return h * 0.35;                    // normal phones
+  }
+
+  double _dialogWidth(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w > 900) return w * 0.45;       // large tablet
+    if (w > 600) return w * 0.65;       // tablet
+    return w * 0.92;                    // phone
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     if (_isLoading) {
-      return Center(
-        child: Container(
-          padding: EdgeInsets.all(40.w),
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          child: const CircularProgressIndicator(color: Colors.blue),
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: isTablet ? size.width * 0.7 : size.width * 0.9,
-          maxHeight: isTablet ? size.height * 0.8 : size.height * 0.85, // Increased height slightly to fit new button
+          maxWidth: _dialogWidth(context),
         ),
         child: AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(22.r),
           ),
           backgroundColor: Colors.black,
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _isVideoInitialized && _videoController != null
-                    ? SizedBox(
-                        width: isTablet ? 200.w : 160.w,
-                        height: isTablet ? 250.h : 220.h,
-                        child: AspectRatio(
-                          aspectRatio: _videoController!.value.aspectRatio,
-                          child: VideoPlayer(_videoController!),
-                        ),
-                      )
-                    : SizedBox(
-                        width: isTablet ? 200.w : 160.w,
-                        height: isTablet ? 250.h : 220.h,
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.blue),
-                        ),
-                      ),
-                SizedBox(height: 16.h),
-                if (_claimed) ...[
-                  Text(
-                    "YOU GOT",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.blue,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 18.w,
+            vertical: 22.h,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              /// ===== BIGGER LOTTIE =====
+              SizedBox(
+                height: _animationHeight(context),
+                child: Lottie.network(
+                  'https://lottie.host/5b680b27-3ad1-4101-a9a9-0a85fac47ede/XJlDHgYasP.lottie',
+                  repeat: true,
+                  animate: true,
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+              SizedBox(height: 18.h),
+
+              if (_claimed) ...[
+                _title("YOU GOT", Colors.blue, isTablet),
+                _title("$_coinsToAward COINS!", Colors.yellow, isTablet),
+              ] else if (_canClaim) ...[
+                _title("DAILY BONUS", Colors.blue, isTablet),
+                _title("1000 COINS!", Colors.yellow, isTablet),
+              ] else ...[
+                _title("COME BACK IN", Colors.blue, isTablet),
+                _title("$_hoursRemaining HOURS", Colors.orange, isTablet),
+              ],
+
+              SizedBox(height: 26.h),
+
+              /// ===== BUTTON =====
+              SizedBox(
+                width: double.infinity,
+                height: isTablet ? 70.h : 60.h,
+                child: ElevatedButton(
+                  onPressed: _claimed
+                      ? () => Navigator.pop(context)
+                      : (_canClaim
+                          ? _claimDailyBonus
+                          : () => Navigator.pop(context)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2a6bff),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28.r),
                     ),
                   ),
-                  Text(
-                    "$_coinsToAward COINS!",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.yellow,
-                    ),
-                  ),
-                ] else if (_canClaim) ...[
-                  Text(
-                    "DAILY BONUS",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  Text(
-                    "1000 COINS!",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.yellow,
-                    ),
-                  ),
-                ] else ...[
-                  Text(
-                    "COME BACK IN",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  Text(
-                    "$_hoursRemaining HOURS",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.luckiestGuy(
-                      fontSize: isTablet ? 25.sp : 24.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-                SizedBox(height: 24.h),
-                
-                // --- EXISTING CLAIM/OK BUTTON ---
-                SizedBox(
-                  width: double.infinity,
-                  height: isTablet ? 75.h : 65.h,
-                  child: ElevatedButton(
-                    onPressed: _claimed
-                        ? () => Navigator.pop(context)
-                        : (_canClaim
-                            ? _claimDailyBonus
-                            : () => Navigator.pop(context)),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.r),
-                      ),
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    ),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage(AppImages.bluebutton),
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        _claimed
-                            ? "AWESOME!"
-                            : (_canClaim ? "CLAIM NOW!" : "OK"),
-                        style: TextStyle(
-                          fontSize: isTablet ? 24.sp : 22.sp,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  child: Text(
+                    _claimed ? "AWESOME!" : (_canClaim ? "CLAIM NOW!" : "OK"),
+                    style: TextStyle(
+                      fontSize: isTablet ? 22.sp : 20.sp,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _title(String text, Color color, bool isTablet) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.luckiestGuy(
+          fontSize: isTablet ? 26.sp : 24.sp,
+          color: color,
         ),
       ),
     );

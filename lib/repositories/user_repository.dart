@@ -309,17 +309,19 @@ class UserRepository {
     }
   }
 
+  /// [reportType] 'user' = report member (behavior): first time criteria = exit. 'drawing' = report drawer: 1st strike = abort drawing, 2nd = exit.
   Future<Either<Failure, bool>> reportUser({
     required String roomId,
     required int userToBlockId,
+    String reportType = 'user',
   }) async {
     try {
-      // The API manager sends the POST request with the required body
       await _apiManager.post(
         ApiEndPoints.report,
         {
           'roomId': roomId,
           'userToBlockId': userToBlockId,
+          'reportType': reportType,
         },
         isTokenMandatory: true,
       );

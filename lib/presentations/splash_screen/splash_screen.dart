@@ -8,6 +8,7 @@ import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:inkbattle_frontend/widgets/backgroun_scafold.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
+import 'dart:developer' as developer;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,6 +18,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  static const String _logTag = 'SplashScreen';
   final UserRepository _userRepository = UserRepository();
   String _version = "";
 
@@ -33,6 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     _initPackageInfo();
     _checkAuthAndNavigate();
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -55,7 +58,11 @@ class _SplashScreenState extends State<SplashScreen> {
         result.fold(
           (failure) {
             // Token invalid or expired, clear it and go to sign in
-            print('Token validation failed: ${failure.message}');
+            developer.log(
+              'Token validation failed: ${failure.message}',
+              name: _logTag,
+              error: failure,
+            );
             if (mounted) {
               LocalStorageUtils.clear();
               context.go(Routes.signInScreen);
@@ -63,17 +70,27 @@ class _SplashScreenState extends State<SplashScreen> {
           },
           (user) {
             // Token valid, go to home
-            print('User authenticated, navigating to home');
+            developer.log(
+              'User authenticated, navigating to home',
+              name: _logTag,
+            );
             if (mounted) context.go(Routes.homeScreen);
           },
         );
       } else {
         // No token, go to sign in
-        print('No token found, navigating to sign in');
+        developer.log(
+          'No token found, navigating to sign in',
+          name: _logTag,
+        );
         if (mounted) context.go(Routes.signInScreen);
       }
     } catch (e) {
-      print('Error checking auth: $e');
+      developer.log(
+        'Error checking auth: $e',
+        name: _logTag,
+        error: e,
+      );
       // On error, go to sign in
       if (mounted) context.go(Routes.signInScreen);
     }

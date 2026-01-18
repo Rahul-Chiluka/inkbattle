@@ -9,6 +9,7 @@ import 'package:inkbattle_frontend/widgets/blue_background_scaffold.dart';
 import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
+import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
 
 class CreateRoom extends StatefulWidget {
   const CreateRoom({super.key});
@@ -33,8 +34,8 @@ class _CreateRoomState extends State<CreateRoom> {
 
   final List<String> languages = ["English", "Hindi", "Marathi"];
   final List<String> scripts = ["Native", "Roman"];
-  final List<String> countries = ["India", "USA", "UK", "Japan"];
-  final List<String> points = ["100", "250", "500"];
+  // Countries are now handled via CountryPickerWidget with ISO-2 codes
+  final List<String> points = ["50", "100", "150", "200"];
   final List<String> categories = ["Animal", "Fruits", "Objects"];
   final List<String> gamePlays = ["1 vs 1", "2 vs 2", "3 vs 3"];
 
@@ -105,13 +106,15 @@ class _CreateRoomState extends State<CreateRoom> {
                         imageurl: AppImages.mp2,
                         onChanged: (v) => setState(() => selectedScript = v),
                       ),
-                      _buildGradientDropdown(
+                      SizedBox(
                         width: controlWidth,
-                        hint: AppLocalizations.country,
-                        value: selectedCountry,
-                        items: countries,
-                        imageurl: AppImages.mp4,
-                        onChanged: (v) => setState(() => selectedCountry = v),
+                        child: CountryPickerWidget(
+                          selectedCountryCode: selectedCountry,
+                          onCountrySelected: (countryCode) => setState(() => selectedCountry = countryCode),
+                          hintText: AppLocalizations.country,
+                          imageUrl: AppImages.mp4,
+                          isTablet: isTablet,
+                        ),
                       ),
                       _buildGradientDropdown(
                         width: controlWidth,

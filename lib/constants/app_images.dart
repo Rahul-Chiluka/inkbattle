@@ -5,6 +5,7 @@ class AppImages {
   static const String coin1 = "asset/image/coin1.png";
   static const String coin = "asset/image/coin.png";
   static const String coin2 = "asset/image/coin2.png";
+  static const String gameCoin = "asset/image/gameCoin.png";
   static const String medal1 = "asset/image/medal-1.png";
   static const String medal2 = "asset/image/medal-2.png";
   static const String medal3 = "asset/image/medal-3.png";

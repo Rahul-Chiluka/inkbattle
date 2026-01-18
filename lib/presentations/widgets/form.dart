@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/presentations/game/widgets/submitted.dart';
+import 'package:inkbattle_frontend/repositories/user_repository.dart';
 
 class FormPopup extends StatefulWidget {
-  const FormPopup({super.key});
-
+  List<RoomParticipant> participants;
+  final int roomId;
+  FormPopup({super.key, required this.participants, required this.roomId});
   @override
   State<FormPopup> createState() => _FormPopupState();
 }
 
 class _FormPopupState extends State<FormPopup> {
   final _formKey = GlobalKey<FormState>();
-  String? _selectedMember;
+  // String? _selectedMember;
   String? _selectedReason;
+  RoomParticipant? _selectedUser;
+  final UserRepository _userRepository = UserRepository();
   final _descriptionController = TextEditingController();
 
-  final List<String> members = ['John Doe', 'Jane Smith', 'Other Member'];
+  final List<String> members = [];
   final List<String> reasons = ['Spam', 'Abuse', 'Other'];
 
   @override
@@ -65,10 +70,10 @@ class _FormPopupState extends State<FormPopup> {
             children: [
               _buildLabel('Member Name'),
               SizedBox(height: 4.h),
-              _buildDropdown(
-                value: _selectedMember,
-                items: members,
-                onChanged: (val) => setState(() => _selectedMember = val),
+              _buildDropdown<RoomParticipant>(
+                value: _selectedUser,
+                items: widget.participants,
+                onChanged: (val) => setState(() => _selectedUser = val),
                 validator: (val) =>
                     val == null ? 'Please select a member' : null,
               ),
@@ -128,8 +133,19 @@ class _FormPopupState extends State<FormPopup> {
           ),
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              Navigator.pop(context);
-              const SubmittedPopup();
+              // API expects the user id of the reported member, not the room-participant row id
+              final userToBlockId = _selectedUser!.userId ?? _selectedUser!.user?.id ?? _selectedUser!.id;
+              if (userToBlockId != null) {
+                _userRepository.reportUser(
+                    roomId: widget.roomId.toString(),
+                    userToBlockId: userToBlockId,
+                    reportType: 'user');
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => const SubmittedPopup(),
+                );
+              }
             }
           },
           child: const Text(
@@ -141,15 +157,15 @@ class _FormPopupState extends State<FormPopup> {
     );
   }
 
-  Widget _buildDropdown({
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    required FormFieldValidator<String?> validator,
+  Widget _buildDropdown<T>({
+    required T? value,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
+    required FormFieldValidator<T?> validator,
   }) {
-    return FormField<String>(
+    return FormField<T?>(
       validator: validator,
-      builder: (FormFieldState<String> state) {
+      builder: (FormFieldState<T?> state) {
         return InputDecorator(
           decoration: InputDecoration(
             filled: true,
@@ -162,7 +178,7 @@ class _FormPopupState extends State<FormPopup> {
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: DropdownButton<T?>(
               isExpanded: true,
               value: value,
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -171,15 +187,33 @@ class _FormPopupState extends State<FormPopup> {
                 state.didChange(val);
                 onChanged(val);
               },
-              items: items
-                  .map((item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(
-                          item,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ))
-                  .toList(),
+              items: items.map<DropdownMenuItem<T?>>((item) {
+                if (item is String) {
+                  return DropdownMenuItem<T>(
+                    value: item,
+                    child: Text(
+                      item,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                } else if (item is RoomParticipant) {
+                  return DropdownMenuItem<T?>(
+                    value: (item) as T,
+                    child: Text(
+                      item.user?.name ?? '',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                } else {
+                  return DropdownMenuItem<T?>(
+                    value: item,
+                    child: Text(
+                      item.toString(),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+              }).toList(),
             ),
           ),
         );

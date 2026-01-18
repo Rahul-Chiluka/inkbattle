@@ -19,10 +19,12 @@ class Team {
 class TeamWinnerPopup extends StatelessWidget {
   final List<Team> teams;
   final bool isTeamvTeam;
+  final VoidCallback? onNext;
   const TeamWinnerPopup({
     super.key,
     required this.teams,
     this.isTeamvTeam = false,
+    this.onNext,
   });
 
   @override
@@ -122,7 +124,9 @@ class TeamWinnerPopup extends StatelessWidget {
                         isTeamvTeam: isTeamvTeam,
                       ),
 
-                    if (isTwoWinners)
+                    // FIXED: Proper logic for 2 vs 3+ winners
+                    if (isTwoWinners) {
+                      // 2 winners: Show first and second
                       if (second != null)
                         _buildTeamWinnerAvatar(
                           team: second,
@@ -131,26 +135,27 @@ class TeamWinnerPopup extends StatelessWidget {
                           left: 170.w,
                           isTeamvTeam: isTeamvTeam,
                         )
-                      else ...[
-                        if (second != null)
-                          _buildTeamWinnerAvatar(
-                            team: second,
-                            rank: 2,
-                            // Position for Rank 2 (Left, lower) in 3-winner mode
-                            top: 80.h,
-                            left: 30.w,
-                            isTeamvTeam: isTeamvTeam,
-                          ),
-                        if (third != null)
-                          _buildTeamWinnerAvatar(
-                            team: third,
-                            rank: 3,
-                            // Position for Rank 3 (Right, lowest) in 3-winner mode
-                            top: 100.h,
-                            left: 170.w,
-                            isTeamvTeam: isTeamvTeam,
-                          ),
-                      ],
+                    } else {
+                      // 3+ winners: Show second and third
+                      if (second != null)
+                        _buildTeamWinnerAvatar(
+                          team: second,
+                          rank: 2,
+                          // Position for Rank 2 (Left, lower) in 3-winner mode
+                          top: 80.h,
+                          left: 30.w,
+                          isTeamvTeam: isTeamvTeam,
+                        ),
+                      if (third != null)
+                        _buildTeamWinnerAvatar(
+                          team: third,
+                          rank: 3,
+                          // Position for Rank 3 (Right, lowest) in 3-winner mode
+                          top: 100.h,
+                          left: 170.w,
+                          isTeamvTeam: isTeamvTeam,
+                        ),
+                    }
                   ],
                 ),
               ),
@@ -158,7 +163,10 @@ class TeamWinnerPopup extends StatelessWidget {
 
               SizedBox(height: 50.h),
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  onNext?.call(); // Call onNext callback if provided
+                },
                 child: Container(
                   width: 150.w,
                   height: 50.h,
@@ -211,7 +219,14 @@ class TeamWinnerPopup extends StatelessWidget {
           Text(
             team.name,
             style: GoogleFonts.lato(
-              color: team.name == 'Team A' ? Colors.blue : Colors.orange,
+              // Color logic: Team mode uses team colors, 1v1 mode uses rank-based colors
+              color: isTeamvTeam
+                  ? (team.name == 'Team A' ? Colors.blue : Colors.orange)
+                  : (rank == 1
+                      ? Colors.amber
+                      : rank == 2
+                          ? Colors.grey[300]!
+                          : Colors.brown[300]!),
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
               decoration: TextDecoration.none,
