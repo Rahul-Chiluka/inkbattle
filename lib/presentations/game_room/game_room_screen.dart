@@ -1,4 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
 import 'dart:math' as math;
 import 'dart:ui';
 import 'dart:ui' as ui;
@@ -48,6 +52,34 @@ import 'package:inkbattle_frontend/presentations/widgets/winner.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:toastification/toastification.dart';
 import 'package:video_player/video_player.dart';
+
+// #region agent log
+Future<void> _debugLobbyLog(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) async {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/debug.log');
+
+    await file.writeAsString(
+      '${jsonEncode({
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'location': location,
+        'message': message,
+        'data': data,
+        'hypothesisId': hypothesisId,
+        'sessionId': 'debug-session',
+      })}\n',
+      mode: FileMode.append,
+    );
+  } catch (e) {
+    debugPrint('Lobby debug log failed: $e');
+  }
+}
+// #endregion
 
 class GameRoomScreen extends StatefulWidget {
   final String roomId;
@@ -184,6 +216,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   UserModel? _currentUser;
 
   bool _isResuming = false;
+  bool _isReconnecting = false;
 
   final ValueNotifier<List<fdb.Stroke>> _strokes = ValueNotifier([]);
   final fdb.CurrentStrokeValueNotifier _currentStroke =
@@ -710,9 +743,26 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
   Future<void> _handleAppResumed() async {
     if (!mounted) return;
-    
+
+    // Always clear past/backend snackbars and overlays on resume (game ended or not)
+    ScaffoldMessenger.of(context).clearSnackBars();
+    _announcementManager.clearSequence();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+    });
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+    });
+
     // Don't check room status if game has ended and we're showing ad/leaderboard
-    // This prevents premature exits when room is being cleaned up
     if (_isGameEnded) {
       developer.log(
         "Game ended - skipping room check on resume",
@@ -720,39 +770,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
       return;
     }
-    
-    // CRITICAL: Clear all snackbars immediately to prevent obstruction
-    // Clear multiple times to catch any queued snackbars that might appear
-    ScaffoldMessenger.of(context).clearSnackBars();
-    
-    // Clear again after a small delay to catch any snackbars that were queued
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-      }
-    });
-    
-    // Clear again after frame is built to ensure UI is clean
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-      }
-    });
-    
-    // Additional clear after a longer delay to catch any delayed snackbars
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-      }
-    });
-    
-    // Final clear after 1 second to ensure all snackbars are gone
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-      }
-    });
-    
+
     setState(() => _isResuming = true);
 
     // SAFEGUARD: Set a maximum timeout to ensure loading doesn't run forever
@@ -919,18 +937,26 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         }
       },
       (room) {
-        // Room found successfully - update state and continue
-        // Note: We don't check if user is in participants here because:
-        // 1. API might be slow to sync after app resume
-        // 2. Socket connection is the source of truth for room membership
-        // 3. If user was truly removed, socket will notify us via room_closed or similar events
+        // Room found - update state; if game ended / lobby / closed, show lobby or exit
         setState(() {
           _room = room;
           _waitingForPlayers = room.status == 'lobby' || room.status == 'waiting';
           _isResuming = false;
+          if (room.status == 'lobby' || room.status == 'waiting') {
+            _isGameEnded = false;
+            _isWaitingForHostOrMembers = true;
+          }
+          if (room.status == 'closed' || room.status == 'inactive') {
+            _waitingForPlayers = true;
+            _isGameEnded = false;
+          }
         });
-        
-        // Sync Drawing if playing
+        if (room.status == 'closed' || room.status == 'inactive') {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _showAdAndExit();
+          });
+          return;
+        }
         if (room.status == 'playing') {
           _socketService.socket?.emit('request_canvas_data', {'roomCode': room.code});
         }
@@ -1026,6 +1052,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         },
         (room) {
+          // #region agent log
+          _debugLobbyLog('game_room_screen:_initializeRoom', 'room loaded', {
+            'roomStatus': room.status,
+            'waitingForPlayersComputed': room.status == 'lobby' || room.status == 'waiting',
+          }, 'H5');
+          // #endregion
           setState(() {
             _room = room;
             _participants = room.participants ?? [];
@@ -1255,10 +1287,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
     _socketService.onRoomJoined((data) {
       if (mounted) {
-        
         final room = data['room'];
         final participants = data['participants'] as List?;
+        final isResuming = data['isResuming'] == true;
         setState(() {
+          if (room != null && room is Map<String, dynamic>) {
+            _room = RoomModel.fromJson(Map<String, dynamic>.from(room));
+          }
           if (participants != null && participants.isNotEmpty) {
             _participants =
                 participants.map((p) => RoomParticipant.fromJson(p)).toList();
@@ -1266,18 +1301,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           if (room != null && room['status'] != null) {
             final roomStatus = room['status'] as String;
             _waitingForPlayers = roomStatus == 'waiting' || roomStatus == 'lobby';
-            
-            // If backend changed status to lobby (after game ended), ensure we're in waiting state
-            if (roomStatus == 'lobby' && _room != null) {
-              _room!.status = 'lobby';
-              // If we're not already waiting, start waiting for host/members
-              if (!_isWaitingForHostOrMembers && _isGameEnded) {
-                _isWaitingForHostOrMembers = true;
-              }
+            if (_room != null) _room!.status = roomStatus;
+            if (roomStatus == 'lobby' || roomStatus == 'waiting') {
+              _isGameEnded = false;
+              _isWaitingForHostOrMembers = true;
+            }
+            if (isResuming && (roomStatus == 'lobby' || roomStatus == 'waiting')) {
+              _isGameEnded = false;
+              _isWaitingForHostOrMembers = true;
+            }
+            if (roomStatus == 'playing') {
+              _waitingForPlayers = false;
             }
           }
         });
-        
+        // If room is already playing (e.g. host started while we were in ad), sync canvas and phase
+        if (room != null && room['status'] == 'playing' && _room?.code != null) {
+          _syncWithPlayingRoom();
+        }
         // Check if we're waiting for host/members and they're now ready
         if (_isWaitingForHostOrMembers && _room != null && _currentUser != null) {
           final isHost = _currentUser!.id == _room!.ownerId;
@@ -1442,6 +1483,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         setState(() {
           _chatMessages.add({'type': 'system', 'message': '$userName was removed from the game'});
         });
+        _scrollToBottom();
         // Show snackbar notification
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1464,6 +1506,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         setState(() {
           _chatMessages.add({'type': 'system', 'message': '$userName left'});
         });
+        _scrollToBottom();
 
         // Show snackbar notification
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1569,13 +1612,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onLobbyTimeExceeded((data) {
-      
-      final message = data["message"];
+      if (!mounted) return;
+      final message = data["message"] as String?;
+      final text = message != null && message.isNotEmpty
+          ? message
+          : 'It looks like everyone left! Do you want to continue waiting or exit?';
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return ExitPopUp(
-              text: message,
+              text: text,
               imagePath: AppImages.inactive,
               onExit: () {
                 _leaveRoom();
@@ -1940,42 +1986,45 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _currentWord = data['word'];
             _currentWordForDashes = null;
             _showWordHint = false;
-            if (_isDrawer && selectedGameMode == '1v1' && _currentUser != null) {
-              final int totalPlayers = _participants.length;
-              final int correctGuesses = _usersWhoAnswered.length;
-              final int maxPoints = selectedPoints ?? 100;
-
-              if (totalPlayers > 1) {
-                // Use ceil to ensure 2.1 or 2.3 becomes 3, 10 represents max points
-                final int earned = ((correctGuesses * 2 * 10) / (totalPlayers-1)).ceil();
-
-                setState(() {
-                  _earnedPointsDisplay = earned;
-                  final index = _participants.indexWhere((p) => p.user?.id == _currentUser?.id);
-                  if (index != -1) {
-                    _participants[index].score = (_participants[index].score ?? 0) + earned;
-                  }
-                });
-
-                // Trigger the floating animation
-                _pointsAnimationController.forward(from: 0.0);
-                // You must handle this event on your backend to save it permanently.
-                _socketService.socket?.emit('drawer_earned_points', {
-                  'roomId': widget.roomId,
-                  'points': earned,
-                  'userId': _currentUser!.id
-                });
+            // Sync participant scores from server (drawer + guessers) so UI shows correct scores
+            final participantsList = data['participants'] as List?;
+            if (participantsList != null && participantsList.isNotEmpty) {
+              for (final p in participantsList) {
+                final id = p['id'];
+                final rawScore = p['score'] ?? 0;
+                final scoreInt = rawScore is int ? rawScore : (rawScore as num).toInt();
+                if (id == null) continue;
+                final idStr = id.toString();
+                final idx = _participants.indexWhere((e) =>
+                    e.userId == id ||
+                    e.user?.id == id ||
+                    e.id == id ||
+                    e.userId.toString() == idStr ||
+                    e.user?.id.toString() == idStr);
+                if (idx != -1) {
+                  _participants[idx].score = scoreInt;
+                }
               }
             }
-            if (_isDrawer) {
-              if (lastPhaseTimeRemaining > 2) {
-                _announcementManager.startAnnouncementSequence(isTimeUp: false);
-              } else {
-                _announcementManager.startAnnouncementSequence(isTimeUp: true);
-              }
+            // Drawer bonus only in 1v1; team vs team has no drawer bonus
+            final drawerReward = data['drawerReward'] ?? 0;
+            if (selectedGameMode != 'team_vs_team' &&
+                _isDrawer &&
+                drawerReward != null &&
+                drawerReward > 0) {
+              _earnedPointsDisplay = drawerReward;
+              _pointsAnimationController.forward(from: 0.0);
+              _socketService.socket?.emit('drawer_earned_points', {'roomId': widget.roomId});
             }
+            // Show guess compliments (time up / well done / nice try) when entering reveal phase
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              final isTimeUp = _phaseTimeRemaining <= 2;
+              _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
+            });
             // DON'T clear canvas during reveal
           } else if (nextPhase == 'interval') {
+            _announcementManager.clearSequence();
             setState(() {
               _earnedPointsDisplay = null; // Clear the previous points display
             });
@@ -2026,7 +2075,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         final Map<String, dynamic>? drawer =
             drawerData is Map<String, dynamic> ? drawerData : null;
         final drawerId = drawer?['id'];
-        final bool isDrawer = drawerId == _currentUser?.id;
+        final bool isDrawer = drawerId != null &&
+            _currentUser?.id != null &&
+            drawerId.toString() == _currentUser!.id.toString();
 
         final savedDrawerSize = _drawerBoardSize;
         final savedGuesserSize = _guesserBoardSize;
@@ -2104,19 +2155,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     });
     _socketService.onWordOptions((data) {
-      if (mounted && _isDrawer) {
-        final List<String> options =
-            List<String>.from(data['words'] ?? const <String>[]);
-        if (options.isEmpty) return;
-        final int duration = (data['duration'] is int && data['duration'] > 0)
-            ? data['duration'] as int
-            : 10;
-        setState(() {
-          _wordOptions = options;
-        });
-        _startWordSelectionCountdown(duration);
-        // _showWordSelectionDialog();
-      }
+      if (!mounted) return;
+      final List<String> options =
+          List<String>.from(data['words'] ?? const <String>[]);
+      if (options.isEmpty) return;
+      // Server only sends word_options to the drawer; treat receipt as being the drawer
+      final int duration = (data['duration'] is int && data['duration'] > 0)
+          ? data['duration'] as int
+          : 10;
+      setState(() {
+        _isDrawer = true;
+        _wordOptions = options;
+      });
+      _startWordSelectionCountdown(duration);
     });
 
     _socketService.onDrawerSkipped((data) {
@@ -2224,6 +2275,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
     _socketService.onGameEnded((data) {
       if (mounted) {
+        _stopGameTimers(); // Stop all game timers so nothing runs in background
         setState(() {
           _isGameEnded = true;
         });
@@ -2231,6 +2283,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         final rankings = data['rankings'] as List?;
         Future.delayed(const Duration(milliseconds: 7000), () {
           if (mounted) {
+            // Clear any snackbars/sounds before showing leaderboard
+            ScaffoldMessenger.of(context).clearSnackBars();
             _showGameEndDialog(rankings);
           }
         });
@@ -2242,34 +2296,80 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       // }
     });
 
+    // When server sets room back to lobby (2s after game end), all participants transition to lobby.
+    // If game just ended, defer this until after rewards/leaderboard/ad flow completes (handled by _safeGoToLobbyAfterAd).
+    _socketService.onServerRestarting((_) async {
+      if (!mounted) return;
+      setState(() => _isReconnecting = true);
+      try {
+        final token = await LocalStorageUtils.fetchToken();
+        if (token == null || token.isEmpty) {
+          if (mounted) setState(() => _isReconnecting = false);
+          return;
+        }
+        _socketService.connect(token);
+        int attempts = 0;
+        while (attempts < 15 && mounted) {
+          await Future.delayed(const Duration(milliseconds: 400));
+          if (_socketService.socket?.connected == true) break;
+          attempts++;
+        }
+        if (mounted && _socketService.socket?.connected == true) {
+          _socketService.joinRoom(
+            widget.roomId,
+            team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
+                ? widget.selectedTeam
+                : null,
+          );
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _isReconnecting = false);
+    });
+
+    _socketService.onRoomBackToLobby((data) {
+      if (!mounted) return;
+      if (_isGameEnded) return; // Stay on game-end screen; lobby transition happens after ad/leaderboard
+      setState(() {
+        _isGameEnded = false;
+        _isLeaderboardVisible = false;
+        if (_room != null) _room!.status = 'lobby';
+        _waitingForPlayers = true;
+        _isWaitingForHostOrMembers = true;
+      });
+      _resetGameState();
+    });
+
     _socketService.onScoreUpdate((data) {
-      if (mounted) {
-        setState(() {
-          final userId = data['userId'];
-          final newScore = data['score'];
-          // Check multiple ID fields to find participant
-          final participantIndex =
-              _participants.indexWhere((p) => 
-                p.user?.id == userId || 
-                p.userId == userId || 
-                p.id == userId);
-          if (participantIndex != -1) {
-            _participants[participantIndex].score = newScore;
-            
-            // 1v1: If this is the current user (drawer), ensure UI reflects update
-            // Score update happens before winner check, so UI will show correct score
-            if (userId == _currentUser?.id && _isDrawer && selectedGameMode == '1v1') {
-              // Score is updated, UI will reflect it immediately
-            }
-          }
+      if (!mounted) return;
+      final userId = data['userId'];
+      // Backend sends INTEGER; socket/JSON may deserialize as int or num on client
+      final rawScore = data['score'];
+      final score = rawScore is int
+          ? rawScore
+          : (rawScore is num ? rawScore.toInt() : 0);
+      if (userId == null) return;
+      final userIdInt = userId is int ? userId : (userId is num ? userId.toInt() : null);
+      final userIdStr = userId.toString();
+      setState(() {
+        final participantIndex = _participants.indexWhere((p) {
+          if (userIdInt != null && (p.userId == userIdInt || p.user?.id == userIdInt || p.id == userIdInt)) return true;
+          if (p.userId.toString() == userIdStr || p.user?.id.toString() == userIdStr) return true;
+          return false;
         });
-      }
+        if (participantIndex != -1) {
+          _participants[participantIndex].score = score;
+        }
+      });
     });
 
     _socketService.onRoundStart((data) {
       if (mounted) {
+        final drawerId = data['drawer']?['id'];
+        final bool isDrawer = drawerId != null &&
+            _currentUser?.id != null &&
+            drawerId.toString() == _currentUser!.id.toString();
         setState(() {
-          _isDrawer = data['drawer']?['id'] == _currentUser?.id;
+          _isDrawer = isDrawer;
           _currentWord = _isDrawer ? data['word'] : null;
           _waitingForPlayers = false;
           // Reset answered users for new round
@@ -2297,9 +2397,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (mounted) {
         // --- Extract data ---
         final dynamic participant = data['participant'];
-        final String teamThatScored = participant['team'] ?? '';
+        final String teamThatScored = (data['teamThatScored'] as String?) ?? 
+            (participant is Map ? (participant['team'] as String?) ?? '' : '');
         final int pointsEarned = data['points'] ?? 0;
-        final String guessText = data['guess'] ?? '';
+        final String guessText =  (data['word'] as String?) ?? '';
         
         // --- Parse participant info ---
         String userName = participant['name'] ?? 'Unknown';
@@ -2329,13 +2430,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             isAnsweredCorrectly = true;
           }
 
-          // Update participant list
+          // Update participant list (score from server is source of truth)
           if (participantId != null) {
             final index = _participants.indexWhere(
               (p) => p.userId == participantId || p.user?.id == participantId || p.id == participantId,
             );
+            if (index != -1 && participantScore != null) {
+              final scoreInt = participantScore is int ? participantScore : (participantScore as num).toInt();
+              _participants[index].score = scoreInt;
+            }
             if (index != -1) {
-              if (participantScore != null) _participants[index].score = participantScore;
               if (_participants[index].user != null) {
                 _participants[index].user!.name = userName;
               } else {
@@ -2619,6 +2723,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           case 'not_authenticated':
             errorMessage = 'Authentication error. Please reconnect.';
             break;
+          case 'you_were_replaced':
+            errorMessage = details.toString().isNotEmpty
+                ? details.toString()
+                : 'Due to inactivity, someone replaced you in this room.';
+            break;
+          case 'room_full':
+            errorMessage = details.toString().isNotEmpty
+                ? details.toString()
+                : 'Room is full. Max players reached.';
+            break;
+          case 'you_are_banned':
+            errorMessage = 'You are banned from this room.';
+            break;
           default:
             errorMessage = 'Error: $message';
         }
@@ -2630,25 +2747,62 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               duration: const Duration(seconds: 3),
             ),
           );
+          // User was replaced (inactive slot filled): leave room and go home
+          if (message == 'you_were_replaced' && mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) context.go('/home');
+            });
+          }
         }
       }
     });
   }
 
+  static const double _autoScrollThreshold = 80.0;
+
+  /// Scroll to latest message only when: list short, user near bottom, or user at top (hasn't scrolled up).
+  bool _shouldScrollToBottom(ScrollPosition pos) {
+    final maxScroll = pos.maxScrollExtent;
+    final pixels = pos.pixels;
+    return maxScroll <= _autoScrollThreshold ||
+        pixels >= maxScroll - _autoScrollThreshold ||
+        pixels <= _autoScrollThreshold;
+  }
+
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_chatScrollController.hasClients) {
-        _chatScrollController
-            .jumpTo(_chatScrollController.position.maxScrollExtent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_chatScrollController.hasClients) return;
+      final pos = _chatScrollController.position;
+      if (!_shouldScrollToBottom(pos)) return;
+      final maxScroll = pos.maxScrollExtent;
+      if (maxScroll > 0) {
+        _chatScrollController.animateTo(
+          maxScroll,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _chatScrollController.jumpTo(maxScroll);
       }
     });
   }
 
   void _scrollAnswersToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_answersChatScrollController.hasClients) {
-        _answersChatScrollController
-            .jumpTo(_answersChatScrollController.position.maxScrollExtent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_answersChatScrollController.hasClients) return;
+      final pos = _answersChatScrollController.position;
+      if (!_shouldScrollToBottom(pos)) return;
+      final maxScroll = pos.maxScrollExtent;
+      if (maxScroll > 0) {
+        _answersChatScrollController.animateTo(
+          maxScroll,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _answersChatScrollController.jumpTo(maxScroll);
       }
     });
   }
@@ -2932,7 +3086,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   void _showGameEndDialog(List? rankings) {
-    if (!mounted || rankings == null) return;
+    if (!mounted || rankings == null || rankings.isEmpty) return;
+    // Clear any snackbars (and stop snackbar sounds) before showing leaderboard
+    ScaffoldMessenger.of(context).clearSnackBars();
 
     final currentUserRanking = rankings.firstWhere(
       (rank) => rank['userId'] == _currentUser?.id,
@@ -2940,6 +3096,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
 
     final coinsWon = currentUserRanking?['coinsAwarded'] ?? 0;
+    final isTeamMode = selectedGameMode == 'team_vs_team';
+    // Top 3 in 1v1, or on winning team (coinsAwarded > 0) in team mode
+    final isWinner = currentUserRanking != null &&
+        (isTeamMode
+            ? (coinsWon as int? ?? 0) > 0
+            : ((currentUserRanking['place'] as int? ?? 999) <= 3));
 
     if (coinsWon > 0) {
       CoinAnimationDialog.show(
@@ -2947,7 +3109,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         coinsAwarded: coinsWon,
         onComplete: () {
           if (!mounted) return;
-          final isTeamMode = selectedGameMode == 'team_vs_team';
           List<Team> teams = [];
           if (isTeamMode) {
             // Team mode: Use rankings to determine winning team and build leaderboard
@@ -2980,21 +3141,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             // Build teams list with proper ordering (winner first)
             for (var entry in sortedTeams) {
               final teamName = entry.key == 'blue' ? 'Team A' : 'Team B';
+              // In team mode, mark current user's team (check if any rank in that team is current user)
+              final isCurrentUserTeam = rankings.any((r) =>
+                  (r['team'] == entry.key) &&
+                  (r['userId'] == _currentUser?.id || r['userId'].toString() == _currentUser?.id.toString()));
               teams.add(Team(
                 name: teamName,
                 score: entry.value,
                 avatar: teamAvatars[entry.key] ?? AppImages.profile,
+                isCurrentUser: isCurrentUserTeam,
               ));
             }
           } else {
             // 1v1 mode: Use rankings to show top 3 players (handles ties correctly)
-            // Rankings are already sorted by backend with proper place assignments
             final topRankings = rankings.where((rank) {
               final place = rank['place'] as int? ?? 999;
               return place <= 3;
             }).toList();
             
-            // Sort by place to maintain order
             topRankings.sort((a, b) {
               final placeA = a['place'] as int? ?? 999;
               final placeB = b['place'] as int? ?? 999;
@@ -3002,19 +3166,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             });
             
             teams = topRankings.map((rank) {
-              // Find participant for avatar
               final userId = rank['userId'];
               final participant = _participants.firstWhere(
                 (p) => p.userId == userId || p.user?.id == userId,
                 orElse: () => RoomParticipant(),
               );
-              
+              final isCurrentUserRank = userId == _currentUser?.id || userId.toString() == _currentUser?.id.toString();
               return Team(
                 name: rank['name'] as String? ?? 'Player',
                 score: rank['score'] as int? ?? 0,
                 avatar: participant.user?.avatar ??
                     participant.user?.profilePicture ??
                     AppImages.profile,
+                isCurrentUser: isCurrentUserRank,
               );
             }).toList();
           }
@@ -3030,11 +3194,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                   child: TeamWinnerPopup(
                     teams: teams,
                     isTeamvTeam: isTeamMode,
+                    isWinner: isWinner,
                     onNext: () {
-                      // _toggleLeaderboard(closeRoom: true);
                       Navigator.of(context).pop(); // Close popup
                       if (mounted) {
-                        _showCloseAdAndNavigate();   // Show ad
+                        _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
                       }
                     },
                   ),
@@ -3046,7 +3210,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
     } else {
       // No coins won - show leaderboard without coin animation
-      final isTeamMode = selectedGameMode == 'team_vs_team';
       List<Team> teams = [];
       if (isTeamMode) {
         // Team mode: Use rankings to determine team scores
@@ -3078,10 +3241,14 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         // Build teams list
         for (var entry in sortedTeams) {
           final teamName = entry.key == 'blue' ? 'Team A' : 'Team B';
+          final isCurrentUserTeam = _participants.any((p) =>
+              p.team == entry.key &&
+              (p.userId == _currentUser?.id || p.user?.id == _currentUser?.id));
           teams.add(Team(
             name: teamName,
             score: entry.value,
             avatar: teamAvatars[entry.key] ?? AppImages.profile,
+            isCurrentUser: isCurrentUserTeam,
           ));
         }
       } else {
@@ -3089,12 +3256,15 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         _participants.sort((a, b) => b.score!.compareTo(a.score!));
         var topPlayers = _participants.take(3).toList();
         teams = topPlayers.map((player) {
+          final isCurrentUserPlayer = player.userId == _currentUser?.id ||
+              player.user?.id == _currentUser?.id;
           return Team(
             name: player.user?.name ?? 'Player',
             score: player.score ?? 0,
             avatar: player.user?.avatar ??
                 player.user?.profilePicture ??
                 AppImages.profile,
+            isCurrentUser: isCurrentUserPlayer,
           );
         }).toList();
       }
@@ -3110,11 +3280,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               child: TeamWinnerPopup(
                 teams: teams,
                 isTeamvTeam: isTeamMode,
+                isWinner: isWinner,
                 onNext: () {
-                  // _toggleLeaderboard(closeRoom: true);
                   Navigator.of(context).pop(); // Close popup
                   if (mounted) {
-                    _showCloseAdAndNavigate();   // Show ad
+                    _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
                   }
                 },
               ),
@@ -3206,9 +3376,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
   }
 
-  Future<void> _showCloseAdAndNavigate({bool shouldGoHome = false}) async {
+  /// When [fromGameEndLeaderboard] is true, after ad we always go to lobby (ignore _shouldExitAfterAd).
+  Future<void> _showCloseAdAndNavigate({
+    bool shouldGoHome = false,
+    bool fromGameEndLeaderboard = false,
+  }) async {
     if (!mounted) return;
-    
+    final goToLobbyAfterAd = fromGameEndLeaderboard;
+    final roomId = widget.roomId;
+    final router = GoRouter.maybeOf(context);
+
     // Helper function to check if host/members are ready
     bool _areHostOrMembersReady() {
       if (_room == null || _currentUser == null) return false;
@@ -3232,33 +3409,114 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     }
     
+    // Helper function to check if host/members are ready
+
+    
     // Helper function to return to lobby screen (where categories are selected and start button is clicked)
     void returnToLobby() {
-      if (mounted) {
-        setState(() {
-          _isGameEnded = false;
-          _isLeaderboardVisible = false;
-          // Set room status to lobby and waiting for players to show lobby screen
-          if (_room != null) {
-            _room!.status = 'lobby';
+      // #region agent log
+      _debugLobbyLog('game_room_screen:returnToLobby', 'entry', {
+        'mounted': mounted,
+        'roomNotNull': _room != null,
+        'roomStatusBefore': _room?.status,
+        'waitingForPlayersBefore': _waitingForPlayers,
+      }, 'H2');
+      // #endregion
+      if (!mounted) return;
+      setState(() {
+        _isGameEnded = false;
+        _isLeaderboardVisible = false;
+        if (_room != null) {
+          _room!.status = 'lobby';
+        }
+        _waitingForPlayers = true;
+        _isWaitingForHostOrMembers = true;
+      });
+      // #region agent log
+      _debugLobbyLog('game_room_screen:returnToLobby', 'after setState', {
+        'roomStatusAfter': _room?.status,
+        'waitingForPlayersAfter': _waitingForPlayers,
+      }, 'H2');
+      // #endregion
+      _resetGameState();
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _areHostOrMembersReady()) {
+          setState(() {
+            _isWaitingForHostOrMembers = false;
+          });
+        }
+      });
+    }
+
+    /// Safely navigate to lobby: try returnToLobby(), then re-join and refetch so user appears in lobby list and state is like initial lobby (same room code).
+    void _safeGoToLobbyAfterAd() {
+      final rid = widget.roomId;
+      // #region agent log
+      _debugLobbyLog('game_room_screen:_safeGoToLobbyAfterAd', 'entry', {
+        'mounted': mounted,
+        'routerNotNull': router != null,
+        'roomId': rid,
+        'roomIdNotEmpty': rid.isNotEmpty,
+      }, 'H1');
+      // #endregion
+      try {
+        if (mounted) {
+          // #region agent log
+          _debugLobbyLog('game_room_screen:_safeGoToLobbyAfterAd', 'calling returnToLobby', {}, 'H1');
+          // #endregion
+          returnToLobby();
+          // Re-join room so server re-broadcasts room_participants (user appears in lobby list for others) and we get room_joined with full room.
+          String? team;
+          if (selectedGameMode == 'team_vs_team') {
+            final me = _participants.where((p) =>
+                p.userId == _currentUser?.id || p.user?.id == _currentUser?.id);
+            team = me.isEmpty ? null : me.first.team;
           }
-          _waitingForPlayers = true;
-          _isWaitingForHostOrMembers = true; // Start waiting for host/members
-        });
-        // Reset all game data when returning to lobby
-        _resetGameState();
-        
-        // Check if host/members are already ready
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && _areHostOrMembersReady()) {
-            setState(() {
-              _isWaitingForHostOrMembers = false;
-            });
-          }
-        });
-        
-        // Note: Ad is already preloaded after showing (in ad callbacks), no need to preload here
+          _socketService.joinRoom(rid, team: team);
+          // Refetch room details so lobby state is like initial setup (settings, categories, room code, etc.).
+          _roomRepository.getRoomDetails(roomId: rid).then((result) {
+            result.fold(
+              (_) {},
+              (room) {
+                if (mounted) {
+                  setState(() {
+                    _room = room;
+                  });
+                  if (room.status == 'playing') {
+                    _syncWithPlayingRoom();
+                  }
+                }
+              },
+            );
+          });
+        } else if (router != null && rid.isNotEmpty) {
+          // #region agent log
+          _debugLobbyLog('game_room_screen:_safeGoToLobbyAfterAd', 'mounted false, using router.go', {'roomId': rid}, 'H1');
+          // #endregion
+          router!.go('/game-room/$rid');
+        }
+      } catch (e) {
+        // #region agent log
+        _debugLobbyLog('game_room_screen:_safeGoToLobbyAfterAd', 'catch', {'error': e.toString()}, 'H3');
+        // #endregion
+        developer.log('returnToLobby failed after ad: $e', name: _logTag);
+        if (router != null && rid.isNotEmpty) {
+          router!.go('/game-room/$rid');
+        }
       }
+    }
+
+    void _navigateToLobbyAfterAd() {
+      const delay = Duration(milliseconds: 500);
+      Future.delayed(delay, () {
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _safeGoToLobbyAfterAd();
+          });
+        } else if (router != null && roomId.isNotEmpty) {
+          router!.go('/game-room/$roomId');
+        }
+      });
     }
     
     // If ad is not loaded yet, try to load it
@@ -3318,7 +3576,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         if (shouldGoHome) {
           context.go('/home');
         } else {
-          // Return to lobby screen (where categories are selected and start button is clicked)
           returnToLobby();
         }
       }
@@ -3332,20 +3589,31 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       ad.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (dismissedAd) {
           dismissedAd.dispose();
-          
-          // CRITICAL: Immediately preload next ad for next game (optimistic preload pattern)
           _preloadNextAd();
-          
+          // #region agent log
+          _debugLobbyLog('game_room_screen:onAdDismissed', 'callback', {
+            'mounted': mounted,
+            'goToLobbyAfterAd': goToLobbyAfterAd,
+          }, 'H1');
+          // #endregion
           if (mounted) {
-            // If room was closed while showing ad, exit to home
-            if (_shouldExitAfterAd) {
+            if (goToLobbyAfterAd) {
+              // Game ended -> leaderboard -> ad: always go to lobby (ignore room_closed)
+              _shouldExitAfterAd = false;
+              Future.delayed(const Duration(milliseconds: 500), () {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _safeGoToLobbyAfterAd();
+                });
+              });
+            } else if (_shouldExitAfterAd) {
               _shouldExitAfterAd = false;
               context.go('/home');
             } else if (shouldGoHome) {
               context.go('/home');
             } else {
-              // Return to lobby screen after ad
-              returnToLobby();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) returnToLobby();
+              });
             }
           }
         },
@@ -3355,44 +3623,58 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             name: _logTag,
           );
           failedAd.dispose();
-          
-          // Preload next ad even if this one failed (optimistic preload pattern)
           _preloadNextAd();
-          
           if (mounted) {
-            // If room was closed while showing ad, exit to home
-            if (_shouldExitAfterAd) {
+            if (goToLobbyAfterAd) {
+              _shouldExitAfterAd = false;
+              Future.delayed(const Duration(milliseconds: 500), () {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _safeGoToLobbyAfterAd();
+                });
+              });
+            } else if (_shouldExitAfterAd) {
               _shouldExitAfterAd = false;
               context.go('/home');
             } else if (shouldGoHome) {
               context.go('/home');
             } else {
-              // Return to lobby screen after ad (where categories are selected and start button is clicked)
-              returnToLobby();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) returnToLobby();
+              });
             }
           }
         },
       );
       await ad.show(onUserEarnedReward: (ad, reward) {});
+      // Fallback: second attempt to reach lobby in case callback didn't run or failed
+      if (goToLobbyAfterAd) {
+        Future.delayed(const Duration(milliseconds: 900), () {
+          _safeGoToLobbyAfterAd();
+        });
+      }
     } catch (e) {
       developer.log(
         "Error showing close rewarded ad: $e",
         name: _logTag,
       );
-      
-      // Preload next ad even if there was an error (optimistic preload pattern)
       _preloadNextAd();
-      
       if (mounted) {
-        // If room was closed while showing ad, exit to home
-        if (_shouldExitAfterAd) {
+        if (goToLobbyAfterAd) {
+          _shouldExitAfterAd = false;
+          Future.delayed(const Duration(milliseconds: 500), () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _safeGoToLobbyAfterAd();
+            });
+          });
+        } else if (_shouldExitAfterAd) {
           _shouldExitAfterAd = false;
           context.go('/home');
         } else if (shouldGoHome) {
           context.go('/home');
         } else {
-          // Return to lobby screen after ad (where categories are selected and start button is clicked)
-          returnToLobby();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) returnToLobby();
+          });
         }
       }
     }
@@ -3626,7 +3908,15 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
     }
 
-    if (_room?.status == 'lobby' || _waitingForPlayers) {
+    // #region agent log
+    final showLobby = _room?.status == 'lobby' || _waitingForPlayers;
+    _debugLobbyLog('game_room_screen:build', 'lobby vs game branch', {
+      'roomStatus': _room?.status,
+      'waitingForPlayers': _waitingForPlayers,
+      'showLobby': showLobby,
+    }, 'H4');
+    // #endregion
+    if (showLobby) {
       return wrapWithExitPopup(
         ShowCaseWidget(
           builder: (context) => Builder(builder: (innerContext) {
@@ -3682,6 +3972,28 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 color: Colors.black54,
                 child: const Center(
                   child: CircularProgressIndicator(color: Colors.cyan),
+                ),
+              ),
+            if (_isReconnecting)
+              Container(
+                key: const ValueKey('reconnecting_overlay'),
+                color: Colors.black54,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: Colors.cyan),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'Reconnecting...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -7883,6 +8195,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
   }
 
+  /// Stops all game-related timers (e.g. when game ends so nothing runs in background).
+  void _stopGameTimers() {
+    _sliderTimer?.cancel();
+    _sliderTimer = null;
+    _nextDrawerTimer?.cancel();
+    _nextDrawerTimer = null;
+    _wordSelectionTimer?.cancel();
+    _wordSelectionTimer = null;
+    _teamScoreboardTimer?.cancel();
+    _teamScoreboardTimer = null;
+    _speakingCleanupTimer?.cancel();
+    _speakingCleanupTimer = null;
+    for (final timer in _retryTimers.values) {
+      timer.cancel();
+    }
+    _retryTimers.clear();
+  }
+
   Future<void> _resetGameState() async {
     if (!mounted) return;
 
@@ -7894,7 +8224,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       _currentWordForDashes = null;
       _waitingForPlayers = true;
 
-      // ✅ PHASE 1: Reset canvas version and sequence on game reset
+      // Reset canvas version and sequence on game reset
       _canvasVersion = 0;
       _strokeSequenceNumber = 0;
 
@@ -7944,6 +8274,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     await _refreshUserData();
 
     
+  }
+
+  /// Sync with an already-playing game (e.g. after re-join or refetch when host started while we were in ad).
+  /// Requests canvas data and sets phase/remaining time from room so UI matches server.
+  void _syncWithPlayingRoom() {
+    if (!mounted || _room?.status != 'playing' || _room?.code == null) return;
+    setState(() {
+      _waitingForPlayers = false;
+      _currentPhase = _room?.roundPhase ?? _currentPhase;
+      final rem = _room?.roundRemainingTime;
+      if (rem != null) _phaseTimeRemaining = rem;
+    });
+    _socketService.socket?.emit('request_canvas_data', {'roomCode': _room!.code});
   }
 
   Future<void> _refreshUserData() async {
@@ -8225,12 +8568,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     int blueScore = 0;
     int orangeScore = 0;
 
-    // Take first team member's score for each team (all members have same score)
     for (final participant in _participants) {
-      if (participant.team == 'blue' && blueScore == 0) {
-        blueScore = participant.score ?? 0;
-      } else if (participant.team == 'orange' && orangeScore == 0) {
-        orangeScore = participant.score ?? 0;
+      final score = participant.score ?? 0;
+      if (participant.team == 'blue' && score > blueScore) {
+        blueScore = score;
+      } else if (participant.team == 'orange' && score > orangeScore) {
+        orangeScore = score;
       }
     }
 
@@ -8805,7 +9148,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                         right: 12.w,
                         child: GestureDetector(
                           onTap: () {
-                            _showCloseAdAndNavigate();
+                            _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
                           },
                           child: Container(
                             width: 32.w,
@@ -9339,28 +9682,39 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                       }
                     }
                   }
+                  final isCurrentUserTeamA = _participants.any((p) =>
+                      p.team == 'blue' &&
+                      (p.userId == _currentUser?.id || p.user?.id == _currentUser?.id));
+                  final isCurrentUserTeamB = _participants.any((p) =>
+                      p.team == 'orange' &&
+                      (p.userId == _currentUser?.id || p.user?.id == _currentUser?.id));
                   teams = [
                     Team(
                       name: "Team A",
                       score: blueScore,
                       avatar: avatarTeamA ?? AppImages.profile,
+                      isCurrentUser: isCurrentUserTeamA,
                     ),
                     Team(
                       name: "Team B",
                       score: orangeScore,
                       avatar: avatarTeamB ?? AppImages.profile,
+                      isCurrentUser: isCurrentUserTeamB,
                     ),
                   ];
                 } else {
                   _participants.sort((a, b) => b.score!.compareTo(a.score!));
                   var topPlayers = _participants.take(3).toList();
                   teams = topPlayers.map((player) {
+                    final isCurrentUserPlayer = player.userId == _currentUser?.id ||
+                        player.user?.id == _currentUser?.id;
                     return Team(
                       name: player.user?.name ?? 'Player',
                       score: player.score ?? 0,
                       avatar: player.user?.avatar ??
                           player.user?.profilePicture ??
                           AppImages.profile,
+                      isCurrentUser: isCurrentUserPlayer,
                     );
                   }).toList();
                 }
@@ -11205,11 +11559,22 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                       width: 25.w,
                       height: 25.w,
                     ),
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (context) => ErrorPopup(
-                          participants: _participants, roomId: _room!.id!),
-                    ),
+                    onTap: () {
+                      if (_room?.id == null) return;
+                      int? drawerId;
+                      if (_currentDrawerInfo != null) {
+                        final id = _currentDrawerInfo!['id'];
+                        drawerId = id is int ? id : int.tryParse(id?.toString() ?? '');
+                      }
+                      showDialog(
+                        context: context,
+                        builder: (context) => ErrorPopup(
+                          participants: _participants,
+                          roomId: _room!.id!,
+                          currentDrawerId: drawerId,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

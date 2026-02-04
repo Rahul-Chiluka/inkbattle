@@ -1,39 +1,82 @@
 import 'dart:math' as math;
+import 'package:audioplayers/audioplayers.dart';
+import 'package:dotlottie_flutter/dotlottie_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
+import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 
 // --- Data Model ---
 class Team {
   final String name;
   final int score;
   final String avatar;
+  /// When true, show a star on leaderboard (current user), like in scoreboard.
+  final bool isCurrentUser;
 
-  Team({required this.name, required this.score, required this.avatar});
+  Team({
+    required this.name,
+    required this.score,
+    required this.avatar,
+    this.isCurrentUser = false,
+  });
 }
 
 // --- Helper Widget for Podium Steps ---
 
 // --- Main Popup Widget ---
-class TeamWinnerPopup extends StatelessWidget {
+class TeamWinnerPopup extends StatefulWidget {
   final List<Team> teams;
   final bool isTeamvTeam;
   final Function()? onNext;
+  /// True if current user is in top 3 (1v1) or on winning team (team vs team) — plays win sound and celebration; else lose sound.
+  final bool isWinner;
   const TeamWinnerPopup({
     super.key,
     this.onNext,
     required this.teams,
     this.isTeamvTeam = false,
+    this.isWinner = false,
   });
+
+  @override
+  State<TeamWinnerPopup> createState() => _TeamWinnerPopupState();
+}
+
+class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
+  static const String _celebrationLottieUrl =
+      'https://lottie.host/6fe4fdb6-3ca3-4e3e-82c5-f90de4c0be04/xn7qPAIzcf.lottie';
+  final AudioPlayer _soundPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    _playResultSound();
+  }
+
+  @override
+  void dispose() {
+    _soundPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playResultSound() async {
+    try {
+      final volume = await LocalStorageUtils.getVolume();
+      await _soundPlayer.setVolume(volume.clamp(0.0, 1.0));
+      await _soundPlayer.play(
+        AssetSource(widget.isWinner ? 'sounds/winner-sound.mp3' : 'sounds/lose-sound.mp3'),
+      );
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
     ScreenUtil.init(context, designSize: const Size(360, 800));
 
-    final sortedTeams = List<Team>.from(teams)
+    final sortedTeams = List<Team>.from(widget.teams)
       ..sort((a, b) => b.score.compareTo(a.score));
-    // sortedTeams.add(Team(name: 'New Team', score: 0, avatar: AppImages.av1));
     final first = sortedTeams.isNotEmpty ? sortedTeams[0] : null;
     final second = sortedTeams.length > 1 ? sortedTeams[1] : null;
     final third = sortedTeams.length > 2 ? sortedTeams[2] : null;
@@ -41,16 +84,13 @@ class TeamWinnerPopup extends StatelessWidget {
     final isTwoWinners = sortedTeams.length == 2;
     final podiumAsset = isTwoWinners
         ? AppImages.podium_3
-        : AppImages
-            .podium_3; // Using same asset for 2 or 3 winners for consistency, will use separate pieces below.
+        : AppImages.podium_3;
 
-    // Define the required heights for the podium bases
-    // These values must be adjusted based on the specific podium image heights (podium_1, podium_2_left, etc.)
-    final double rank1PodiumHeight =
-        170.h; // Taller podium piece (e.g., AppImages.podium_1)
-    final double rank2PodiumHeight =
-        130.h; // Shorter podium piece (e.g., AppImages.podium_2_left)
-    final double rank3PodiumHeight = 90.h; // Shortest podium piece
+    final double rank1PodiumHeight = 170.h;
+    final double rank2PodiumHeight = 130.h;
+    final double rank3PodiumHeight = 90.h;
+
+    final double lottieSize = isTablet ? 180.w : 140.w;
 
     return Center(
       child: Container(
@@ -78,9 +118,8 @@ class TeamWinnerPopup extends StatelessWidget {
                 height: isTablet ? 140.h : 140.h,
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  // color: Colors.red,
                   image: DecorationImage(
-                    image: AssetImage(AppImages.redflg,),
+                    image: AssetImage(AppImages.redflg),
                     fit: BoxFit.cover,
                   ),
                   borderRadius: BorderRadius.only(
@@ -89,7 +128,19 @@ class TeamWinnerPopup extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 50.h), // Reduce initial gap if 70.h was too much
+              SizedBox(height: 12.h),
+              // --- Celebration Lottie (play once, no loop) ---
+              SizedBox(
+                width: lottieSize,
+                height: lottieSize * 0.8,
+                child: DotLottieView(
+                  sourceType: 'url',
+                  source: _celebrationLottieUrl,
+                  autoplay: true,
+                  loop: false,
+                ),
+              ),
+              SizedBox(height: 24.h),
 
               // --- PODIUM VISUALIZATION AREA (300h) ---
               SizedBox(
@@ -113,7 +164,7 @@ class TeamWinnerPopup extends StatelessWidget {
                                   rank: 1,
                                   podiumHeight: rank1PodiumHeight,
                                   podiumAsset: AppImages.podium_1,
-                                  isTeamvTeam: isTeamvTeam,
+                                  isTeamvTeam: widget.isTeamvTeam,
                                   context: context),
                             if (second != null)
                               _buildPodiumStep(
@@ -121,7 +172,7 @@ class TeamWinnerPopup extends StatelessWidget {
                                   rank: 2,
                                   podiumHeight: rank2PodiumHeight,
                                   podiumAsset: AppImages.podium_2,
-                                  isTeamvTeam: isTeamvTeam,
+                                  isTeamvTeam: widget.isTeamvTeam,
                                   context: context),
                           ],
                         ),
@@ -135,23 +186,22 @@ class TeamWinnerPopup extends StatelessWidget {
                               team: second,
                               rank: 2,
                               podiumHeight: rank2PodiumHeight,
-                              podiumAsset: AppImages
-                                  .podium_2_left, // Use the left piece for 2nd
-                              isTeamvTeam: isTeamvTeam,
+                              podiumAsset: AppImages.podium_2_left,
+                              isTeamvTeam: widget.isTeamvTeam,
                               context: context),
                           _buildPodiumStep(
                               team: first,
                               rank: 1,
                               podiumHeight: rank1PodiumHeight,
                               podiumAsset: AppImages.podium_1,
-                              isTeamvTeam: isTeamvTeam,
+                              isTeamvTeam: widget.isTeamvTeam,
                               context: context),
                           _buildPodiumStep(
                               team: third,
                               rank: 3,
                               podiumHeight: rank3PodiumHeight,
                               podiumAsset: AppImages.podium_3,
-                              isTeamvTeam: isTeamvTeam,
+                              isTeamvTeam: widget.isTeamvTeam,
                               context: context),
                         ],
                       ),
@@ -164,7 +214,7 @@ class TeamWinnerPopup extends StatelessWidget {
               // --- Next Button ---
               GestureDetector(
                 onTap: () {
-                  onNext?.call();
+                  widget.onNext?.call();
                   Navigator.pop(context);
                 },
                 child: Container(
@@ -241,15 +291,27 @@ class TeamWinnerPopup extends StatelessWidget {
           ],
         ),
         SizedBox(height: 10.h),
-        Text(
-          " ${team.name}",
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.lato(
-            color: team.name == 'Team A' ? Colors.blue : Colors.orange,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            decoration: TextDecoration.none,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (team.isCurrentUser) ...[
+              Icon(Icons.star, color: Colors.amber, size: 14.r),
+              SizedBox(width: 4.w),
+            ],
+            Flexible(
+              child: Text(
+                " ${team.name}",
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.lato(
+                  color: team.name == 'Team A' ? Colors.blue : Colors.orange,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ],
         ),
         Text(
           "${team.score}",

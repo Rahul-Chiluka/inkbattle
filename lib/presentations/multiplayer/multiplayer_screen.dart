@@ -53,13 +53,10 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLanguagesAndCategories();
-    // Initialize default values to satisfy `allFilled` on load
     selectedScript = scripts.first;
     selectedPoints = points.first;
-    // selectedCountry = countries.first; // No default country selection
-
-    _loadRooms();
+    // Load languages/categories first, then load rooms (so allFilled is true when we fetch)
+    _loadLanguagesAndCategories();
     // REMOVED: _loadBannerAd();
   }
 
@@ -72,78 +69,56 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
   // REMOVED: _loadBannerAd() function
 
   Future<void> _loadLanguagesAndCategories() async {
-    // Load languages
+    // Load languages and categories in parallel so rooms can be fetched once both are ready
     final languagesResult = await _userRepository.getLanguages();
+    final categoriesResult = await _themeRepository.getCategories();
+
+    String? lang;
+    List<String> langList = ["English", "Hindi", "Marathi", "Telugu"];
     languagesResult.fold(
       (failure) {
-        if (mounted) {
-          setState(() {
-            languages = ["English", "Hindi", "Marathi", "Telugu"];
-            selectedLanguage = languages.first;
-          });
-        }
+        lang = langList.isNotEmpty ? langList.first : null;
       },
       (languagesList) {
         if (languagesList.isEmpty) {
-          if (mounted) {
-            setState(() {
-              languages = ["English", "Hindi", "Marathi", "Telugu"];
-              selectedLanguage = languages.first;
-            });
-          }
-          return;
+          lang = langList.isNotEmpty ? langList.first : null;
         } else {
-          if (mounted) {
-            setState(() {
-              languages = languagesList
-                  .map((lang) => lang['languageName'] as String? ?? '')
-                  .where((name) => name.isNotEmpty)
-                  .toList();
-              // Set default language after loading
-              selectedLanguage = languages.isNotEmpty ? languages.first : null;
-            });
-          }
+          langList = languagesList
+              .map((l) => l['languageName'] as String? ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList();
+          lang = langList.isNotEmpty ? langList.first : null;
         }
       },
     );
 
-    // Load categories
-    final categoriesResult = await _themeRepository.getCategories();
+    List<String> catList = ["Fruits", "Animals", "Food", "Movies"];
     categoriesResult.fold(
       (failure) {
-        if (mounted) {
-          setState(() {
-            categories = ["Fruits", "Animals", "Food", "Movies"];
-            // selectedCategory = categories.first;
-            selectedCategories = categories;
-          });
-        }
+        catList = ["Fruits", "Animals", "Food", "Movies"];
       },
       (categoriesList) {
         if (categoriesList.isEmpty) {
-          if (mounted) {
-            setState(() {
-              categories = ["Fruits", "Animals", "Food", "Movies"];
-              // selectedCategory = categories.first;
-              selectedCategories = categories;
-            });
-          }
-          return;
-        }
-
-        if (mounted) {
-          setState(() {
-            categories = categoriesList
-                .map((cat) => cat['title'] as String? ?? '')
-                .where((title) => title.isNotEmpty)
-                .toList();
-            // Set default category after loading
-            // selectedCategory = categories.isNotEmpty ? categories.first : null;
-            selectedCategories = categories.isNotEmpty ? categories : [];
-          });
+          catList = ["Fruits", "Animals", "Food", "Movies"];
+        } else {
+          catList = categoriesList
+              .map((cat) => cat['title'] as String? ?? '')
+              .where((title) => title.isNotEmpty)
+              .toList();
         }
       },
     );
+
+    if (mounted) {
+      setState(() {
+        languages = langList;
+        selectedLanguage = lang;
+        categories = catList;
+        selectedCategories = catList.isNotEmpty ? List.from(catList) : [];
+      });
+      // Now allFilled is true (selectedCategories.isNotEmpty); fetch rooms
+      _loadRooms();
+    }
   }
 
   Future<void> _loadRooms() async {

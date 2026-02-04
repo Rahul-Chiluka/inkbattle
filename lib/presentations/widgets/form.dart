@@ -133,14 +133,19 @@ class _FormPopupState extends State<FormPopup> {
           ),
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              _userRepository.reportUser(
-                  roomId: widget.roomId.toString(),
-                  userToBlockId: _selectedUser!.id!);
-              Navigator.pop(context);
-              showDialog(
-                context: context,
-                builder: (context) => const SubmittedPopup(),
-              );
+              // API expects the user id of the reported member, not the room-participant row id
+              final userToBlockId = _selectedUser!.userId ?? _selectedUser!.user?.id ?? _selectedUser!.id;
+              if (userToBlockId != null) {
+                _userRepository.reportUser(
+                    roomId: widget.roomId.toString(),
+                    userToBlockId: userToBlockId,
+                    reportType: 'user');
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => const SubmittedPopup(),
+                );
+              }
             }
           },
           child: const Text(

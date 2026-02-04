@@ -301,6 +301,14 @@ class SocketService {
     _socket?.on('game_ended', callback);
   }
 
+  void onRoomBackToLobby(Function(dynamic) callback) {
+    _socket?.on('room_back_to_lobby', callback);
+  }
+
+  void onServerRestarting(Function(dynamic) callback) {
+    _socket?.on('server:restarting', callback);
+  }
+
   // Emit new events
   void updateSettings(String roomId, Map<String, dynamic> settings) {
     _socket?.emit('update_settings', {'roomId': roomId, 'settings': settings});
@@ -355,5 +363,6 @@ class SocketService {
     _socket?.off('time_update');
     _socket?.off('clear_chat');
     _socket?.off('game_ended');
+    _socket?.off('server:restarting');
   }
 }

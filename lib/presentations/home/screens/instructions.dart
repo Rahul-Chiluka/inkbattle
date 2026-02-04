@@ -129,6 +129,7 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                               onPressed: () {
                                 setState(() {
                                   isToggleOn = !isToggleOn;
+                                  developer.log('Toggle status changed: $isToggleOn', name: _logTag);
                                   LocalStorageUtils.setTutorialShown(isToggleOn);
                                 });
                               },
