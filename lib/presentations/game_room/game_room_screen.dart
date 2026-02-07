@@ -2025,6 +2025,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               final isTimeUp = _phaseTimeRemaining <= 2;
               _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
             }
+            // Show guess compliments (time up / well done / nice try) when entering reveal phase
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              final isTimeUp = _phaseTimeRemaining <= 2;
+              _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
+            });
             // DON'T clear canvas during reveal
           } else if (nextPhase == 'interval') {
             _announcementManager.clearSequence();

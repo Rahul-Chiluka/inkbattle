@@ -88,42 +88,43 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                                       style: GoogleFonts.lato(
                                         color: Colors.white,
                                         fontSize: 30.sp,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ),
                                 ),
+                                // Balance key for true centering
+                                const SizedBox(width: 25, height: 25),
                               ],
                             )),
-                        SizedBox(height: 15.h),
+                        // Adjusted spacing to match visually with screenshot
+                        SizedBox(height: 50.h), 
                         Expanded(
                           child: SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    randomInstruction,
-                                    style: GoogleFonts.lato(
-                                      color: Colors.white,
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  randomInstruction,
+                                  style: GoogleFonts.lato(
+                                    color: Colors.white,
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.5,
                                   ),
-                                ],
-                              ),
+                                  textAlign: TextAlign.justify, // Better visuals for block text
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        const Spacer(flex: 1),
+                        // Removed Spacer to stick button to bottom area or use bottom padding
+                        // Using Padding to push button up slightly from bottom
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+                          padding: EdgeInsets.only(bottom: 30.h),
                           child: SizedBox(
-                            width:
-                                MediaQuery.of(context).size.width > 600 ? 270.w : 250.w,
-                            height:
-                                MediaQuery.of(context).size.width > 600 ? 75.h : 60.h,
+                            width: 0.85.sw, // 85% of screen width (mobile & tablet)
+                            height: 65.h,   // Consistent height scaling
                             child: ElevatedButton(
                               onPressed: () {
                                 setState(() {
@@ -135,37 +136,35 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                               style: ElevatedButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.r),
+                                  borderRadius: BorderRadius.circular(15.r),
                                 ),
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
                               ),
                               child: Material(
                                 type: MaterialType.transparency,
-                                borderRadius: BorderRadius.circular(10.r),
+                                borderRadius: BorderRadius.circular(15.r),
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(10.r),
-                                  splashColor: Colors.blue,
-                                  highlightColor: Colors.blue,
-                                  // onTap: () {
-                                  //   setState(() {
-                                  //     isToggleOn = !isToggleOn;
-                                  //   });
-                                  // },
+                                  borderRadius: BorderRadius.circular(15.r),
+                                  splashColor: Colors.blue.withOpacity(0.3),
+                                  highlightColor: Colors.blue.withOpacity(0.1),
+                                  onTap: () {
+                                    setState(() {
+                                      isToggleOn = !isToggleOn;
+                                      LocalStorageUtils.setTutorialShown(isToggleOn);
+                                    });
+                                  },
                                   child: Container(
-                                    width: MediaQuery.of(context).size.width > 600
-                                        ? 270.w
-                                        : 250.w,
-                                    height: MediaQuery.of(context).size.width > 600
-                                        ? 75.h
-                                        : 60.h,
+                                    width: 0.85.sw,
+                                    height: 65.h,
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 12.w, vertical: 15.h),
-                                    decoration: const BoxDecoration(
-                                      image: DecorationImage(
+                                    decoration: BoxDecoration(
+                                      image: const DecorationImage(
                                         image: AssetImage(AppImages.bluebutton),
                                         fit: BoxFit.fill,
                                       ),
+                                      borderRadius: BorderRadius.circular(15.r),
                                     ),
                                     alignment: Alignment.center,
                                     child: Row(
@@ -176,42 +175,34 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                                           AppLocalizations.tutorialGuide,
                                           style: GoogleFonts.luckiestGuy(
                                             color: Colors.white,
-                                            fontSize: 23.sp,
+                                            fontSize: 24.sp,
                                             fontWeight: FontWeight.w400,
+                                            letterSpacing: 1.2,
                                           ),
                                         ),
                                         SizedBox(width: 15.w),
-                                        GestureDetector(
-                                          // onTap: () {
-                                          //   setState(() {
-                                          //     isToggleOn = !isToggleOn;
-                                          //   });
-                                          // },
-                                          child: SizedBox(
-                                            width: 25.w,
-                                            height: 30.h,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(5.0),
-                                                border: Border.all(
-                                                  color: isToggleOn
-                                                      ? Colors.green
-                                                      : Colors.grey,
-                                                  width: 2.0,
-                                                ),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: isToggleOn
-                                                  ? Icon(
-                                                      Icons.check,
-                                                      size: 25.w,
-                                                      color: Colors.green,
-                                                    )
-                                                  : null,
+                                        Container(
+                                          width: 28.w,
+                                          height: 28.w,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(6.0),
+                                            border: Border.all(
+                                              color: isToggleOn
+                                                  ? Colors.green
+                                                  : Colors.grey.shade400,
+                                              width: 2.0,
                                             ),
                                           ),
+                                          alignment: Alignment.center,
+                                          child: isToggleOn
+                                              ? Icon(
+                                                  Icons.check,
+                                                  size: 22.w,
+                                                  color: Colors.green,
+                                                )
+                                              : null,
                                         ),
                                       ],
                                     ),
@@ -221,7 +212,6 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                             ),
                           ),
                         ),
-                        const Spacer(flex: 1),
                       ],
                     ),
                   ),

@@ -124,12 +124,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               SizedBox(height: 20.h),
                               
                               _buildButton(context, AppLocalizations.sound,
-                                  AppImages.soundfull, () {}, true),
+                                  Icons.volume_up, () {}, true),
                               SizedBox(height: 15.h),
                               _buildButton(
                                   context,
                                   AppLocalizations.profileAndAccounts,
-                                  AppImages.profile, () async {
+                                  Icons.person, () async {
                                 final result =
                                     await context.push(Routes.profileEditScreen);
                                 // If language was changed, trigger rebuild
@@ -141,26 +141,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _buildButton(
                                   context,
                                   AppLocalizations.privacyAndSafety,
-                                  AppImages.privacy, () {
+                                  Icons.privacy_tip, () {
                                 context.push(Routes.privacySafetyScreen);
                               }, false),
                               SizedBox(height: 15.h),
                               _buildButton(context, AppLocalizations.contact,
-                                  AppImages.contact, () {}, false),
+                                  Icons.email, () {}, false),
                               SizedBox(height: 15.h),
                               _buildButton(context, AppLocalizations.deleteAccount,
-                                  AppImages.exitgame, () async {
-                                if (await canLaunchUrl(deleteAccountUrl)) {
-                                  await launchUrl(deleteAccountUrl,
-                                      mode: LaunchMode.externalApplication);
-                                }
-                              }, false),
+                                  Icons.delete_forever, () async {
+                                    if (await canLaunchUrl(deleteAccountUrl)) {
+                                      await launchUrl(deleteAccountUrl,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  }, false),
                               SizedBox(height: 15.h),
                               _buildButton(context, AppLocalizations.logout,
-                                  AppImages.exitgame, () {
-                                _handleLogout(context);
-                              }, false),
-                              
+                                  Icons.logout, () {
+                                    _handleLogout(context);
+                                  }, false),
+
                               SizedBox(height: 30.h),
                               
                               Padding(
@@ -251,109 +251,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildButton(
-    BuildContext context,
-    String text,
-    String imageUrl,
-    VoidCallback onPressed,
-    bool soundControl,
-  ) {
-    bool isTablet = MediaQuery.of(context).size.width > 600;
+      BuildContext context,
+      String text,
+      IconData iconData,
+      VoidCallback onPressed,
+      bool soundControl,
+      ) {
+    final width = MediaQuery.of(context).size.width;
+    final bool isTablet = width >= 600;
 
-    // FIX: Use specific widths for tablet instead of ScreenUtil scaling (.w)
-    // .w scales with screen width, which makes buttons massive on tablets.
-    double containerWidth = isTablet ? 450 : 250.w;
-    double containerHeight = isTablet ? 65 : 60.h;
-    
-    // For the inner image/content, we slightly adjust
-    double contentWidth = isTablet ? 470 : 250.w; 
-    double contentHeight = isTablet ? 80 : 60.h;
+    // ✅ DESIGN CONSTANTS - REFINED
+    final double maxWidth = isTablet ? 500 : 340; // Increased width slightly for better aspect ratio
+    final double height = isTablet ? 100 : 56; // Reduced tablet height from 100 to 72
+    final double iconSize = isTablet ? 35 : 24; // Adjusted icon size
+    final double fontSize = isTablet ? 30 : 16;
 
-    return SizedBox(
-      width: containerWidth,
-      height: containerHeight,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          overlayColor: Colors.blue.withOpacity(0.3),
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
         ),
-        child: Material(
-          type: MaterialType.transparency,
-          borderRadius: BorderRadius.circular(10.r),
+        child: SizedBox(
+          height: height,
           child: InkWell(
-            borderRadius: BorderRadius.circular(10.r),
-            splashColor: Colors.blue,
-            highlightColor: Colors.blue,
+            borderRadius: BorderRadius.circular(14),
             onTap: onPressed,
             child: Container(
-              width: contentWidth,
-              height: contentHeight,
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              decoration: const BoxDecoration(
-                image: DecorationImage(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              decoration: BoxDecoration(
+                image: const DecorationImage(
                   image: AssetImage(AppImages.bluebutton),
-                  fit: BoxFit.fill,
+                  fit: BoxFit.fill, // ❗ FIX: Changed to fill to prevent cutting
                 ),
+                borderRadius: BorderRadius.circular(14),
               ),
-              alignment: Alignment.center,
               child: Row(
                 children: [
-                  // LEFT ICON
+                  // ICON
                   if (soundControl)
                     BlocBuilder<SettingsBloc, SettingsState>(
-                      builder: (context, state) {
-                        String soundImage;
+                      builder: (_, state) {
+                        IconData icon;
                         if (state.soundValue == 0) {
-                          soundImage = AppImages.soundmute;
-                        } else if (state.soundValue > 0 &&
-                            state.soundValue < 0.5) {
-                          soundImage = AppImages.soundhalf;
+                          icon = Icons.volume_off;
+                        } else if (state.soundValue < 0.5) {
+                          icon = Icons.volume_down;
                         } else {
-                          soundImage = AppImages.soundfull;
+                          icon = Icons.volume_up;
                         }
-
-                        return Image.asset(
-                          soundImage,
-                          height: isTablet ? 32 : 30.h,
-                          width: isTablet ? 32 : 30.w,
-                        );
+                        return Icon(icon, color: Colors.white, size: iconSize);
                       },
                     )
                   else
-                    Image.asset(
-                      imageUrl,
-                      height: isTablet ? 32 : 30.h,
-                      width: isTablet ? 32 : 30.w,
-                    ),
+                    Icon(iconData, color: Colors.white, size: iconSize),
 
-                  SizedBox(width: 12.w),
+                  const SizedBox(width: 24),
 
-                  Text(
-                    text,
-                    style: GoogleFonts.lato(
-                      color: Colors.white,
-                      // FIX: Use fixed size for tablet to prevent over-scaling
-                      fontSize: isTablet ? 22 : 18.sp,
-                      fontWeight: FontWeight.w600,
+                  // TEXT
+                  Expanded(
+                    child: Text(
+                      text,
+                      style: GoogleFonts.lato(
+                        color: Colors.white,
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
 
                   // SLIDER
                   if (soundControl)
-                    Flexible(
+                    SizedBox(
+                      width: isTablet ? 140 : 100,
                       child: BlocBuilder<SettingsBloc, SettingsState>(
-                        builder: (context, state) {
+                        builder: (_, state) {
                           return Slider(
                             value: state.soundValue,
-                            onChanged: (value) {
+                            onChanged: (v) {
                               context
                                   .read<SettingsBloc>()
-                                  .add(UpdateSoundValue(value));
+                                  .add(UpdateSoundValue(v));
                             },
                             activeColor: Colors.white,
                             inactiveColor: Colors.white30,
