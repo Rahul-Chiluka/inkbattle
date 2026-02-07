@@ -82,13 +82,13 @@ class CountryPickerWidget extends StatelessWidget {
       return Container(
         width: width,
         alignment: Alignment.center,
-        padding: EdgeInsets.all(2.w),
+        padding: const EdgeInsets.all(1.2),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15.r),
           gradient: const LinearGradient(
             colors: [
-              Color.fromRGBO(255, 255, 255, 1),
-              Color.fromRGBO(9, 189, 255, 1)
+              Color.fromRGBO(255, 255, 255, 0.8),
+              Color.fromRGBO(9, 189, 255, 0.8)
             ],
           ),
         ),
@@ -105,26 +105,29 @@ class CountryPickerWidget extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  if (imageUrl != null) ...[
-                    Padding(
-                      padding: EdgeInsets.all(12.w),
-                      child: Image.asset(
-                        imageUrl!,
-                        height: isTablet ? 24.h : 21.h,
-                        width: isTablet ? 24.w : 21.w,
+                  // Only show icon/image if NOT filled (selected)
+                  if (!isFilled) ...[
+                    if (imageUrl != null) ...[
+                      Padding(
+                        padding: EdgeInsets.all(12.w),
+                        child: Image.asset(
+                          imageUrl!,
+                          height: isTablet ? 24.h : 21.h,
+                          width: isTablet ? 24.w : 21.w,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 8.w),
-                  ] else if (icon != null) ...[
-                    Padding(
-                      padding: EdgeInsets.all(12.w),
-                      child: Icon(
-                        icon,
-                        color: iconColor ?? Colors.white70,
-                        size: isTablet ? 24.sp : 21.sp,
+                      SizedBox(width: 8.w),
+                    ] else if (icon != null) ...[
+                      Padding(
+                        padding: EdgeInsets.all(12.w),
+                        child: Icon(
+                          icon,
+                          color: iconColor ?? Colors.white70,
+                          size: isTablet ? 24.sp : 21.sp,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 8.w),
+                      SizedBox(width: 8.w),
+                    ],
                   ],
                   Expanded(
                     child: FittedBox(
@@ -153,9 +156,9 @@ class CountryPickerWidget extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    Icons.arrow_drop_down,
-                    size: 35.sp,
-                    color: const Color.fromRGBO(9, 189, 255, 1),
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 24.sp,
+                    color: Colors.white70,
                   ),
                 ],
               ),
@@ -165,14 +168,94 @@ class CountryPickerWidget extends StatelessWidget {
       );
     } else {
       // Previous design for other screens (game_room, multiplayer, create_room)
+      // return Container(
+      //   width: width,
+      //   height: height ?? (isTablet ? 52.h : 45.h),
+      //   decoration: BoxDecoration(
+      //     borderRadius: BorderRadius.circular(25.r),
+      //     border: Border.all(
+      //       color: isFilled ? Colors.white : Colors.grey,
+      //       width: isTablet ? 1.5.w : 1.w,
+      //     ),
+      //     color: const Color(0xFF0E0E0E),
+      //   ),
+      //   child: Material(
+      //     color: Colors.transparent,
+      //     child: InkWell(
+      //       borderRadius: BorderRadius.circular(25.r),
+      //       onTap: onCountrySelected != null ? () => _showCountryPicker(context) : null,
+      //       child: Padding(
+      //         padding: EdgeInsets.symmetric(
+      //           horizontal: isTablet ? 14.w : 10.w,
+      //           vertical: isTablet ? 12.h : 10.h,
+      //         ),
+      //         child: Row(
+      //           mainAxisAlignment: MainAxisAlignment.start,
+      //           crossAxisAlignment: CrossAxisAlignment.center,
+      //           children: [
+      //             if (imageUrl != null) ...[
+      //               Image.asset(
+      //                 imageUrl!,
+      //                 height: isTablet ? 22.h : 18.h,
+      //                 width: isTablet ? 22.w : 18.w,
+      //               ),
+      //               SizedBox(width: isTablet ? 10.w : 8.w),
+      //             ] else if (icon != null) ...[
+      //               Icon(
+      //                 icon,
+      //                 color: iconColor ?? Colors.white70,
+      //                 size: isTablet ? 22.sp : 18.sp,
+      //               ),
+      //               SizedBox(width: isTablet ? 10.w : 8.w),
+      //             ],
+      //             Expanded(
+      //               child: Row(
+      //                 children: [
+      //                   if (isFilled) ...[
+      //                     Text(
+      //                       getCountryFlag(countryCode),
+      //                       style: TextStyle(fontSize: isTablet ? 18.sp : 16.sp),
+      //                     ),
+      //                     SizedBox(width: 8.w),
+      //                   ],
+      //                   Expanded(
+      //                     child: Text(
+      //                       displayText,
+      //                       overflow: TextOverflow.ellipsis,
+      //                       maxLines: 1,
+      //                       softWrap: false,
+      //                       textAlign: TextAlign.left,
+      //                       style: GoogleFonts.lato(
+      //                         color: isFilled ? Colors.white : Colors.white54,
+      //                         fontSize: isTablet ? 15.sp : 13.sp,
+      //                         fontWeight: FontWeight.w600,
+      //                         height: 1.2,
+      //                       ),
+      //                     ),
+      //                   ),
+      //                 ],
+      //               ),
+      //             ),
+      //             SizedBox(width: isTablet ? 8.w : 6.w),
+      //             Icon(
+      //               Icons.arrow_drop_down,
+      //               color: Colors.white70,
+      //               size: isTablet ? 20.sp : 16.sp,
+      //             ),
+      //           ],
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // );
       return Container(
         width: width,
-        height: height ?? (isTablet ? 52.h : 45.h),
+        height: height ?? (isTablet ? 65.0 : 45.h), // Force height to match other pills
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25.r),
           border: Border.all(
-            color: isFilled ? Colors.white : Colors.grey,
-            width: isTablet ? 1.5.w : 1.w,
+            color: Colors.white, // Always white to match others
+            width: isTablet ? 2.0 : 1.w, // Match the 2.0 tablet width from MultiplayerScreen
           ),
           color: const Color(0xFF0E0E0E),
         ),
@@ -180,38 +263,33 @@ class CountryPickerWidget extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(25.r),
-            onTap: onCountrySelected != null ? () => _showCountryPicker(context) : null,
+            onTap: () => _showCountryPicker(context),
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: isTablet ? 14.w : 10.w,
-                vertical: isTablet ? 12.h : 10.h,
+                horizontal: isTablet ? 20.0 : 10.w, // Increased horizontal padding
+                // Removing vertical padding and letting Row + Height handle centering
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center, // Vertically centers everything
                 children: [
-                  if (imageUrl != null) ...[
-                    Image.asset(
-                      imageUrl!,
-                      height: isTablet ? 22.h : 18.h,
-                      width: isTablet ? 22.w : 18.w,
-                    ),
-                    SizedBox(width: isTablet ? 10.w : 8.w),
-                  ] else if (icon != null) ...[
+                  // Use the public icon if no specific image is provided
+                  if (!isFilled) ...[
                     Icon(
-                      icon,
-                      color: iconColor ?? Colors.white70,
-                      size: isTablet ? 22.sp : 18.sp,
+                      icon ?? Icons.public,
+                      color: iconColor ?? Colors.lightGreenAccent,
+                      size: isTablet ? 32.0 : 18.sp, // Increased size to match other pills
                     ),
-                    SizedBox(width: isTablet ? 10.w : 8.w),
+                    SizedBox(width: isTablet ? 12.0 : 8.w),
                   ],
                   Expanded(
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isFilled) ...[
                           Text(
                             getCountryFlag(countryCode),
-                            style: TextStyle(fontSize: isTablet ? 18.sp : 16.sp),
+                            style: TextStyle(fontSize: isTablet ? 22.sp : 18.sp),
                           ),
                           SizedBox(width: 8.w),
                         ],
@@ -224,7 +302,7 @@ class CountryPickerWidget extends StatelessWidget {
                             textAlign: TextAlign.left,
                             style: GoogleFonts.lato(
                               color: isFilled ? Colors.white : Colors.white54,
-                              fontSize: isTablet ? 15.sp : 13.sp,
+                              fontSize: isTablet ? 22.0 : 13.sp, // Match the 22.0 font size
                               fontWeight: FontWeight.w600,
                               height: 1.2,
                             ),
@@ -233,11 +311,11 @@ class CountryPickerWidget extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(width: isTablet ? 8.w : 6.w),
+                  SizedBox(width: isTablet ? 10.0 : 6.w),
                   Icon(
-                    Icons.arrow_drop_down,
+                    Icons.keyboard_arrow_down_rounded, // Use the rounded arrow to match others
                     color: Colors.white70,
-                    size: isTablet ? 20.sp : 16.sp,
+                    size: isTablet ? 32.0 : 16.sp, // Match arrow size
                   ),
                 ],
               ),
@@ -251,7 +329,6 @@ class CountryPickerWidget extends StatelessWidget {
   void _showCountryPicker(BuildContext context) {
     showCountryPicker(
       context: context,
-      // favorite: <String>['US', 'GB', 'IN', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'JP', 'CN', 'BR', 'MX'],
       showPhoneCode: false,
       showSearch: true, // Enable search functionality
       searchAutofocus: true, // Auto-focus search field for better UX
@@ -259,51 +336,56 @@ class CountryPickerWidget extends StatelessWidget {
         onCountrySelected(country.countryCode);
       },
       countryListTheme: CountryListThemeData(
+        backgroundColor: const Color(0xFF1A1A2E), // Match SelectionBottomSheet
         flagSize: 28,
-        backgroundColor: const Color(0xFF1A1A2E),
         textStyle: GoogleFonts.lato(
-          fontSize: 18.sp,
           color: Colors.white,
+          fontSize: 16.sp, // Match item text size
+          fontWeight: FontWeight.normal,
         ),
         searchTextStyle: GoogleFonts.lato(
-          fontSize: 18.sp,
           color: Colors.white,
+          fontSize: 16.sp,
         ),
         inputDecoration: InputDecoration(
-          labelText: 'Search country',
+          labelText: 'Search', // Match "Search" label
           labelStyle: GoogleFonts.lato(
             color: Colors.white70,
-            fontSize: 16.sp,
+            fontSize: 14.sp,
           ),
-          hintText: 'Start typing to search',
+          hintText: 'Start typing to search...',
           hintStyle: GoogleFonts.lato(
             color: const Color.fromRGBO(255, 255, 255, 0.52),
-            fontSize: 16.sp,
+            fontSize: 14.sp,
           ),
-          prefixIcon: const Icon(Icons.search, color: Color.fromRGBO(9, 189, 255, 1)),
+          prefixIcon: const Icon(
+            Icons.search, 
+            color: Color.fromRGBO(9, 189, 255, 1) // Cyan
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          filled: true,
+          fillColor: Colors.black, // Black fill
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15.r),
             borderSide: const BorderSide(
               color: Color.fromRGBO(255, 255, 255, 0.2),
-              width: 3,
+              width: 1.5,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15.r),
             borderSide: const BorderSide(
               color: Color.fromRGBO(255, 255, 255, 0.2),
-              width: 3,
+              width: 1.5,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15.r),
             borderSide: const BorderSide(
               color: Color.fromRGBO(9, 189, 255, 1),
-              width: 3,
+              width: 1.5,
             ),
           ),
-          filled: true,
-          fillColor: Colors.black,
         ),
         bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
         borderRadius: BorderRadius.only(
