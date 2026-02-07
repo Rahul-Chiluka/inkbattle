@@ -216,7 +216,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   UserModel? _currentUser;
 
   bool _isResuming = false;
-  bool _isReconnecting = false;
+     bool _isReconnecting = false;
 
   final ValueNotifier<List<fdb.Stroke>> _strokes = ValueNotifier([]);
   final fdb.CurrentStrokeValueNotifier _currentStroke =
@@ -294,6 +294,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   bool _showPencilTools = false;
   bool _isGameEnded = false;
   bool _shouldExitAfterAd = false;
+  bool _isShowingAd = false;
   bool _isWaitingForHostOrMembers = false; // Track if we're waiting for host/members after returning to lobby
   final GlobalKey _pencilKey = GlobalKey();
   bool _showOptionMenu = false;
@@ -1981,6 +1982,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             // RESTORE board size immediately!
             _drawerBoardSize = savedSize;
             _lastKnownBoardSize = savedSize;
+            // Pause interval/whosNext so drawer does not hear them while drawing
+            _intervalVideoController?.pause();
+            _whosNextVideoController?.pause();
           } else if (nextPhase == 'reveal') {
             _isIntervalPhase = false;
             _currentWord = data['word'];
@@ -2015,6 +2019,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               _earnedPointsDisplay = drawerReward;
               _pointsAnimationController.forward(from: 0.0);
               _socketService.socket?.emit('drawer_earned_points', {'roomId': widget.roomId});
+            }
+            // Show compliments (time up / well done / nice try) only for drawer; guesser only sees reveal answer on screen
+            if (_isDrawer) {
+              final isTimeUp = _phaseTimeRemaining <= 2;
+              _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
             }
             // Show guess compliments (time up / well done / nice try) when entering reveal phase
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2056,6 +2065,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             _undoRedoStack.clear();
             _drawerBoardSize = savedSize;
             _lastKnownBoardSize = savedSize;
+            // Pause interval/whosNext so drawer does not hear them while drawing
+            _intervalVideoController?.pause();
+            _whosNextVideoController?.pause();
           }
         });
         _showDrawerInfo = false;
@@ -2296,8 +2308,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       // }
     });
 
-    // When server sets room back to lobby (2s after game end), all participants transition to lobby.
-    // If game just ended, defer this until after rewards/leaderboard/ad flow completes (handled by _safeGoToLobbyAfterAd).
     _socketService.onServerRestarting((_) async {
       if (!mounted) return;
       setState(() => _isReconnecting = true);
@@ -2326,6 +2336,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (mounted) setState(() => _isReconnecting = false);
     });
 
+    // When server sets room back to lobby (2s after game end), all participants transition to lobby.
+    // If game just ended, defer this until after rewards/leaderboard/ad flow completes (handled by _safeGoToLobbyAfterAd).
     _socketService.onRoomBackToLobby((data) {
       if (!mounted) return;
       if (_isGameEnded) return; // Stay on game-end screen; lobby transition happens after ad/leaderboard
@@ -3104,6 +3116,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             : ((currentUserRanking['place'] as int? ?? 999) <= 3));
 
     if (coinsWon > 0) {
+      // Flow: coins animation first, then leaderboard podium; Next on podium → ad → lobby
       CoinAnimationDialog.show(
         context,
         coinsAwarded: coinsWon,
@@ -3187,20 +3200,42 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (BuildContext context) {
-                return Dialog(
-                  backgroundColor: Colors.transparent,
-                  insetPadding: const EdgeInsets.all(16),
-                  child: TeamWinnerPopup(
-                    teams: teams,
-                    isTeamvTeam: isTeamMode,
-                    isWinner: isWinner,
-                    onNext: () {
-                      Navigator.of(context).pop(); // Close popup
-                      if (mounted) {
-                        _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
-                      }
-                    },
+              builder: (BuildContext dialogContext) {
+                return PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (bool didPop, dynamic result) {
+                    if (didPop) return;
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext exitCtx) {
+                        return ExitPopUp(
+                          text: "Do you really want to leave the room?",
+                          imagePath: AppImages.inactiveexit,
+                          onExit: () {
+                            Navigator.of(exitCtx).pop();
+                            Navigator.of(dialogContext).pop();
+                            if (mounted) context.go('/home');
+                          },
+                          continueWaiting: () => Navigator.of(exitCtx).pop(),
+                        );
+                      },
+                    );
+                  },
+                  child: Dialog(
+                    backgroundColor: Colors.transparent,
+                    insetPadding: const EdgeInsets.all(16),
+                    child: TeamWinnerPopup(
+                      teams: teams,
+                      isTeamvTeam: isTeamMode,
+                      isWinner: isWinner,
+                      onNext: () {
+                        Navigator.of(dialogContext).pop(); // Close leaderboard podium
+                        if (mounted) {
+                          _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
+                        }
+                      },
+                    ),
                   ),
                 );
               },
@@ -3273,20 +3308,42 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (BuildContext context) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.all(16),
-              child: TeamWinnerPopup(
-                teams: teams,
-                isTeamvTeam: isTeamMode,
-                isWinner: isWinner,
-                onNext: () {
-                  Navigator.of(context).pop(); // Close popup
-                  if (mounted) {
-                    _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
-                  }
-                },
+          builder: (BuildContext dialogContext) {
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (bool didPop, dynamic result) {
+                if (didPop) return;
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext exitCtx) {
+                    return ExitPopUp(
+                      text: "Do you really want to leave the room?",
+                      imagePath: AppImages.inactiveexit,
+                      onExit: () {
+                        Navigator.of(exitCtx).pop();
+                        Navigator.of(dialogContext).pop();
+                        if (mounted) context.go('/home');
+                      },
+                      continueWaiting: () => Navigator.of(exitCtx).pop(),
+                    );
+                  },
+                );
+              },
+              child: Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(16),
+                child: TeamWinnerPopup(
+                  teams: teams,
+                  isTeamvTeam: isTeamMode,
+                  isWinner: isWinner,
+                  onNext: () {
+                    Navigator.of(dialogContext).pop(); // Close popup
+                    if (mounted) {
+                      _showCloseAdAndNavigate(fromGameEndLeaderboard: true);
+                    }
+                  },
+                ),
               ),
             );
           },
@@ -3408,9 +3465,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         return hostParticipant.isActive == true && hostParticipant.userId != null;
       }
     }
-    
-    // Helper function to check if host/members are ready
-
     
     // Helper function to return to lobby screen (where categories are selected and start button is clicked)
     void returnToLobby() {
@@ -3586,8 +3640,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       final ad = _closeRewardedAd!;
       _closeRewardedAd = null;
 
+      _isShowingAd = true;
       ad.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (dismissedAd) {
+          _isShowingAd = false;
           dismissedAd.dispose();
           _preloadNextAd();
           // #region agent log
@@ -3618,6 +3674,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         },
         onAdFailedToShowFullScreenContent: (failedAd, error) {
+          _isShowingAd = false;
           developer.log(
             "Ad failed to show: $error",
             name: _logTag,
@@ -3653,6 +3710,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         });
       }
     } catch (e) {
+      _isShowingAd = false;
       developer.log(
         "Error showing close rewarded ad: $e",
         name: _logTag,
@@ -3899,9 +3957,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       return PopScope(
         canPop: false, // Prevents default back exit
         onPopInvokedWithResult: (bool didPop, dynamic result) async {
-          if (didPop) {
-            return;
-          }
+          if (didPop) return;
+          // During ad, back button does nothing
+          if (_isShowingAd) return;
           _showExitDialog();
         },
         child: child,

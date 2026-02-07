@@ -89,10 +89,27 @@ class _CoinAnimationDialogState extends State<CoinAnimationDialog> {
   }
 }
 
-class _CelebrationContent extends StatelessWidget {
+class _CelebrationContent extends StatefulWidget {
   final int coinsAwarded;
 
   const _CelebrationContent({required this.coinsAwarded});
+
+  @override
+  State<_CelebrationContent> createState() => _CelebrationContentState();
+}
+
+class _CelebrationContentState extends State<_CelebrationContent> {
+  /// Lottie plays first; after it completes, points animation runs.
+  static const Duration _lottieDuration = Duration(milliseconds: 2200);
+  bool _lottieComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(_lottieDuration, () {
+      if (mounted) setState(() => _lottieComplete = true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +120,7 @@ class _CelebrationContent extends StatelessWidget {
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
-          color: const Color(0xFFFFD700).withOpacity(0.4), 
+          color: const Color(0xFFFFD700).withOpacity(0.4),
           width: 1.5,
         ),
       ),
@@ -117,25 +134,35 @@ class _CelebrationContent extends StatelessWidget {
               sourceType: 'url',
               source: 'https://lottie.host/18f7461e-8095-4781-b33a-1a24a6e26f2a/KhBAQIzoNw.lottie',
               autoplay: true,
-              loop: false, // Set to false to stop after one full play
+              loop: false,
             ),
           ),
           SizedBox(height: 10.h),
-          TweenAnimationBuilder<int>(
-            tween: IntTween(begin: 0, end: coinsAwarded),
-            duration: const Duration(milliseconds: 1500),
-            curve: Curves.easeOutExpo,
-            builder: (context, value, child) {
-              return Text(
-                '+$value',
-                style: TextStyle(
-                  color: const Color(0xFFFFD700),
-                  fontSize: 48.sp,
-                  fontWeight: FontWeight.bold,
+          // Points animation starts only after Lottie has finished
+          _lottieComplete
+              ? TweenAnimationBuilder<int>(
+                  tween: IntTween(begin: 0, end: widget.coinsAwarded),
+                  duration: const Duration(milliseconds: 1500),
+                  curve: Curves.easeOutExpo,
+                  builder: (context, value, child) {
+                    return Text(
+                      '+$value',
+                      style: TextStyle(
+                        color: const Color(0xFFFFD700),
+                        fontSize: 48.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
+                )
+              : Text(
+                  '+0',
+                  style: TextStyle(
+                    color: const Color(0xFFFFD700).withOpacity(0.5),
+                    fontSize: 48.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              );
-            },
-          ),
           Text(
             'COINS EARNED',
             style: TextStyle(

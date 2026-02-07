@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/widgets/video_reward_dialog.dart';
-import 'package:lottie/lottie.dart';
+import 'package:dotlottie_flutter/dotlottie_flutter.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 
@@ -173,11 +173,13 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
               /// ===== BIGGER LOTTIE =====
               SizedBox(
                 height: _animationHeight(context),
-                child: Lottie.network(
-                  'https://lottie.host/5b680b27-3ad1-4101-a9a9-0a85fac47ede/XJlDHgYasP.lottie',
-                  repeat: true,
-                  animate: true,
-                  fit: BoxFit.contain,
+                width: double.infinity,
+                child: DotLottieView(
+                  sourceType: 'url',
+                  source:
+                      'https://lottie.host/5b680b27-3ad1-4101-a9a9-0a85fac47ede/XJlDHgYasP.lottie',
+                  autoplay: true,
+                  loop: false,
                 ),
               ),
 
