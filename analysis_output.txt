@@ -1,0 +1,600 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.59 (1.3.66 available)
+  async 2.11.0 (2.13.0 available)
+  bloc 9.0.0 (9.2.0 available)
+  boolean_selector 2.1.1 (2.1.2 available)
+  characters 1.4.0 (1.4.1 available)
+  cross_file 0.3.4+2 (0.3.5+2 available)
+  crypto 3.0.6 (3.0.7 available)
+  dart_webrtc 1.6.0 (1.7.0 available)
+  dbus 0.7.11 (0.7.12 available)
+  dio 5.9.0 (5.9.1 available)
+  equatable 2.0.7 (2.0.8 available)
+  facebook_auth_desktop 1.0.3 (2.1.1 available)
+  ffi 2.1.3 (2.1.5 available)
+  file_saver 0.2.14 (0.3.1 available)
+  file_selector_linux 0.9.3+2 (0.9.4 available)
+  file_selector_macos 0.9.4+2 (0.9.5 available)
+  file_selector_platform_interface 2.6.2 (2.7.0 available)
+  file_selector_windows 0.9.3+4 (0.9.3+5 available)
+  firebase_auth 5.7.0 (6.1.4 available)
+  firebase_auth_platform_interface 7.7.3 (8.1.6 available)
+  firebase_auth_web 5.15.3 (6.1.2 available)
+  firebase_core 3.15.2 (4.4.0 available)
+  firebase_core_web 2.24.1 (3.4.0 available)
+  firebase_messaging 15.2.10 (16.1.1 available)
+  firebase_messaging_platform_interface 4.6.10 (4.7.6 available)
+  firebase_messaging_web 3.10.10 (4.1.2 available)
+  flutter_dotenv 5.2.1 (6.0.0 available)
+  flutter_drawing_board 0.9.8 (1.0.1+2 available)
+  flutter_facebook_auth 6.2.0 (7.1.5 available)
+  flutter_facebook_auth_platform_interface 5.0.0 (6.1.2 available)
+  flutter_facebook_auth_web 5.0.0 (6.1.2 available)
+  flutter_inappwebview_internal_annotations 1.2.0 (1.3.0 available)
+  flutter_launcher_icons 0.13.1 (0.14.4 available)
+  flutter_lints 4.0.0 (6.0.0 available)
+  flutter_local_notifications 19.5.0 (20.0.0 available)
+  flutter_local_notifications_linux 6.0.0 (7.0.0 available)
+  flutter_local_notifications_platform_interface 9.1.0 (10.0.0 available)
+  flutter_local_notifications_windows 1.0.3 (2.0.0 available)
+  flutter_plugin_android_lifecycle 2.0.26 (2.0.33 available)
+  flutter_secure_storage 9.2.4 (10.0.0 available)
+  flutter_secure_storage_linux 1.2.3 (3.0.0 available)
+  flutter_secure_storage_macos 3.1.3 (4.0.0 available)
+  flutter_secure_storage_platform_interface 1.1.2 (2.0.1 available)
+  flutter_secure_storage_web 1.2.1 (2.1.0 available)
+  flutter_secure_storage_windows 3.1.2 (4.1.0 available)
+  flutter_svg 2.1.0 (2.2.3 available)
+  flutter_webrtc 1.2.0 (1.3.0 available)
+  go_router 15.1.2 (17.1.0 available)
+  google_fonts 6.3.0 (8.0.1 available)
+  google_mobile_ads 5.3.1 (7.0.0 available)
+  google_sign_in 6.3.0 (7.2.0 available)
+  google_sign_in_android 6.2.1 (7.2.7 available)
+  google_sign_in_ios 5.9.0 (6.2.5 available)
+  google_sign_in_platform_interface 2.5.0 (3.1.0 available)
+  google_sign_in_web 0.12.4+4 (1.1.0 available)
+  http 1.5.0 (1.6.0 available)
+  http_parser 4.0.2 (4.1.2 available)
+  image_picker 1.1.2 (1.2.1 available)
+  image_picker_android 0.8.12+21 (0.8.13+13 available)
+  image_picker_for_web 3.0.6 (3.1.1 available)
+  image_picker_ios 0.8.12+2 (0.8.13+6 available)
+  image_picker_linux 0.2.1+2 (0.2.2 available)
+  image_picker_macos 0.2.1+2 (0.2.2+1 available)
+  image_picker_platform_interface 2.10.1 (2.11.1 available)
+  image_picker_windows 0.2.1+1 (0.2.2 available)
+  js 0.6.7 (0.7.2 available)
+  json_annotation 4.9.0 (4.10.0 available)
+  leak_tracker 11.0.1 (11.0.2 available)
+  lints 4.0.0 (6.1.0 available)
+  matcher 0.12.17 (0.12.18 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.17.0 (1.18.1 available)
+  package_info_plus 8.3.1 (9.0.0 available)
+  path_provider_android 2.2.15 (2.2.22 available)
+  path_provider_foundation 2.4.1 (2.6.0 available)
+  shared_preferences 2.5.3 (2.5.4 available)
+  shared_preferences_android 2.4.7 (2.4.20 available)
+  shared_preferences_foundation 2.5.4 (2.5.6 available)
+  socket_io_client 3.1.2 (3.1.4 available)
+  source_span 1.10.0 (1.10.2 available)
+  sqflite 2.4.1 (2.4.2 available)
+  sqflite_android 2.4.0 (2.4.2+2 available)
+  sqflite_common 2.5.4+6 (2.5.6 available)
+  sqflite_darwin 2.4.1+1 (2.4.2 available)
+  string_scanner 1.2.0 (1.4.1 available)
+  synchronized 3.3.0+3 (3.4.0 available)
+  term_glyph 1.2.1 (1.2.2 available)
+  test_api 0.7.7 (0.7.9 available)
+  timezone 0.10.1 (0.11.0 available)
+  url_launcher_android 6.3.24 (6.3.28 available)
+  url_launcher_ios 6.3.5 (6.3.6 available)
+  url_launcher_linux 3.2.1 (3.2.2 available)
+  url_launcher_macos 3.2.4 (3.2.5 available)
+  url_launcher_web 2.4.1 (2.4.2 available)
+  url_launcher_windows 3.1.4 (3.1.5 available)
+  uuid 4.5.1 (4.5.2 available)
+  vector_graphics 1.1.18 (1.1.19 available)
+  vector_graphics_compiler 1.1.19 (1.1.20 available)
+  video_player 2.10.0 (2.10.1 available)
+  video_player_android 2.8.17 (2.9.1 available)
+  video_player_avfoundation 2.8.5 (2.9.1 available)
+  vm_service 14.2.5 (15.0.2 available)
+  webrtc_interface 1.3.0 (1.4.0 available)
+  webview_flutter 4.13.0 (4.13.1 available)
+  webview_flutter_android 4.10.5 (4.10.11 available)
+  webview_flutter_wkwebview 3.23.2 (3.23.6 available)
+  win32 5.13.0 (5.15.0 available)
+Got dependencies!
+107 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing inkbattle...                                          
+
+   info • The constant name 'podium_2_left' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:93:23 • constant_identifier_names
+   info • The constant name 'mic_icon' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:96:23 • constant_identifier_names
+   info • The constant name 'redflg_teamA' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:100:23 • constant_identifier_names
+   info • The constant name 'redflg_teamB' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:101:23 • constant_identifier_names
+   info • The constant name 'home_menu_iconSvg' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:140:23 • constant_identifier_names
+   info • The constant name 'arrow_back' isn't a lowerCamelCase identifier • lib/constants/app_images.dart:146:23 • constant_identifier_names
+   info • The imported package 'provider' isn't a dependency of the importing package • lib/constants/bloc_provider.dart:3:8 • depend_on_referenced_packages
+warning • The '!' will have no effect because the receiver can't be null • lib/logic/auth/apple_auth_service.dart:36:36 • unnecessary_non_null_assertion
+   info • Don't invoke 'print' in production code • lib/logic/auth/apple_auth_service.dart:52:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/apple_auth_service.dart:58:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/apple_auth_service.dart:93:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/apple_auth_service.dart:109:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/facebook_auth_service.dart:66:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/facebook_auth_service.dart:72:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/facebook_auth_service.dart:110:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/facebook_auth_service.dart:130:7 • avoid_print
+warning • Unused import: 'package:inkbattle_frontend/config/environment.dart' • lib/logic/auth/google_auth_service.dart:4:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/logic/auth/google_auth_service.dart:67:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/google_auth_service.dart:73:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/google_auth_service.dart:111:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/logic/auth/google_auth_service.dart:131:7 • avoid_print
+   info • The imported package 'bloc' isn't a dependency of the importing package • lib/logic/login/login_cubit.dart:1:8 • depend_on_referenced_packages
+   info • The imported package 'flutter_web_plugins' isn't a dependency of the importing package • lib/main.dart:6:8 • depend_on_referenced_packages
+   info • Don't invoke 'print' in production code • lib/main.dart:31:5 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/create_room/create_room.dart:419:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/create_room/create_room.dart:454:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/create_room/create_room.dart:575:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/create_room/create_room.dart:626:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/create_room/create_room.dart:656:40 • deprecated_member_use
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/presentations/create_room/create_room_screen.dart:2:8 • unnecessary_import
+warning • The value of the field '_lastCreatedRoomId' isn't used • lib/presentations/create_room/create_room_screen.dart:42:8 • unused_field
+   info • Use 'const' literals as arguments to constructors of '@immutable' classes • lib/presentations/create_room/create_room_screen.dart:400:20 • prefer_const_literals_to_create_immutables
+   info • Use 'const' with the constructor to improve performance • lib/presentations/create_room/create_room_screen.dart:401:11 • prefer_const_constructors
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:122:22 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:157:22 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:192:22 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:237:22 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:278:22 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/presentations/drawing_board/domain/models/stroke.dart:319:22 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/drawing_board/extensions/offset_extensions.dart:24:14 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/drawing_board/presentation/widgets/drawing_canvas.dart:192:32 • deprecated_member_use
+warning • This class (or a class that this class inherits from) is marked as '@immutable', but one or more of its instance fields aren't final: FormPopup.participants • lib/presentations/game/widgets/form.dart:8:7 • must_be_immutable
+warning • This class (or a class that this class inherits from) is marked as '@immutable', but one or more of its instance fields aren't final: ErrorPopup.participants • lib/presentations/game/widgets/report.dart:9:7 • must_be_immutable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game/widgets/voice_controls.dart:20:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game/widgets/winner.dart:55:40 • deprecated_member_use
+  error • The element type 'Set<Widget>' can't be assigned to the list type 'Widget' • lib/presentations/game/widgets/winner.dart:128:39 • list_element_type_not_assignable
+  error • The element type 'Set<Widget>' can't be assigned to the list type 'Widget' • lib/presentations/game/widgets/winner.dart:138:28 • list_element_type_not_assignable
+warning • The value of the field '_gameAudioPlayer' isn't used • lib/presentations/game_room/game_room_screen.dart:214:21 • unused_field
+warning • The value of the field '_isIntervalPhase' isn't used • lib/presentations/game_room/game_room_screen.dart:287:8 • unused_field
+warning • The value of the field '_showPencilTools' isn't used • lib/presentations/game_room/game_room_screen.dart:294:8 • unused_field
+warning • The value of the field '_showDrawingTools' isn't used • lib/presentations/game_room/game_room_screen.dart:415:14 • unused_field
+warning • The value of the field '_speakingThreshold' isn't used • lib/presentations/game_room/game_room_screen.dart:441:20 • unused_field
+warning • The value of the field '_videosPreloaded' isn't used • lib/presentations/game_room/game_room_screen.dart:465:8 • unused_field
+   info • Empty catch block • lib/presentations/game_room/game_room_screen.dart:574:17 • empty_catches
+warning • The value of the local variable 'navigator' isn't used • lib/presentations/game_room/game_room_screen.dart:730:11 • unused_local_variable
+warning • Unnecessary cast • lib/presentations/game_room/game_room_screen.dart:1105:39 • unnecessary_cast
+warning • The declaration '_setEquals' isn't referenced • lib/presentations/game_room/game_room_screen.dart:1254:8 • unused_element
+warning • The declaration '_startSpeakingCleanupTimer' isn't referenced • lib/presentations/game_room/game_room_screen.dart:1260:8 • unused_element
+warning • The declaration '_isParticipantSpeaking' isn't referenced • lib/presentations/game_room/game_room_screen.dart:1289:8 • unused_element
+warning • The value of the local variable 'user' isn't used • lib/presentations/game_room/game_room_screen.dart:1684:15 • unused_local_variable
+warning • The value of the local variable 'user' isn't used • lib/presentations/game_room/game_room_screen.dart:1700:13 • unused_local_variable
+warning • The value of the local variable 'roomId' isn't used • lib/presentations/game_room/game_room_screen.dart:1701:13 • unused_local_variable
+   info • Use interpolation to compose strings and values • lib/presentations/game_room/game_room_screen.dart:1706:27 • prefer_interpolation_to_compose_strings
+warning • The value of the local variable 'roomId' isn't used • lib/presentations/game_room/game_room_screen.dart:1721:13 • unused_local_variable
+warning • Unnecessary cast • lib/presentations/game_room/game_room_screen.dart:1845:37 • unnecessary_cast
+warning • The value of the local variable 'newVoiceEnabled' isn't used • lib/presentations/game_room/game_room_screen.dart:1855:17 • unused_local_variable
+warning • The value of the local variable 'lastPhase' isn't used • lib/presentations/game_room/game_room_screen.dart:1975:15 • unused_local_variable
+warning • The value of the local variable 'lastPhaseTimeRemaining' isn't used • lib/presentations/game_room/game_room_screen.dart:1976:15 • unused_local_variable
+   info • Empty catch block • lib/presentations/game_room/game_room_screen.dart:2428:23 • empty_catches
+warning • Unnecessary type check; the result is always 'true' • lib/presentations/game_room/game_room_screen.dart:2479:32 • unnecessary_type_check
+warning • The declaration '_getGuesserBoardSize' isn't referenced • lib/presentations/game_room/game_room_screen.dart:2915:8 • unused_element
+warning • The declaration '_showColorPicker' isn't referenced • lib/presentations/game_room/game_room_screen.dart:2982:8 • unused_element
+   info • 'opacity' is deprecated and shouldn't be used. Use .a • lib/presentations/game_room/game_room_screen.dart:3035:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:3038:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:3041:45 • deprecated_member_use
+   info • The local variable '_areHostOrMembersReady' starts with an underscore • lib/presentations/game_room/game_room_screen.dart:3475:10 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_safeGoToLobbyAfterAd' starts with an underscore • lib/presentations/game_room/game_room_screen.dart:3534:10 • no_leading_underscores_for_local_identifiers
+warning • The '!' will have no effect because the receiver can't be null • lib/presentations/game_room/game_room_screen.dart:3578:17 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentations/game_room/game_room_screen.dart:3586:17 • unnecessary_non_null_assertion
+   info • The local variable '_navigateToLobbyAfterAd' starts with an underscore • lib/presentations/game_room/game_room_screen.dart:3591:10 • no_leading_underscores_for_local_identifiers
+warning • The declaration '_navigateToLobbyAfterAd' isn't referenced • lib/presentations/game_room/game_room_screen.dart:3591:10 • unused_element
+warning • The '!' will have no effect because the receiver can't be null • lib/presentations/game_room/game_room_screen.dart:3599:17 • unnecessary_non_null_assertion
+warning • This default clause is covered by the previous cases • lib/presentations/game_room/game_room_screen.dart:3939:7 • unreachable_switch_default
+   info • 'ShowCaseWidget' is deprecated and shouldn't be used. This will be removed in v6.0.0. Please use `ShowcaseView.register()` instead • lib/presentations/game_room/game_room_screen.dart:4007:9 • deprecated_member_use
+   info • 'ShowCaseWidget' is deprecated and shouldn't be used. This will be removed in v6.0.0. Please use `ShowcaseView.register()` instead • lib/presentations/game_room/game_room_screen.dart:4016:7 • deprecated_member_use
+warning • The left operand can't be null, so the right operand is never executed • lib/presentations/game_room/game_room_screen.dart:4020:68 • dead_null_aware_expression
+   info • 'of' is deprecated and shouldn't be used. This will be removed in v6.0.0. please use `ShowcaseView.get()` instead • lib/presentations/game_room/game_room_screen.dart:4021:26 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/game_room/game_room_screen.dart:4021:29 • use_build_context_synchronously
+   info • 'startShowCase' is deprecated and shouldn't be used. This will be removed in v6.0.0. please use `ShowcaseView.get().startShowCase` instead • lib/presentations/game_room/game_room_screen.dart:4021:38 • deprecated_member_use
+warning • The value of the local variable 'expandedKeyString' isn't used • lib/presentations/game_room/game_room_screen.dart:4180:18 • unused_local_variable
+   info • 'opacity' is deprecated and shouldn't be used. Use .a • lib/presentations/game_room/game_room_screen.dart:4259:62 • deprecated_member_use
+   info • The local variable '_sendDrawingData' starts with an underscore • lib/presentations/game_room/game_room_screen.dart:4268:42 • no_leading_underscores_for_local_identifiers
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:4312:70 • prefer_const_constructors
+   info • 'opacity' is deprecated and shouldn't be used. Use .a • lib/presentations/game_room/game_room_screen.dart:4375:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:4445:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:4447:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:4504:37 • deprecated_member_use
+warning • The declaration 'buildTeamScorePill' isn't referenced • lib/presentations/game_room/game_room_screen.dart:4685:12 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:4702:31 • deprecated_member_use
+warning • The value of the local variable 'countdown' isn't used • lib/presentations/game_room/game_room_screen.dart:5104:15 • unused_local_variable
+warning • The declaration '_buildPhaseIndicator' isn't referenced • lib/presentations/game_room/game_room_screen.dart:5178:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:5218:27 • deprecated_member_use
+warning • The value of the local variable 'isCurrentUser' isn't used • lib/presentations/game_room/game_room_screen.dart:5508:41 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:5556:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:5708:71 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:5913:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:5949:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6003:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6004:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6055:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6091:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6212:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6252:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6311:61 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/presentations/game_room/game_room_screen.dart:6386:42 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6463:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6466:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6559:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6704:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6739:51 • deprecated_member_use
+warning • The declaration '_buildCheckboxField' isn't referenced • lib/presentations/game_room/game_room_screen.dart:6862:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6892:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6947:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:6977:40 • deprecated_member_use
+warning • The declaration '_buildSpeakerOverlay' isn't referenced • lib/presentations/game_room/game_room_screen.dart:7087:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7163:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7175:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7176:42 • deprecated_member_use
+warning • The declaration '_buildSettingsGrid' isn't referenced • lib/presentations/game_room/game_room_screen.dart:7223:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7392:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7395:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7446:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7449:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7548:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7551:44 • deprecated_member_use
+warning • The declaration '_buildRoomCodeSection' isn't referenced • lib/presentations/game_room/game_room_screen.dart:7577:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7586:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7756:46 • deprecated_member_use
+   info • 'opacity' is deprecated and shouldn't be used. Use .a • lib/presentations/game_room/game_room_screen.dart:7781:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7787:22 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7944:39 • deprecated_member_use
+warning • The declaration '_buildTeamSelection' isn't referenced • lib/presentations/game_room/game_room_screen.dart:7950:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7960:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7966:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7991:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:7997:37 • deprecated_member_use
+warning • The declaration '_buildParticipantsSection' isn't referenced • lib/presentations/game_room/game_room_screen.dart:8018:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8024:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8027:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8045:56 • deprecated_member_use
+   info • The variable name '_SpeakingIndicatorOverlay' isn't a lowerCamelCase identifier • lib/presentations/game_room/game_room_screen.dart:8139:10 • non_constant_identifier_names
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8154:45 • deprecated_member_use
+warning • The declaration '_buildStartButton' isn't referenced • lib/presentations/game_room/game_room_screen.dart:8165:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8185:50 • deprecated_member_use
+   info • Empty catch block • lib/presentations/game_room/game_room_screen.dart:8394:17 • empty_catches
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8467:49 • deprecated_member_use
+warning • The value of the local variable 'resolvedSize' isn't used • lib/presentations/game_room/game_room_screen.dart:8548:18 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8637:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8642:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8683:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8819:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8822:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:8853:41 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:8888:37 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:8888:88 • prefer_const_constructors
+   info • The local variable '_buildOptionTile' starts with an underscore • lib/presentations/game_room/game_room_screen.dart:8916:12 • no_leading_underscores_for_local_identifiers
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9020:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9049:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9072:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9076:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9120:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9135:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9140:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9170:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9243:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9246:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9354:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9355:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9362:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9442:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9447:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9466:39 • deprecated_member_use
+warning • The declaration '_buildRankBadge' isn't referenced • lib/presentations/game_room/game_room_screen.dart:9553:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9558:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:9560:48 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:9660:46 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:9713:52 • prefer_const_constructors
+warning • Dead code • lib/presentations/game_room/game_room_screen.dart:9737:17 • dead_code
+   info • The 'if' statement could be replaced by a null-aware assignment • lib/presentations/game_room/game_room_screen.dart:9754:23 • prefer_conditional_assignment
+   info • The 'if' statement could be replaced by a null-aware assignment • lib/presentations/game_room/game_room_screen.dart:9765:23 • prefer_conditional_assignment
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:9849:44 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:10170:56 • deprecated_member_use
+warning • The declaration '_buildTeamsImage' isn't referenced • lib/presentations/game_room/game_room_screen.dart:10295:10 • unused_element
+warning • The declaration '_buildTeamScores' isn't referenced • lib/presentations/game_room/game_room_screen.dart:10327:10 • unused_element
+warning • The declaration '_buildTopPlayer' isn't referenced • lib/presentations/game_room/game_room_screen.dart:10416:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:10428:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:10764:36 • deprecated_member_use
+warning • The value of the local variable 'isFullScreenDrawer' isn't used • lib/presentations/game_room/game_room_screen.dart:10778:16 • unused_local_variable
+warning • The value of the local variable 'pencilToolsPopup' isn't used • lib/presentations/game_room/game_room_screen.dart:10784:18 • unused_local_variable
+warning • The value of the local variable 'color' isn't used • lib/presentations/game_room/game_room_screen.dart:11311:13 • unused_local_variable
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:11569:40 • prefer_const_constructors
+   info • 'of' is deprecated and shouldn't be used. This will be removed in v6.0.0. please use `ShowcaseView.get()` instead • lib/presentations/game_room/game_room_screen.dart:11631:40 • deprecated_member_use
+   info • 'startShowCase' is deprecated and shouldn't be used. This will be removed in v6.0.0. please use `ShowcaseView.get().startShowCase` instead • lib/presentations/game_room/game_room_screen.dart:11631:61 • deprecated_member_use
+warning • The value of the local variable 'borderColor' isn't used • lib/presentations/game_room/game_room_screen.dart:11702:17 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:11703:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:11744:53 • deprecated_member_use
+warning • The value of the local variable 'isPending' isn't used • lib/presentations/game_room/game_room_screen.dart:11915:47 • unused_local_variable
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:12106:48 • prefer_const_constructors
+warning • The value of the local variable 'isPending' isn't used • lib/presentations/game_room/game_room_screen.dart:12224:51 • unused_local_variable
+warning • The value of the local variable 'isSystem' isn't used • lib/presentations/game_room/game_room_screen.dart:12410:45 • unused_local_variable
+   info • Use 'const' with the constructor to improve performance • lib/presentations/game_room/game_room_screen.dart:12580:48 • prefer_const_constructors
+warning • The value of the local variable 'isSystem' isn't used • lib/presentations/game_room/game_room_screen.dart:12663:43 • unused_local_variable
+warning • The declaration '_buildSpectatorLockedView' isn't referenced • lib/presentations/game_room/game_room_screen.dart:12741:10 • unused_element
+warning • The value of the local variable 'isPending' isn't used • lib/presentations/game_room/game_room_screen.dart:12825:31 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:12946:55 • deprecated_member_use
+warning • The value of the local variable 'isSystem' isn't used • lib/presentations/game_room/game_room_screen.dart:13079:23 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:13173:49 • deprecated_member_use
+warning • The value of the local variable 'finalWidth' isn't used • lib/presentations/game_room/game_room_screen.dart:13337:12 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/game_room/game_room_screen.dart:13423:24 • deprecated_member_use
+warning • The value of the field '_currentPage' isn't used • lib/presentations/guest/guest_signup.dart:41:7 • unused_field
+warning • The value of the field '_coinDrops' isn't used • lib/presentations/guest/guest_signup.dart:57:32 • unused_field
+warning • The value of the field '_textOpacity' isn't used • lib/presentations/guest/guest_signup.dart:58:26 • unused_field
+warning • The declaration '_toggleAvatarSelection' isn't referenced • lib/presentations/guest/guest_signup.dart:118:8 • unused_element
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1074:42 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1075:48 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1076:47 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1077:47 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1078:47 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1079:48 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1080:47 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1081:49 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1082:49 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1083:51 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1084:50 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1085:49 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1086:49 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1087:45 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1088:48 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1089:49 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1090:50 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1091:45 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/guest/guest_signup.dart:1092:44 • curly_braces_in_flow_control_structures
+warning • Unused import: 'package:google_mobile_ads/google_mobile_ads.dart' • lib/presentations/home/screens/home_screen.dart:2:8 • unused_import
+warning • Unused import: 'package:inkbattle_frontend/services/ad_service.dart' • lib/presentations/home/screens/home_screen.dart:15:8 • unused_import
+   info • Invalid use of a private type in a public API • lib/presentations/home/screens/home_screen.dart:26:3 • library_private_types_in_public_api
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:285:74 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:325:68 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:426:66 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/home/screens/home_screen.dart:447:23 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:547:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:556:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:582:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:591:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/home_screen.dart:679:43 • deprecated_member_use
+warning • The left operand can't be null, so the right operand is never executed • lib/presentations/home/screens/instructions.dart:34:64 • dead_null_aware_expression
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/instructions.dart:149:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/screens/instructions.dart:150:63 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/home/screens/settings_screen.dart:388:30 • use_build_context_synchronously
+   info • The file name 'adsFree.dart' isn't a lower_case_with_underscores identifier • lib/presentations/home/widgets/adsFree.dart:1:1 • file_names
+warning • The value of the field '_adWatched' isn't used • lib/presentations/home/widgets/adsFree.dart:52:14 • unused_field
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:144:17 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:153:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:170:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:182:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:193:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:197:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:198:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:208:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:215:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:221:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:222:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:232:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:321:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:330:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:405:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:420:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:440:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:445:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:451:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:465:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:472:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:481:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:484:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:487:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:490:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:492:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:507:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:513:9 • avoid_print
+warning • The declaration '_showRewardAnimation' isn't referenced • lib/presentations/home/widgets/adsFree.dart:529:8 • unused_element
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:530:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:536:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:540:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:546:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:551:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:558:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:563:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:565:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:566:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:570:11 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/widgets/adsFree.dart:574:40 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:579:17 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/adsFree.dart:586:11 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/widgets/button.dart:27:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/home/widgets/button.dart:49:36 • deprecated_member_use
+   info • The file name 'dailyCoins.dart' isn't a lower_case_with_underscores identifier • lib/presentations/home/widgets/dailyCoins.dart:1:1 • file_names
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/home/widgets/dailyCoins.dart:116:25 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/home/widgets/dailyCoins.dart:119:13 • use_build_context_synchronously
+   info • Statements in an if should be enclosed in a block • lib/presentations/home/widgets/dailyCoins.dart:135:19 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/home/widgets/dailyCoins.dart:136:23 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/home/widgets/dailyCoins.dart:137:10 • curly_braces_in_flow_control_structures
+   info • Use 'const' with the constructor to improve performance • lib/presentations/home/widgets/dailyCoins.dart:179:24 • prefer_const_constructors
+   info • The file name 'joinRoom.dart' isn't a lower_case_with_underscores identifier • lib/presentations/home/widgets/joinRoom.dart:1:1 • file_names
+warning • The value of the field '_codeController' isn't used • lib/presentations/home/widgets/joinRoom.dart:24:31 • unused_field
+warning • The value of the field '_isLoading' isn't used • lib/presentations/home/widgets/joinRoom.dart:26:8 • unused_field
+   info • Use 'const' with the constructor to improve performance • lib/presentations/home/widgets/round_announcement.dart:37:11 • prefer_const_constructors
+   info • Don't invoke 'print' in production code • lib/presentations/home/widgets/round_announcement.dart:97:5 • avoid_print
+   info • The file name 'showRoom.dart' isn't a lower_case_with_underscores identifier • lib/presentations/home/widgets/showRoom.dart:1:1 • file_names
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/join_room/join_room_screen.dart:187:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/join_room/join_room_screen.dart:299:58 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/multiplayer/multiplayer_screen.dart:191:11 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentations/multiplayer/multiplayer_screen.dart:197:11 • use_build_context_synchronously
+warning • The declaration '_showTeamSelectionDialog' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:205:19 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/multiplayer_screen.dart:239:24 • deprecated_member_use
+warning • The value of the local variable 'isInteractive' isn't used • lib/presentations/multiplayer/multiplayer_screen.dart:637:16 • unused_local_variable
+warning • The declaration '_buildLanguagePill' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:837:10 • unused_element
+warning • The declaration '_buildScriptPill' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:849:10 • unused_element
+warning • The declaration '_buildPointsPill' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:861:10 • unused_element
+warning • The declaration '_buildCountryPill' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:873:10 • unused_element
+warning • The declaration '_buildCategoryPill' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:885:10 • unused_element
+warning • The declaration '_showDropdownMenu' isn't referenced • lib/presentations/multiplayer/multiplayer_screen.dart:1139:19 • unused_element
+warning • Unused import: 'package:inkbattle_frontend/utils/lang.dart' • lib/presentations/multiplayer/one_vs_one.dart:9:8 • unused_import
+warning • The value of the field '_userRepository' isn't used • lib/presentations/multiplayer/one_vs_one.dart:52:24 • unused_field
+warning • The value of the field '_codeController' isn't used • lib/presentations/multiplayer/one_vs_one.dart:53:31 • unused_field
+warning • The value of the field '_isLoading' isn't used • lib/presentations/multiplayer/one_vs_one.dart:55:8 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/one_vs_one.dart:246:49 • deprecated_member_use
+warning • The value of the field '_userRepository' isn't used • lib/presentations/multiplayer/team_vs_team.dart:45:24 • unused_field
+warning • The value of the field '_codeController' isn't used • lib/presentations/multiplayer/team_vs_team.dart:46:31 • unused_field
+warning • The value of the field '_isLoading' isn't used • lib/presentations/multiplayer/team_vs_team.dart:48:8 • unused_field
+warning • The left operand can't be null, so the right operand is never executed • lib/presentations/multiplayer/team_vs_team.dart:64:43 • dead_null_aware_expression
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:167:57 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:230:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:230:63 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:231:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:231:63 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:234:45 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:235:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:263:50 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:308:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:308:63 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:309:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:309:63 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:312:45 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/presentations/multiplayer/team_vs_team.dart:313:45 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:341:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/multiplayer/team_vs_team.dart:405:51 • deprecated_member_use
+warning • Unused import: 'dart:developer' • lib/presentations/profile_edit/profile_edit_screen.dart:2:8 • unused_import
+warning • The value of the field '_logTag' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:37:16 • unused_field
+warning • The value of the field '_currentPage' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:47:7 • unused_field
+warning • The value of the field '_avatarMoveController' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:61:28 • unused_field
+warning • The value of the field '_coinDrops' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:62:32 • unused_field
+warning • The value of the field '_textOpacity' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:63:26 • unused_field
+warning • The value of the field '_previousAvatarIndex' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:69:7 • unused_field
+warning • The value of the field '_swipeOffset' isn't used • lib/presentations/profile_edit/profile_edit_screen.dart:70:10 • unused_field
+warning • The declaration '_onAvatarSwipeLeft' isn't referenced • lib/presentations/profile_edit/profile_edit_screen.dart:97:8 • unused_element
+warning • The declaration '_onAvatarSwipeRight' isn't referenced • lib/presentations/profile_edit/profile_edit_screen.dart:117:8 • unused_element
+warning • The declaration '_selectAvatar' isn't referenced • lib/presentations/profile_edit/profile_edit_screen.dart:241:8 • unused_element
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:507:35 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:508:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:509:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:510:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:511:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:512:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:513:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:514:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:515:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:516:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:517:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:518:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:519:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:520:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:521:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:522:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:523:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:524:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:525:40 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentations/profile_edit/profile_edit_screen.dart:526:22 • curly_braces_in_flow_control_structures
+   info • Unnecessary instance of 'Container' • lib/presentations/profile_edit/profile_edit_screen.dart:630:37 • avoid_unnecessary_containers
+warning • The declaration '_buildAvatarCircle' isn't referenced • lib/presentations/profile_edit/profile_edit_screen.dart:847:10 • unused_element
+warning • Unused import: 'package:inkbattle_frontend/widgets/custom_svg.dart' • lib/presentations/room_preferences/room_preferences_screen.dart:11:8 • unused_import
+warning • The operand can't be 'null', so the condition is always 'true' • lib/presentations/room_preferences/room_preferences_screen.dart:354:30 • unnecessary_null_comparison
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/room_preferences_screen.dart:433:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/room_preferences_screen.dart:650:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/room_preferences_screen.dart:723:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/multi_selection_bottom_sheet.dart:78:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/multi_selection_bottom_sheet.dart:97:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/multi_selection_bottom_sheet.dart:192:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/selection_bottom_sheet.dart:66:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/selection_bottom_sheet.dart:85:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/room_preferences/widgets/selection_bottom_sheet.dart:162:43 • deprecated_member_use
+warning • Unused import: 'package:flutter/gestures.dart' • lib/presentations/sign_in/sign_in_screen.dart:2:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:51:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:80:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:109:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:136:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:157:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:182:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:188:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:207:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentations/sign_in/sign_in_screen.dart:236:7 • avoid_print
+warning • The value of the field '_currentPage' isn't used • lib/presentations/sign_up/sign_up_screen.dart:44:7 • unused_field
+warning • The value of the field '_textOpacity' isn't used • lib/presentations/sign_up/sign_up_screen.dart:49:26 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/sign_up/sign_up_screen.dart:246:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/sign_up/sign_up_screen.dart:323:52 • deprecated_member_use
+   info • 'MediaQueryData.fromWindow' is deprecated and shouldn't be used. Use MediaQueryData.fromView instead. This constructor was deprecated in preparation for the upcoming multi-window support. This feature was deprecated after v3.7.0-32.0.pre • lib/presentations/widgets/custom_slider.dart:8:7 • deprecated_member_use
+   info • 'window' is deprecated and shouldn't be used. Look up the current FlutterView from the context via View.of(context) or consult the PlatformDispatcher directly instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.7.0-32.0.pre • lib/presentations/widgets/custom_slider.dart:8:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/error_popup.dart:38:37 • deprecated_member_use
+warning • This class (or a class that this class inherits from) is marked as '@immutable', but one or more of its instance fields aren't final: FormPopup.participants • lib/presentations/widgets/form.dart:8:7 • must_be_immutable
+warning • This class (or a class that this class inherits from) is marked as '@immutable', but one or more of its instance fields aren't final: ErrorPopup.participants • lib/presentations/widgets/report.dart:11:7 • must_be_immutable
+   info • Use 'const' for final variables initialized to a constant value • lib/presentations/widgets/report.dart:25:5 • prefer_const_declarations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/team_winner_popup.dart:37:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/teamsview.dart:47:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/teamsview.dart:52:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/teamsview.dart:90:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentations/widgets/winner.dart:110:44 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/presentations/widgets/winner.dart:237:24 • prefer_const_constructors
+   info • Don't invoke 'print' in production code • lib/repositories/agora_repository.dart:27:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/repositories/agora_repository.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:52:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:57:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:64:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:69:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:73:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:79:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:81:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:82:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:103:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:119:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:126:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:130:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:131:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:138:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:139:7 • avoid_print
+warning • The declaration 'onAdFailedToLoad' isn't referenced • lib/services/ad_service.dart:141:7 • unused_element
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:142:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:166:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:170:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:179:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:180:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:189:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:210:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:216:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:222:17 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:228:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:231:13 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:243:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:244:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/ad_service.dart:262:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:29:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:47:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:53:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:59:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:65:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:69:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/billing_service.dart:73:7 • avoid_print
+   info • Use 'const' with the constructor to improve performance • lib/services/notification_service.dart:176:26 • prefer_const_constructors
+warning • The value of the local variable 'android' isn't used • lib/services/notification_service.dart:220:11 • unused_local_variable
+   info • The prefix 'IO' isn't a lower_case_with_underscores identifier • lib/services/socket_service.dart:1:60 • library_prefixes
+   info • Don't invoke 'print' in production code • lib/services/socket_service.dart:23:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/socket_service.dart:332:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/utils/api/api_manager.dart:21:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/utils/preferences/local_preferences.dart:51:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/utils/preferences/local_preferences.dart:69:5 • avoid_print
+   info • Use 'const' with the constructor to improve performance • lib/utils/routes/routes.dart:85:39 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/coin_animation_dialog.dart:123:42 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/widgets/coin_animation_dialog.dart:133:20 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/coin_animation_dialog.dart:161:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_loading_widget.dart:27:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_loading_widget.dart:43:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_loading_widget.dart:64:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/custom_loading_widget.dart:80:39 • deprecated_member_use
+   info • 'color' is deprecated and shouldn't be used. Use colorFilter instead • lib/widgets/custom_svg.dart:31:9 • deprecated_member_use
+   info • 'initialOptions' is deprecated and shouldn't be used. Use initialSettings instead • lib/widgets/in_app_web_view_screen.dart:41:9 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/persistent_banner_ad_widget.dart:35:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/persistent_banner_ad_widget.dart:43:28 • deprecated_member_use
+   info • The file name 'topCoins.dart' isn't a lower_case_with_underscores identifier • lib/widgets/topCoins.dart:1:1 • file_names
+

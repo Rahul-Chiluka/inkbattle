@@ -450,64 +450,127 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
             Expanded(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 500.w), // Re-introduced constraint
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width > 600
-                          ? 550 // Increased max width for tablet
-                          : 0.98.sw, // Increased width (reduced margins)
+                  constraints: BoxConstraints(maxWidth: 800.w), // Constrain max width for tablet
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w), // Mobile padding
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Language
-                          _buildGradientDropdown(
-                            hint: AppLocalizations.selectLanguage,
-                            value: selectedLanguage,
-                            items: languages,
-                            iconData: Icons.language,
-                            onChanged: (v) => setState(() => selectedLanguage = v),
+                          // Use LayoutBuilder to determine layout based on width
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              // If width is large enough (tablet/desktop), use 2-column grid
+                              if (constraints.maxWidth > 600) {
+                                return Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildGradientDropdown(
+                                            hint: AppLocalizations.selectLanguage,
+                                            value: selectedLanguage,
+                                            items: languages,
+                                            iconData: Icons.language,
+                                            onChanged: (v) => setState(() => selectedLanguage = v),
+                                          ),
+                                        ),
+                                        SizedBox(width: 20.w),
+                                        Expanded(
+                                          child: CountryPickerWidget(
+                                            selectedCountryCode: selectedCountry,
+                                            onCountrySelected: (code) => setState(() => selectedCountry = code),
+                                            hintText: AppLocalizations.country,
+                                            icon: Icons.public,
+                                            iconColor: const Color(0xFF09BDFF),
+                                            useGradientDesign: true,
+                                            height: 58.h,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 20.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildGradientDropdown(
+                                            hint: AppLocalizations.selectCategory,
+                                            value: selectedCategory,
+                                            items: categories,
+                                            iconData: Icons.grid_view_rounded,
+                                            onChanged: (v) => setState(() => selectedCategory = v),
+                                          ),
+                                        ),
+                                        SizedBox(width: 20.w),
+                                        Expanded(
+                                          child: _buildGradientDropdown(
+                                            hint: AppLocalizations.selectTargetPoints,
+                                            value: selectedTargetPoints?.toString(),
+                                            items: targetPoints.map((e) => e.toString()).toList(),
+                                            iconData: Icons.ads_click,
+                                            onChanged: (v) => setState(() =>
+                                            selectedTargetPoints = int.tryParse(v ?? '100')),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                // Mobile layout (Single Column)
+                                return Column(
+                                  children: [
+                                    _buildGradientDropdown(
+                                      hint: AppLocalizations.selectLanguage,
+                                      value: selectedLanguage,
+                                      items: languages,
+                                      iconData: Icons.language,
+                                      onChanged: (v) => setState(() => selectedLanguage = v),
+                                    ),
+                                    SizedBox(height: 20.h),
+                                    CountryPickerWidget(
+                                      selectedCountryCode: selectedCountry,
+                                      onCountrySelected: (code) => setState(() => selectedCountry = code),
+                                      hintText: AppLocalizations.country,
+                                      icon: Icons.public,
+                                      iconColor: const Color(0xFF09BDFF),
+                                      useGradientDesign: true,
+                                      height: 58.h,
+                                    ),
+                                    SizedBox(height: 20.h),
+                                    _buildGradientDropdown(
+                                      hint: AppLocalizations.selectCategory,
+                                      value: selectedCategory,
+                                      items: categories,
+                                      iconData: Icons.grid_view_rounded,
+                                      onChanged: (v) => setState(() => selectedCategory = v),
+                                    ),
+                                    SizedBox(height: 20.h),
+                                    _buildGradientDropdown(
+                                      hint: AppLocalizations.selectTargetPoints,
+                                      value: selectedTargetPoints?.toString(),
+                                      items: targetPoints.map((e) => e.toString()).toList(),
+                                      iconData: Icons.ads_click,
+                                      onChanged: (v) => setState(() =>
+                                      selectedTargetPoints = int.tryParse(v ?? '100')),
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
                           ),
-                          SizedBox(height: 20.h),
 
-                          // Country
-                          // Country
-                          // Country
-                          CountryPickerWidget(
-                            selectedCountryCode: selectedCountry,
-                            onCountrySelected: (code) => setState(() => selectedCountry = code),
-                            hintText: AppLocalizations.country,
-                            icon: Icons.public,
-                            iconColor: const Color(0xFF09BDFF),
-                            useGradientDesign: true,
-                            height: 58.h, // Explicit height to match other fields
-                          ),
-                          SizedBox(height: 20.h),
-
-                          // Category
-                          _buildGradientDropdown(
-                            hint: AppLocalizations.selectCategory,
-                            value: selectedCategory,
-                            items: categories,
-                            iconData: Icons.grid_view_rounded,
-                            onChanged: (v) => setState(() => selectedCategory = v),
-                          ),
-                          SizedBox(height: 20.h),
-
-                          // Target Points
-                          _buildGradientDropdown(
-                            hint: AppLocalizations.selectTargetPoints,
-                            value: selectedTargetPoints?.toString(),
-                            items: targetPoints.map((e) => e.toString()).toList(),
-                            iconData: Icons.ads_click,
-                            onChanged: (v) => setState(() =>
-                            selectedTargetPoints = int.tryParse(v ?? '100')),
-                          ),
                           SizedBox(height: 40.h),
 
-                          // Join button
-                          _buildJoinButton(),
+                          // Join button - Center aligned and constrained width
+                          Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: 400.w), // Don't let button get too wide on tablet
+                              child: _buildJoinButton(),
+                            ),
+                          ),
                           
                           SizedBox(height: 20.h), // Bottom padding for scrolling
                         ],

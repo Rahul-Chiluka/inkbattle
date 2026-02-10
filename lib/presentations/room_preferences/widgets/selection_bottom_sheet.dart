@@ -173,10 +173,12 @@ class _SelectionBottomSheetState extends State<SelectionBottomSheet> {
                           },
                           borderRadius: BorderRadius.circular(10.r),
                           child: Container(
+                            margin: EdgeInsets.symmetric(vertical: 4.h),
                             padding: EdgeInsets.symmetric(
-                              vertical: 16.h,
-                              horizontal: 8.w,
+                              vertical: 13.h, // Reduced from 16.h
+                              horizontal: 12.w, // Added horizontal padding for "floating" look
                             ),
+
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color.fromRGBO(9, 189, 255, 0.1)
@@ -200,11 +202,12 @@ class _SelectionBottomSheetState extends State<SelectionBottomSheet> {
                                   ),
                                 ),
                                 if (isSelected)
-                                  const Icon(
+                                  Icon(
                                     Icons.check_circle,
-                                    color: Color.fromRGBO(9, 189, 255, 1),
-                                    size: 20,
+                                    color: const Color.fromRGBO(9, 189, 255, 1),
+                                    size: 26.sp, // Increased from 20
                                   ),
+
                               ],
                             ),
                           ),

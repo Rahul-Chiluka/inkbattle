@@ -16,6 +16,11 @@ import 'package:video_player/video_player.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
+import 'package:inkbattle_frontend/presentations/room_preferences/widgets/selection_bottom_sheet.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class GuestSignUpScreen extends StatefulWidget {
   const GuestSignUpScreen({super.key});
@@ -38,6 +43,7 @@ class _GuestSignUpScreenState extends State<GuestSignUpScreen>
   String? selectedProfilePhoto = AppImages.av3;
   bool showAvatarSelection = false;
   bool _isSubmitting = false;
+  bool _showFieldErrors = false;
   List<String> avatarsURLs = [
     AppImages.av1,
     AppImages.av2,
@@ -341,53 +347,89 @@ final List<String> languages = [
     );
   }
 
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        selectedProfilePhoto = image.path; // Use path for local file
+        selectedAvatarIndex = -1; // Deselect preset avatars
+      });
+    }
+  }
+
+  static const double _kTabletMaxWidth = 600;
+
   Widget _buildFirstPage() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    double contentWidth = isTablet ? 600 : screenWidth;
-    double size = isTablet ? contentWidth * 0.12 : contentWidth * 0.15;
+    double contentWidth = isTablet ? _kTabletMaxWidth : screenWidth;
     List<Widget> avatars = List.generate(5, (index) {
       return Container();
     });
-    return SafeArea(
-      child: Padding(
+    return Padding(
         padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 10.h),
-        child: Center(
-          child: SizedBox(
-            width: contentWidth,
-            child: Column(
-              children: [
-                // Coin Container at top
-                const CoinContainer(coins: 0),
-                
-                // Dynamic spacer
-                const Spacer(flex: 1),
-                
-                // Main content - Flexible to adapt to screen size
-                Flexible(
-                  flex: 8,
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 0.w),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Avatar Section - Flexible with FittedBox for small screens
-                          Flexible(
-                            child: FittedBox(
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      width: isTablet ? 52.w : 40.w,
+                      height: isTablet ? 52.w : 40.w,
+                      color: Colors.transparent,
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.white,
+                        size: isTablet ? 28.sp : 22.sp,
+                      ),
+                    ),
+                  ),
+                  const CoinContainer(coins: 0),
+                ],
+              ),
+            ),
+            const Spacer(flex: 1),
+            Flexible(
+              flex: 8,
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isTablet ? 700 : double.infinity,
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                    ),
+                    child: SizedBox(
+                      width: contentWidth,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: isTablet ? 0.0 : 20.w),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Stack(
                                 alignment: Alignment.center,
+                                clipBehavior: Clip.none,
                                 children: [
                                   // Main Profile Avatar
                                   Container(
                                     key: _centerAvatarKey,
                                     child: GestureDetector(
-                                      onTap: _toggleAvatarSelection,
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: isTablet ? _showTabletAvatarSelectionSheet : _showTabletAvatarSelectionSheet,
                                       child: Container(
                                         clipBehavior: Clip.hardEdge,
-                                        height: isTablet ? 180.h : 150.h,
-                                        width: isTablet ? 180.w : 150.w,
+                                        height: isTablet ? 160.h : 120.h,
+                                        width: isTablet ? 160.w : 120.w,
                                         padding: EdgeInsets.all(2.w),
                                         decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
@@ -407,23 +449,9 @@ final List<String> languages = [
                                           child: ClipOval(
                                             clipBehavior: Clip.hardEdge,
                                             child: SizedBox(
-                                              width: isTablet ? 170.r : 140.r,
-                                              height: isTablet ? 170.r : 140.r,
-                                              child: selectedProfilePhoto != null
-                                                  ? Padding(
-                                                      padding: EdgeInsets.all(
-                                                          isTablet ? 30.0 : 20.0),
-                                                      child: Image.asset(
-                                                        selectedProfilePhoto!,
-                                                        fit: BoxFit.contain,
-                                                      ),
-                                                    )
-                                                  : Center(
-                                                      child: Icon(Icons.person,
-                                                          size:
-                                                              isTablet ? 60.sp : 50.sp,
-                                                          color: Colors.grey),
-                                                    ),
+                                              width: isTablet ? 150.r : 110.r,
+                                              height: isTablet ? 150.r : 110.r,
+                                              child: _buildAvatarImage(isTablet),
                                             ),
                                           ),
                                         ),
@@ -431,32 +459,35 @@ final List<String> languages = [
                                     ),
                                   ),
 
-                                  if (!showAvatarSelection)
+                                    if (!showAvatarSelection || isTablet)
                                     Positioned(
-                                      bottom: isTablet ? 25.h : 20.h,
-                                      right: 0.w,
+                                      bottom: isTablet ? 10.h : 0.h,
+                                      right: isTablet ? 0 : 0.w,
                                       child: GestureDetector(
-                                        onTap: _toggleAvatarSelection,
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: isTablet ? _showTabletAvatarSelectionSheet : _showTabletAvatarSelectionSheet,
                                         child: Container(
-                                          height: isTablet ? 50.h : 40.h,
-                                          width: isTablet ? 50.w : 40.w,
+                                          height: isTablet ? 45.h : 40.h,
+                                          width: isTablet ? 45.w : 40.w,
                                           decoration: const BoxDecoration(
                                             color: Color.fromRGBO(217, 217, 217, 1),
                                             shape: BoxShape.circle,
                                           ),
-                                          child: Image.asset(
-                                            AppImages.pencil,
-                                            height: isTablet ? 35.h : 30.h,
-                                            width: isTablet ? 35.w : 30.w,
+                                          child: Center(
+                                            child: Image.asset(
+                                              AppImages.pencil,
+                                              height: isTablet ? 30.h : 24.h,
+                                              width: isTablet ? 30.w : 24.w,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
 
-                                  // Avatar Selection Options
-                                  if (showAvatarSelection)
+                                  // Avatar Selection Options (mobile only; tablet uses bottom sheet)
+                                  if (showAvatarSelection && !isTablet)
                                     _buildAvatarSelectionStack(
-                                        avatars, size, contentWidth, isTablet),
+                                        avatars, isTablet ? contentWidth * 0.12 : contentWidth * 0.15, contentWidth, isTablet),
 
                                   // Moving Avatar Animation
                                   if (_movingAvatarIndex != null)
@@ -465,69 +496,154 @@ final List<String> languages = [
                                 ],
                               ),
                             ),
-                          ),
+
                           
-                          SizedBox(height: isTablet ? 30.h : 20.h),
-                          
-                          // Form Fields Section
-                          SizedBox(
-                            width:
-                                isTablet ? contentWidth * 0.5 : contentWidth * 0.6,
-                            child: TextformFieldWidget(
-                              readOnly: false,
-                              controller: _usernameController,
-                              focusNode: _usernameFocusNode,
-                              height: isTablet ? 55.h : 48.h,
-                              rouneded: 15.r,
-                              fontSize: isTablet ? 20.sp : 18.sp,
-                              hintTextColor:
-                                  const Color.fromRGBO(255, 255, 255, 0.52),
-                              hintText: AppLocalizations.enterUsername,
-                              prefixIcon: Padding(
-                                padding: EdgeInsets.all(10.w),
-                                child: CustomSvgImage(
-                                  imageUrl: AppImages.userSvg,
-                                  height: isTablet ? 24.h : 21.h,
-                                  width: isTablet ? 24.w : 21.w,
-                                ),
+                          SizedBox(height: isTablet ? 40.h : 20.h),
+                          if (_showFieldErrors && selectedProfilePhoto == null) ...[
+                            Padding(
+                              padding: EdgeInsets.only(left: 4.w),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                  SizedBox(width: 6.w),
+                                  Text('Please select an avatar', style: TextStyle(color: Colors.red, fontSize: 12.sp)),
+                                ],
                               ),
                             ),
-                          ),
-                          SizedBox(height: isTablet ? 20.h : 15.h),
+                            SizedBox(height: 8.h),
+                          ],
+                          // Form Fields Section (full width of container on tablet)
                           SizedBox(
-                            width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                            child: _buildGradientDropdown(
-                              hint: AppLocalizations.language,
-                              value: selectedLanguage,
-                              items: languages,
-                              prefixIcon: Padding(
-                                padding: EdgeInsets.all(12.w),
-                                child: CustomSvgImage(
-                                  imageUrl: AppImages.languageSvg,
-                                  height: isTablet ? 24.h : 21.h,
-                                  width: isTablet ? 24.w : 21.w,
+                            width: contentWidth,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextformFieldWidget(
+                                  readOnly: false,
+                                  controller: _usernameController,
+                                  focusNode: _usernameFocusNode,
+                                  height: isTablet ? 60.h : 50.h,
+                                  rouneded: 15.r,
+                                  fontSize: isTablet ? 20.sp : 18.sp,
+                                  hintTextColor:
+                                      const Color.fromRGBO(255, 255, 255, 0.52),
+                                  hintText: AppLocalizations.enterUsername,
+                                  prefixIcon: Padding(
+                                    padding: EdgeInsets.all(10.w),
+                                    child: CustomSvgImage(
+                                      imageUrl: AppImages.userSvg,
+                                      height: isTablet ? 24.h : 21.h,
+                                      width: isTablet ? 24.w : 21.w,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              onChanged: (val) => _changeLanguage(val),
+                                if (_showFieldErrors && _usernameController.text.trim().isEmpty) ...[
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                      SizedBox(width: 6.w),
+                                      Text('Please enter username', style: TextStyle(color: Colors.red, fontSize: 12.sp)),
+                                    ],
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                          SizedBox(height: isTablet ? 20.h : 15.h),
+                          SizedBox(height: isTablet ? 25.h : 15.h),
                           SizedBox(
-                            width: isTablet ? contentWidth * 0.5 : 0.6.sw,
-                            child: CountryPickerWidget(
-                              selectedCountryCode: selectedCountry,
-                              onCountrySelected: (countryCode) {
-                                setState(() => selectedCountry = countryCode);
-                                // Trigger rebuild to update button state
-                                if (mounted) setState(() {});
-                              },
-                              hintText: AppLocalizations.country,
-                              imageUrl: AppImages.coutrySvg,
-                              isTablet: isTablet,
-                              useGradientDesign: true, // Use gradient design to match _buildGradientDropdown
+                            width: contentWidth,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildGradientDropdown(
+                                  hint: AppLocalizations.language,
+                                  value: selectedLanguage,
+                                  items: languages,
+                                  isTablet: isTablet,
+                                  prefixIcon: Padding(
+                                    padding: EdgeInsets.all(12.w),
+                                    child: CustomSvgImage(
+                                      imageUrl: AppImages.languageSvg,
+                                      height: isTablet ? 24.h : 21.h,
+                                      width: isTablet ? 24.w : 21.w,
+                                    ),
+                                  ),
+                                  onChanged: (val) => _changeLanguage(val),
+                                ),
+                                if (_showFieldErrors && selectedLanguage == null) ...[
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                      SizedBox(width: 6.w),
+                                      Text('Please select any language', style: TextStyle(color: Colors.red, fontSize: 12.sp)),
+                                    ],
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                          SizedBox(height: isTablet ? 30.h : 25.h),
+                          SizedBox(height: isTablet ? 25.h : 15.h),
+                          isTablet
+                              ? SizedBox(
+                                  width: contentWidth,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildTabletCountryDropdown(),
+                          if (_showFieldErrors && selectedCountry == null) ...[
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                      SizedBox(width: 6.w),
+                                      Text('Please select any country', style: TextStyle(color: Colors.red, fontSize: 12.sp)),
+                                    ],
+                                  ),
+                                ],
+                                    ],
+                                  ),
+                                )
+                              : SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CountryPickerWidget(
+                                  selectedCountryCode: selectedCountry,
+                                  onCountrySelected: (countryCode) {
+                                    setState(() => selectedCountry = countryCode);
+                                    if (mounted) setState(() {});
+                                  },
+                                  hintText: AppLocalizations.country,
+                                  imageUrl: AppImages.coutrySvg,
+                                  isTablet: isTablet,
+                                  useGradientDesign: true,
+                                ),
+                                if (_showFieldErrors && selectedCountry == null) ...[
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                      SizedBox(width: 6.w),
+                                      Text('Please select any country', style: TextStyle(color: Colors.red, fontSize: 12.sp)),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: isTablet ? 40.h : 25.h),
                           InkWell(
                             onTap: (_isSubmitting || !_areAllFieldsFilled())
                                 ? null
@@ -537,6 +653,7 @@ final List<String> languages = [
                                   ? 0.5
                                   : 1.0,
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   const Spacer(),
                                   _isSubmitting
@@ -553,14 +670,15 @@ final List<String> languages = [
                                             fit: BoxFit.scaleDown,
                                             child: TextWidget(
                                               text: AppLocalizations.next,
-                                              fontSize: isTablet ? 20.sp : 18.sp,
+                                              fontSize: isTablet ? 22.sp : 18.sp,
                                               color: AppColors.whiteColor,
                                             ),
                                           ),
                                         ),
+                                  SizedBox(width: 5.w),
                                   Icon(Icons.navigate_next_outlined,
                                       color: AppColors.whiteColor,
-                                      size: isTablet ? 26.sp : 22.sp),
+                                      size: isTablet ? 28.sp : 22.sp),
                                 ],
                               ),
                             ),
@@ -570,15 +688,44 @@ final List<String> languages = [
                     ),
                   ),
                 ),
-                
-                // Dynamic spacer at bottom
-                const Spacer(flex: 1),
-              ],
+              ),
             ),
           ),
-        ),
+          // Dynamic spacer at bottom
+          const Spacer(flex: 1),
+        ],
       ),
     );
+  }
+
+  Widget _buildAvatarImage(bool isTablet) {
+    if (selectedProfilePhoto == null) {
+      return Center(
+        child: Icon(Icons.person,
+            size: isTablet ? 60.sp : 50.sp, color: Colors.grey),
+      );
+    }
+    
+    // Check if it's a local file or asset
+    bool isLocalFile = !avatarsURLs.contains(selectedProfilePhoto);
+    
+    if (isLocalFile) {
+       return Padding(
+         padding: EdgeInsets.all(isTablet ? 0.0 : 0.0), // Fill circle
+         child: Image.file(
+           File(selectedProfilePhoto!),
+           fit: BoxFit.cover,
+         ),
+       );
+    } else {
+      return Padding(
+        padding: EdgeInsets.all(isTablet ? 30.0 : 20.0),
+        child: Image.asset(
+          selectedProfilePhoto!,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
   }
 
   Widget _buildAvatarSelectionStack(
@@ -793,6 +940,146 @@ final List<String> languages = [
     );
   }
 
+  void _showTabletAvatarSelectionSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _TabletAvatarSelectionSheet(
+        avatarsURLs: avatarsURLs,
+        selectedAvatarIndex: selectedAvatarIndex,
+        selectedProfilePhoto: selectedProfilePhoto,
+        onAvatarSelected: (index) {
+          _selectAvatar(index);
+          Navigator.pop(context);
+        },
+        onChoosePhoto: () {
+          Navigator.pop(context);
+          _pickImage();
+        },
+        onBack: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  Future<void> _showLanguageBottomSheet() async {
+    FocusScope.of(context).unfocus();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SelectionBottomSheet(
+        title: AppLocalizations.language,
+        items: languages,
+        selectedItem: selectedLanguage,
+      ),
+    );
+    if (result != null && mounted) _changeLanguage(result);
+  }
+
+  Future<void> _showCountryBottomSheet() async {
+    FocusScope.of(context).unfocus();
+    final countries = CountryService().getAll();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CountrySelectionBottomSheet(
+        title: AppLocalizations.country,
+        countries: countries,
+        selectedCountryCode: selectedCountry,
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        selectedCountry = result;
+      });
+    }
+  }
+
+  Widget _buildTabletCountryDropdown() {
+    final countryCode = selectedCountry;
+    final countryName = countryCode != null
+        ? CountryPickerWidget.getCountryName(countryCode)
+        : null;
+    final displayText = countryName ?? AppLocalizations.country;
+    final isFilled = countryCode != null && countryCode.isNotEmpty;
+    // Exactly matching the language dropdown style
+    return Container(
+      alignment: Alignment.center,
+      padding: EdgeInsets.all(2.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15.r),
+        gradient: const LinearGradient(
+          colors: [
+            Color.fromRGBO(255, 255, 255, 1),
+            Color.fromRGBO(9, 189, 255, 1),
+          ],
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13.r),
+          onTap: _showCountryBottomSheet,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13.r),
+              color: Colors.black,
+            ),
+             child: Padding(  // Add padding for consistent height/alignment
+              padding: EdgeInsets.symmetric(vertical: 2.h), // Adjust as needed
+              child: Row(
+              children: [
+                if (!isFilled)
+                  Padding(
+                    padding: EdgeInsets.all(12.w),
+                    child: CustomSvgImage(
+                      imageUrl: AppImages.coutrySvg,
+                      height: 24.h,
+                      width: 24.w,
+                    ),
+                  ),
+                if (!isFilled) SizedBox(width: 8.w),
+                Expanded(
+                  child: Padding( // Add padding for text
+                    padding: EdgeInsets.only(left: isFilled ? 12.w : 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                        if (isFilled) ...[
+                          Text(CountryPickerWidget.getCountryFlag(countryCode), style: TextStyle(fontSize: 24.sp)), // Larger flag on tablet
+                          SizedBox(width: 8.w),
+                        ],
+                        Expanded(child: Text(
+                          displayText,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isFilled ? Colors.white : const Color.fromRGBO(255, 255, 255, 0.52),
+                            fontSize: 18.sp,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Icon(Icons.arrow_drop_down, size: 35.sp, color: const Color.fromRGBO(9, 189, 255, 1)),
+                ),
+              ],
+            ),
+          ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Check if all required fields are filled
   bool _areAllFieldsFilled() {
     final nameInput = _usernameController.text.trim();
@@ -805,16 +1092,10 @@ final List<String> languages = [
   Future<void> _handleGuestSignup() async {
     // Validate all fields are filled
     if (!_areAllFieldsFilled()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.pleaseFillAllFields),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) setState(() => _showFieldErrors = true);
       return;
     }
+    setState(() => _showFieldErrors = false);
 
     // Dismiss Keyboard immediately to prevent layout resize glitch
     FocusManager.instance.primaryFocus?.unfocus();
@@ -895,6 +1176,7 @@ final List<String> languages = [
     required List<String> items,
     required Widget prefixIcon,
     required ValueChanged<String?> onChanged,
+    bool isTablet = false,
   }) {
     final GlobalKey tapKey = GlobalKey();
     return Builder(
@@ -917,90 +1199,8 @@ final List<String> languages = [
               key: tapKey,
               borderRadius: BorderRadius.circular(13.r),
               onTap: () async {
-                final box =
-                    tapKey.currentContext!.findRenderObject() as RenderBox;
-                final Offset pos = box.localToGlobal(Offset.zero);
-                final Size size = box.size;
-                const double gap = -2.0;
-                final selected = await showMenu<String>(
-                  context: context,
-                  position: RelativeRect.fromLTRB(
-                      pos.dx,
-                      pos.dy + size.height + gap,
-                      pos.dx + size.width,
-                      pos.dy + size.height + gap),
-                  color: Colors.transparent,
-                  constraints: BoxConstraints(
-                    minWidth: size.width,
-                    maxWidth: size.width,
-                  ),
-                  items: [
-                    PopupMenuItem<String>(
-                      enabled: false,
-                      padding: EdgeInsets.zero,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15.r),
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color.fromRGBO(255, 255, 255, 1),
-                              Color.fromRGBO(9, 189, 255, 1)
-                            ],
-                          ),
-                        ),
-                        padding: EdgeInsets.all(2.w),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15.r),
-                            color: Colors.black,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: items.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final e = entry.value;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  border: index < items.length - 1
-                                      ? const Border(
-                                          bottom: BorderSide(
-                                              color: Color.fromRGBO(
-                                                  255, 255, 255, 0.2),
-                                              width: 3))
-                                      : null,
-                                ),
-                                child: InkWell(
-                                  onTap: () => Navigator.pop(context, e),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 12.h,
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          e,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-                if (selected != null) onChanged(selected);
+                await _showLanguageBottomSheet();
+                // Removed popup menu logic as we are now using bottom sheet for both mobile and tablet
               },
               child: Container(
                 alignment: Alignment.center,
@@ -1120,3 +1320,337 @@ final List<String> languages = [
     );
   }
 }
+
+/// Figma-style country selection bottom sheet (tablet); returns country code.
+class _CountrySelectionBottomSheet extends StatefulWidget {
+  final String title;
+  final List<Country> countries;
+  final String? selectedCountryCode;
+
+  const _CountrySelectionBottomSheet({
+    required this.title,
+    required this.countries,
+    this.selectedCountryCode,
+  });
+
+  @override
+  State<_CountrySelectionBottomSheet> createState() => _CountrySelectionBottomSheetState();
+}
+
+class _CountrySelectionBottomSheetState extends State<_CountrySelectionBottomSheet> {
+  late List<Country> _filteredCountries;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredCountries = List.from(widget.countries);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredCountries = widget.countries
+          .where((c) => c.name.toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        top: 20.h,
+        left: 15.w,
+        right: 15.w,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+          ),
+          SizedBox(height: 15.h),
+          TextWidget(text: widget.title, fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white),
+          SizedBox(height: 15.h),
+          TextField(
+            controller: _searchController,
+            style: GoogleFonts.lato(color: Colors.white, fontSize: 16.sp),
+            decoration: InputDecoration(
+              labelText: 'Search',
+              labelStyle: GoogleFonts.lato(color: Colors.white70, fontSize: 14.sp),
+              hintText: 'Search country...',
+              hintStyle: GoogleFonts.lato(color: const Color.fromRGBO(255, 255, 255, 0.52), fontSize: 14.sp),
+              prefixIcon: const Icon(Icons.search, color: Color.fromRGBO(9, 189, 255, 1)),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              filled: true,
+              fillColor: Colors.black,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.r), borderSide: const BorderSide(color: Color.fromRGBO(255, 255, 255, 0.2), width: 1.5)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15.r), borderSide: const BorderSide(color: Color.fromRGBO(255, 255, 255, 0.2), width: 1.5)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15.r), borderSide: const BorderSide(color: Color.fromRGBO(9, 189, 255, 1), width: 1.5)),
+            ),
+          ),
+          SizedBox(height: 15.h),
+          Expanded(
+            child: _filteredCountries.isEmpty
+                ? Center(child: TextWidget(text: 'No matches found', color: Colors.grey, fontSize: 14.sp))
+                : ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _filteredCountries.length,
+                    separatorBuilder: (_, __) => Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+                    itemBuilder: (context, index) {
+                      final country = _filteredCountries[index];
+                      final isSelected = country.countryCode == widget.selectedCountryCode;
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(context, country.countryCode),
+                          borderRadius: BorderRadius.circular(10.r),
+                          child: Container(
+                            margin: EdgeInsets.symmetric(vertical: 4.h),
+                            padding: EdgeInsets.symmetric(vertical: 13.h, horizontal: 12.w),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color.fromRGBO(9, 189, 255, 0.1) : null,
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(country.flagEmoji, style: TextStyle(fontSize: 18.sp)),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    country.name,
+                                    style: GoogleFonts.lato(
+                                      color: isSelected ? const Color.fromRGBO(9, 189, 255, 1) : Colors.white,
+                                      fontSize: 16.sp,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: const Color.fromRGBO(9, 189, 255, 1),
+                                    size: 26.sp,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Figma-style avatar selection bottom sheet (tablet): Avatars tab + Choose photos tab, grid layout.
+class _TabletAvatarSelectionSheet extends StatefulWidget {
+  final List<String> avatarsURLs;
+  final int selectedAvatarIndex;
+  final String? selectedProfilePhoto;
+  final ValueChanged<int> onAvatarSelected;
+  final VoidCallback onChoosePhoto;
+  final VoidCallback onBack;
+
+  const _TabletAvatarSelectionSheet({
+    required this.avatarsURLs,
+    required this.selectedAvatarIndex,
+    required this.selectedProfilePhoto,
+    required this.onAvatarSelected,
+    required this.onChoosePhoto,
+    required this.onBack,
+  });
+
+  @override
+  State<_TabletAvatarSelectionSheet> createState() => _TabletAvatarSelectionSheetState();
+}
+
+class _TabletAvatarSelectionSheetState extends State<_TabletAvatarSelectionSheet> {
+  int _tabIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5E5E5),
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(20.r), topRight: Radius.circular(20.r)),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: 12.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+            child: Row(
+              children: [
+                const Spacer(),
+                GestureDetector(
+                  onTap: widget.onBack,
+                  child: Text(
+                    'Back',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tabIndex = 0),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: _tabIndex == 0 ? Colors.black : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Avatars',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _tabIndex == 0 ? Colors.white : Colors.black87,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tabIndex = 1),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: _tabIndex == 1 ? Colors.black : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Choose photos',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _tabIndex == 1 ? Colors.white : Colors.black87,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            height: 1.h,
+            color: Colors.black26,
+          ),
+          SizedBox(height: 16.h),
+          Expanded(
+            child: _tabIndex == 0
+                ? Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12.h,
+                        crossAxisSpacing: 12.w,
+                        childAspectRatio: 0.9,
+                      ),
+                      itemCount: widget.avatarsURLs.length,
+                      itemBuilder: (context, index) {
+                        final isSelected = index == widget.selectedAvatarIndex;
+                        return GestureDetector(
+                          onTap: () => widget.onAvatarSelected(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: isSelected ? Border.all(color: const Color(0xFF09BDFF), width: 3) : null,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10.r),
+                              child: Padding(
+                                padding: EdgeInsets.all(8.w),
+                                child: Image.asset(widget.avatarsURLs[index], fit: BoxFit.contain),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.photo_library_outlined, size: 48.sp, color: Colors.grey),
+                        SizedBox(height: 12.h),
+                        Text('Choose from gallery', style: TextStyle(fontSize: 16.sp, color: Colors.black87)),
+                        SizedBox(height: 16.h),
+                        TextButton(
+                          onPressed: widget.onChoosePhoto,
+                          child: Text('Open gallery', style: TextStyle(fontSize: 16.sp)),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+

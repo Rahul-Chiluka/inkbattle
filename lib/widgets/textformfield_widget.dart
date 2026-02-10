@@ -29,6 +29,7 @@ class TextformFieldWidget extends StatefulWidget {
     this.fontSize,
     this.readOnly,
     this.maxLine,
+    this.contentPadding,
   });
 
   final String? initialValue;
@@ -52,6 +53,7 @@ class TextformFieldWidget extends StatefulWidget {
   final bool? isBorderColor;
   final bool? obscureText;
   final bool? readOnly;
+  final EdgeInsets? contentPadding;
   final Function(String)? onChanged;
   final String? Function(String?)? validator;
   @override
@@ -97,7 +99,7 @@ class _TextformFieldWidgetState extends State<TextformFieldWidget> {
               fontWeight: widget.fontWeight,
               color: widget.textColor),
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.all(10),
+            contentPadding: widget.contentPadding ?? const EdgeInsets.all(10),
             hintText: widget.hintText,
             suffixIcon: widget.suffixIcon,
             prefixIcon: widget.prefixIcon,

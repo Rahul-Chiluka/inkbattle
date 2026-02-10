@@ -256,196 +256,139 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     );
   }
 
-  void _showRoomCodeDialog(String code) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        title: TextWidget(
-          text: AppLocalizations.roomCreated,
-          fontSize: 20.sp,
-          fontWeight: FontWeight.bold,
-          color: AppColors.whiteColor,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextWidget(
-              text: AppLocalizations.shareCodeWithFriends,
-              fontSize: 14.sp,
-              color: Colors.grey,
-            ),
-            SizedBox(height: 15.h),
-            Container(
-              padding: EdgeInsets.all(15.w),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: Colors.blue, width: 2),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextWidget(
-                    text: code,
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.whiteColor,
-                  ),
-                  SizedBox(width: 10.w),
-                  IconButton(
-                    icon: const Icon(Icons.copy, color: Colors.blue),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: code));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(AppLocalizations.codeCopiedClipboard),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Pass the actual room ID from the response
-              final roomId = _lastCreatedRoomId;
-              if (roomId != null) {
-                context.go('/game-room/$roomId');
-              }
-            },
-            child: TextWidget(
-              text: AppLocalizations.enterRoom,
-              fontSize: 16.sp,
-              color: Colors.blue,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final bool isTablet = mq.size.width > 600;
-    final double controlWidth = mq.size.width - (isTablet ? 40.w : 24.w);
 
     return BlueBackgroundScaffold(
       child: SafeArea(
         bottom: true, // Protect bottom for ad visibility
-        child: Center(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width > 600
-                ? 600
-                : MediaQuery.of(context).size.width,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
-              child: Column(
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const CustomSvgImage(
-                          imageUrl: AppImages.arrow_back,
-                          height: 25,
-                          width: 25,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isTablet ? 18.w : 15.w, vertical: 15.h),
+                    child: Column(
+                      children: [
+                        // Header (Stack for centering)
+                        SizedBox(
+                          height: 50.h,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Back Button (Aligned Left)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    color: Colors.transparent, // Hit test area
+                                    padding: EdgeInsets.all(8.w),
+                                    child: CustomSvgImage(
+                                      imageUrl: AppImages.arrow_back,
+                                      height: isTablet ? 30.h : 24.h,
+                                      width: isTablet ? 30.w : 24.w,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Title (Centered)
+                              Align(
+                                alignment: Alignment.center,
+                                child: TextWidget(
+                                  text: widget.isTeamMode
+                                      ? AppLocalizations.createTeamRoom
+                                      : AppLocalizations.createRoom,
+                                  fontSize: isTablet ? 25.sp : 24.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.whiteColor,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 15.w),
-                      TextWidget(
-                        text: widget.isTeamMode
-                            ? AppLocalizations.createTeamRoom
-                            : AppLocalizations.createRoom,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.whiteColor,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.h),
-
-                  // Form - Simplified to just room name (Flexible content)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Spacer(flex: 1),
-                          
-                          // Info text
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: TextWidget(
-                              text: AppLocalizations.createRoomConfigureLobby,
-                              fontSize: 14.sp,
-                              color: Colors.white70,
-                              textAlign: TextAlign.center,
+                        
+                        // Main Content (Centered Vertically)
+                        Expanded(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: isTablet ? 500 : double.infinity),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Info text
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                                    child: TextWidget(
+                                      text: AppLocalizations.createRoomConfigureLobby,
+                                      fontSize: isTablet ? 18.sp : 16.sp,
+                                      color: Colors.white70,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  SizedBox(height: 40.h),
+                
+                                  // Room Name Input
+                                  TextformFieldWidget(
+                                    controller: _roomNameController,
+                                    height: isTablet ? 60.h : 55.h,
+                                    rouneded: 30.r,
+                                    fontSize: isTablet ? 18.sp : 16.sp,
+                                    hintText: AppLocalizations.enterRoomNameHint,
+                                    hintTextColor: const Color.fromRGBO(255, 255, 255, 0.52),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 15.h), // Better padding
+                                  ),
+                                  SizedBox(height: 40.h),
+                
+                                  // Create button
+                                  _buildCreateButton(isTablet),
+                
+                                  SizedBox(height: 30.h),
+                
+                                  // Additional info
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                                    child: TextWidget(
+                                      text: AppLocalizations.roomCodeShareInfo,
+                                      fontSize: isTablet ? 14.sp : 12.sp,
+                                      color: Colors.grey,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          SizedBox(height: 30.h),
-
-                          // Room Name
-                          TextformFieldWidget(
-                            controller: _roomNameController,
-                            height: 50.h,
-                            rouneded: 25.r,
-                            fontSize: 16.sp,
-                            hintText: AppLocalizations.enterRoomNameHint,
-                            hintTextColor:
-                                const Color.fromRGBO(255, 255, 255, 0.52),
-                          ),
-                          SizedBox(height: 40.h),
-
-                          // Create button
-                          _buildCreateButton(),
-
-                          SizedBox(height: 20.h),
-
-                          // Additional info
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: TextWidget(
-                              text: AppLocalizations.roomCodeShareInfo,
-                              fontSize: 12.sp,
-                              color: Colors.grey,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          
-                          const Spacer(flex: 1),
-                          SizedBox(height: 10.h), // Space above ad
-                        ],
-                      ),
+                        ),
+                        
+                        SizedBox(height: 20.h), // Space before ad
+                        
+                        // Persistent Banner Ad (app-wide, loaded once)
+                        const PersistentBannerAdWidget(),
+                      ],
                     ),
                   ),
-                  
-                  // Persistent Banner Ad (app-wide, loaded once)
-                  const PersistentBannerAdWidget(),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildCreateButton() {
+  Widget _buildCreateButton(bool isTablet) {
     return Container(
       width: double.infinity,
-      height: 55.h,
+      height: isTablet ? 60.h : 55.h,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
@@ -454,6 +397,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           ],
         ),
         borderRadius: BorderRadius.circular(30.r),
+        boxShadow: [
+          BoxShadow(
+            color: const Color.fromRGBO(83, 128, 246, 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
@@ -468,7 +418,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             ? const CircularProgressIndicator(color: Colors.white)
             : TextWidget(
                 text: AppLocalizations.createRoom,
-                fontSize: 16.sp,
+                fontSize: isTablet ? 20.sp : 18.sp,
                 fontWeight: FontWeight.bold,
                 color: AppColors.whiteColor,
               ),
@@ -476,203 +426,5 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     );
   }
 
-  Widget _buildDropdown({
-    required double width,
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required String imageurl,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final GlobalKey tapKey = GlobalKey();
-    final bool isFilled = value != null;
 
-    return Container(
-      width: width,
-      height: 50.h,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isFilled ? Colors.white : Colors.grey,
-          width: 2,
-        ),
-        borderRadius: BorderRadius.circular(25.r),
-        color: Colors.black.withOpacity(0.3),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: tapKey,
-          borderRadius: BorderRadius.circular(25.r),
-          onTap: () async {
-            final box = tapKey.currentContext!.findRenderObject() as RenderBox;
-            final Offset pos = box.localToGlobal(Offset.zero);
-            final Size size = box.size;
-
-            final selected = await showMenu<String>(
-              context: context,
-              position: RelativeRect.fromLTRB(
-                pos.dx,
-                pos.dy + size.height + 5,
-                pos.dx + size.width,
-                pos.dy + size.height + 5,
-              ),
-              color: Colors.transparent,
-              constraints: BoxConstraints(
-                minWidth: size.width,
-                maxWidth: size.width,
-              ),
-              items: [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  padding: EdgeInsets.zero,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15.r),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color.fromRGBO(255, 255, 255, 1),
-                          Color.fromRGBO(9, 189, 255, 1),
-                        ],
-                      ),
-                    ),
-                    padding: EdgeInsets.all(2.w),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15.r),
-                        color: Colors.black,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: items.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final e = entry.value;
-                          return Container(
-                            decoration: BoxDecoration(
-                              border: index < items.length - 1
-                                  ? const Border(
-                                      bottom: BorderSide(
-                                        color:
-                                            Color.fromRGBO(255, 255, 255, 0.2),
-                                        width: 2,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            child: InkWell(
-                              onTap: () => Navigator.pop(context, e),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 15.w,
-                                  vertical: 12.h,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    e,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16.sp,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-            if (selected != null) onChanged(selected);
-          },
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 15.w),
-            child: Row(
-              children: [
-                Image.asset(
-                  imageurl,
-                  width: 24.w,
-                  height: 24.h,
-                  color: isFilled ? null : Colors.grey,
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Text(
-                    value ?? hint,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: TextStyle(
-                      color: value == null
-                          ? const Color.fromRGBO(255, 255, 255, 0.52)
-                          : Colors.white,
-                      fontSize: 16.sp,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_drop_down,
-                  size: 24.sp,
-                  color: const Color.fromRGBO(9, 189, 255, 1),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckbox({
-    required double width,
-    required String title,
-    required String imageurl,
-    required bool value,
-    required ValueChanged<bool?> onChanged,
-  }) {
-    return Container(
-      width: width,
-      height: 50.h,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey, width: 2),
-        borderRadius: BorderRadius.circular(25.r),
-        color: Colors.black.withOpacity(0.3),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(25.r),
-        onTap: () => onChanged(!value),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15.w),
-          child: Row(
-            children: [
-              Image.asset(
-                imageurl,
-                width: 24.w,
-                height: 24.h,
-                color: value ? null : Colors.grey,
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.sp,
-                  ),
-                ),
-              ),
-              Checkbox(
-                value: value,
-                onChanged: onChanged,
-                activeColor: const Color.fromARGB(255, 7, 182, 7),
-                checkColor: Colors.black,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

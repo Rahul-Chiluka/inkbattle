@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:inkbattle_frontend/constants/app_colors.dart';
-import 'package:inkbattle_frontend/widgets/text_widget.dart';
+
+import 'package:inkbattle_frontend/presentations/room_preferences/widgets/selection_bottom_sheet.dart'; 
+import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// A reusable country picker widget that returns ISO-2 country codes
@@ -81,6 +82,7 @@ class CountryPickerWidget extends StatelessWidget {
       // Gradient design for profile_edit and guest_signup (matches _buildGradientDropdown)
       return Container(
         width: width,
+        height: height ?? (isTablet ? 60.h : 50.h),
         alignment: Alignment.center,
         padding: const EdgeInsets.all(1.2),
         decoration: BoxDecoration(
@@ -110,10 +112,11 @@ class CountryPickerWidget extends StatelessWidget {
                     if (imageUrl != null) ...[
                       Padding(
                         padding: EdgeInsets.all(12.w),
-                        child: Image.asset(
-                          imageUrl!,
+                        child: CustomSvgImage(
+                          imageUrl: imageUrl!,
                           height: isTablet ? 24.h : 21.h,
                           width: isTablet ? 24.w : 21.w,
+                          color: iconColor,
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -130,9 +133,8 @@ class CountryPickerWidget extends StatelessWidget {
                     ],
                   ],
                   Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: isFilled ? 12.w : 0),
                       child: Row(
                         children: [
                           if (isFilled) ...[
@@ -142,23 +144,30 @@ class CountryPickerWidget extends StatelessWidget {
                             ),
                             SizedBox(width: 8.w),
                           ],
-                          Text(
-                            displayText,
-                            style: TextStyle(
-                              color: isFilled
-                                  ? Colors.white
-                                  : const Color.fromRGBO(255, 255, 255, 0.52),
-                              fontSize: 18.sp,
+                          Expanded(
+                            child: Text(
+                              displayText,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: isFilled
+                                    ? Colors.white
+                                    : const Color.fromRGBO(255, 255, 255, 0.52),
+                                fontSize: 18.sp,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 24.sp,
-                    color: Colors.white70,
+                  Padding(
+                    padding: EdgeInsets.only(right: 12.w),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 24.sp,
+                      color: Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -326,73 +335,48 @@ class CountryPickerWidget extends StatelessWidget {
     }
   }
 
-  void _showCountryPicker(BuildContext context) {
-    showCountryPicker(
+  void _showCountryPicker(BuildContext context) async {
+    // Get all countries from the package
+    final List<Country> countries = CountryService().getAll();
+    
+    // Create a map for easy lookup: "🇮🇳 India" -> Country object
+    final Map<String, Country> countryMap = {
+      for (var country in countries) 
+        "${country.flagEmoji} ${country.name}": country
+    };
+
+    // Sort the list of display strings
+    final List<String> countryItems = countryMap.keys.toList()
+      ..sort((a, b) => a.compareTo(b));
+
+    // Determine current selection string
+    String? currentSelection;
+    if (selectedCountryCode != null) {
+      try {
+        final country = Country.parse(selectedCountryCode!);
+        currentSelection = "${country.flagEmoji} ${country.name}";
+      } catch (_) {}
+    }
+
+    // Show Custom Bottom Sheet
+    final result = await showModalBottomSheet<String>(
       context: context,
-      showPhoneCode: false,
-      showSearch: true, // Enable search functionality
-      searchAutofocus: true, // Auto-focus search field for better UX
-      onSelect: (Country country) {
-        onCountrySelected(country.countryCode);
-      },
-      countryListTheme: CountryListThemeData(
-        backgroundColor: const Color(0xFF1A1A2E), // Match SelectionBottomSheet
-        flagSize: 28,
-        textStyle: GoogleFonts.lato(
-          color: Colors.white,
-          fontSize: 16.sp, // Match item text size
-          fontWeight: FontWeight.normal,
-        ),
-        searchTextStyle: GoogleFonts.lato(
-          color: Colors.white,
-          fontSize: 16.sp,
-        ),
-        inputDecoration: InputDecoration(
-          labelText: 'Search', // Match "Search" label
-          labelStyle: GoogleFonts.lato(
-            color: Colors.white70,
-            fontSize: 14.sp,
-          ),
-          hintText: 'Start typing to search...',
-          hintStyle: GoogleFonts.lato(
-            color: const Color.fromRGBO(255, 255, 255, 0.52),
-            fontSize: 14.sp,
-          ),
-          prefixIcon: const Icon(
-            Icons.search, 
-            color: Color.fromRGBO(9, 189, 255, 1) // Cyan
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-          filled: true,
-          fillColor: Colors.black, // Black fill
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.r),
-            borderSide: const BorderSide(
-              color: Color.fromRGBO(255, 255, 255, 0.2),
-              width: 1.5,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.r),
-            borderSide: const BorderSide(
-              color: Color.fromRGBO(255, 255, 255, 0.2),
-              width: 1.5,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.r),
-            borderSide: const BorderSide(
-              color: Color.fromRGBO(9, 189, 255, 1),
-              width: 1.5,
-            ),
-          ),
-        ),
-        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
-        ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SelectionBottomSheet(
+        title: 'Select Country',
+        items: countryItems,
+        selectedItem: currentSelection,
       ),
     );
+
+    // Handle selection
+    if (result != null) {
+      final selectedCountry = countryMap[result];
+      if (selectedCountry != null) {
+        onCountrySelected(selectedCountry.countryCode);
+      }
+    }
   }
 }
+
