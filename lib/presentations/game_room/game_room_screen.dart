@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
+import 'dart:developer' as developer;
+import 'dart:convert'; // Required if you want to pretty-print the map as JSON
+
 import 'dart:math' as math;
 import 'dart:ui';
 import 'dart:ui' as ui;
@@ -262,6 +265,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   Color _baseColor = Colors.white;
   double _strokeWidth = 3.0;
   bool _isDrawer = false;
+  bool _wasDrawerWhenGameEnded = false;
+  int? _lastRoundGuessedCount;
+  int? _lastRoundTotalGuessers;
   String? _currentWord;
   bool _isLoading = true;
   bool _showDrawerInfo = false;
@@ -737,7 +743,12 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.detached) {
+      // We tell the server: "I'm leaving for real, don't wait 90s"
+      _socketService.emitPrepareToLeavePermanently();
+      _stopAllPhaseMedia();
+    }
+    else if (state == AppLifecycleState.resumed) {
       _handleAppResumed();
     } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       // Pause phase videos when app goes to background so interval/phase sound doesn't keep playing
@@ -970,7 +981,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           // Sync current phase from server so we show current state (drawing/interval/etc.), not stale
           if (room.status == 'playing' && room.roundPhase != null) {
             _currentPhase = room.roundPhase;
-            if (room.roundRemainingTime != null) _phaseTimeRemaining = room.roundRemainingTime!;
+            final rem = _remainingSecondsFromRoom(room);
+            if (rem != null) _phaseTimeRemaining = rem;
             _waitingForPlayers = false;
           }
         });
@@ -1083,6 +1095,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           setState(() {
             _room = room;
             _participants = room.participants ?? [];
+            if (room.status == 'lobby' || room.status == 'waiting') {
+              for (var p in _participants) {
+                p.score = 0;
+              }
+            }
             _isLoading = false;
             _waitingForPlayers =
                 room.status == 'lobby' || room.status == 'waiting';
@@ -1327,6 +1344,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             if (roomStatus == 'lobby' || roomStatus == 'waiting') {
               _isGameEnded = false;
               _isWaitingForHostOrMembers = true;
+              _isResuming = false; // Clear resume overlay so lobby works after user resumes app
             }
             if (isResuming && (roomStatus == 'lobby' || roomStatus == 'waiting')) {
               _isGameEnded = false;
@@ -1334,14 +1352,22 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             }
             if (roomStatus == 'playing') {
               _waitingForPlayers = false;
-              // Sync current phase from server so we show current state (drawing/interval/etc.), not past
+              // Sync current phase from server; remaining from roundPhaseEndTime when present (backend no-per-second DB)
               final roundPhase = room['roundPhase'] as String?;
-              final roundRemaining = room['roundRemainingTime'];
+              final roundRemaining = _remainingSecondsFromRoomMap(room is Map<String, dynamic> ? room : null);
               if (roundPhase != null) _currentPhase = roundPhase;
-              if (roundRemaining != null) _phaseTimeRemaining = (roundRemaining is int) ? roundRemaining : (roundRemaining as num).toInt();
+              if (roundRemaining != null) _phaseTimeRemaining = roundRemaining;
             }
           }
         });
+        // Sync progress animation to current remaining so no glitch (full then correct) on resume
+        if (room != null && room['status'] == 'playing' && _phaseMaxTime > 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final progress = (_phaseTimeRemaining / _phaseMaxTime).clamp(0.0, 1.0);
+            _updateProgressAnimation(progress);
+          });
+        }
         // If room is already playing (e.g. host started while we were in ad, or after resume), sync canvas and phase
         if (room != null && room['status'] == 'playing' && _room?.code != null) {
           _syncWithPlayingRoom();
@@ -1384,6 +1410,19 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           ? participantsData.map((p) => RoomParticipant.fromJson(p)).toList()
           : <RoomParticipant>[];
       setState(() {
+        // In lobby, preserve existing team for each participant if incoming has no team (e.g. after host changes maxPlayers)
+        if (_room?.status == 'lobby' || _room?.status == 'waiting') {
+          for (var p in newParticipants) {
+            p.score = 0;
+            if (p.team == null || p.team!.isEmpty) {
+              try {
+                final prev = _participants.firstWhere((e) =>
+                    e.userId == p.userId || e.user?.id == p.user?.id);
+                if (prev.team == 'blue' || prev.team == 'orange') p.team = prev.team;
+              } catch (_) {}
+            }
+          }
+        }
         _participants = newParticipants;
       });
       for (var participant in _participants) {
@@ -1496,20 +1535,45 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       }
     });
     _socketService.onPlayerRemoved((data){
-      /* Data :
-      {
-      userId,
-      name: user ? user.name : "Guest",
-      reason: "failed_to_choose_word",
-      }
-       */
-      if (mounted) {
+      if (!mounted) return;
+      final removedUserId = data['userId']?.toString();
+      final removedBy = data['removedBy'];
+      final reason = data['reason'] as String?;
+      final isMe = removedUserId == _currentUser?.id?.toString();
+      if (removedBy != null) {
+        // Host removed a player
+        if (isMe) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You were removed by the host.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          context.go('/home');
+        } else {
+          final name = _participants
+              .where((p) => p.userId?.toString() == removedUserId)
+              .map((p) => p.user?.name ?? 'A player')
+              .firstOrNull ?? 'A player';
+          setState(() {
+            _chatMessages.add({'type': 'system', 'message': '$name was removed by the host'});
+          });
+          _scrollToBottom();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$name was removed by the host.'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else if (reason == 'failed_to_choose_word') {
         final userName = data['name'] ?? 'A player';
         setState(() {
           _chatMessages.add({'type': 'system', 'message': '$userName was removed from the game'});
         });
         _scrollToBottom();
-        // Show snackbar notification
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -1528,8 +1592,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (_isResuming) return; // Prevent laggy snackbar flood during resume
       if (mounted) {
         final userName = data['userName'] ?? 'A player';
+        final reason = data['reason'] as String?;
+        final bool removedDueToInactivity = reason == 'inactive_90_seconds';
+        final String systemMsg = removedDueToInactivity
+            ? '$userName was removed due to inactivity (90+ seconds)'
+            : '$userName left';
+        final String snackbarMsg = removedDueToInactivity
+            ? '$userName was removed due to inactivity (90+ seconds)'
+            : '$userName left the game';
         setState(() {
-          _chatMessages.add({'type': 'system', 'message': '$userName left'});
+          _chatMessages.add({'type': 'system', 'message': systemMsg});
         });
         _scrollToBottom();
 
@@ -1537,10 +1609,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '$userName left the game',
+              snackbarMsg,
               style: const TextStyle(color: Colors.white),
             ),
-            backgroundColor: Colors.orange,
+            backgroundColor: removedDueToInactivity ? Colors.red : Colors.orange,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1854,6 +1926,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           selectedPoints = data['targetPoints'] ?? data['entryPoints'];
           final newVoiceEnabled = data['voiceEnabled'] ?? false;
 
+          // Keep _room in sync so lobby and any code reading from _room see host's changes
+          if (_room != null) {
+            _room!.language = data['language']?.toString();
+            _room!.script = data['script']?.toString();
+            _room!.country = data['country']?.toString();
+            _room!.category = categoryData;
+            _room!.pointsTarget = (data['targetPoints'] ?? data['entryPoints']) is int
+              ? (data['targetPoints'] ?? data['entryPoints']) as int?
+              : int.tryParse((data['targetPoints'] ?? data['entryPoints'] ?? '').toString());
+            _room!.entryPoints = data['entryPoints'] is int ? data['entryPoints'] as int? : int.tryParse((data['entryPoints'] ?? '').toString());
+            _room!.voiceEnabled = newVoiceEnabled;
+            _room!.isPublic = data['isPublic'] ?? false;
+            _room!.maxPlayers = (data['maxPlayers'] != null && (data['maxPlayers'] as num) > 0)
+                ? (data['maxPlayers'] is int ? data['maxPlayers'] as int? : (data['maxPlayers'] as num).toInt())
+                : _room!.maxPlayers;
+            if (data['status'] != null) _room!.status = data['status'] as String?;
+          }
+
           // If voice was just enabled, initialize it
           // setState(() {
           //   if (newVoiceEnabled) {
@@ -1925,8 +2015,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         } else {
           _resetTeamScoreboardAnimation();
         }
+        // Do not overwrite user's team on every settings update (e.g. maxPlayers change).
+        // Only default to blue when we're in team_vs_team and have no team selected yet.
         if (selectedGameMode == 'team_vs_team') {
-          _selectTeam('blue'); //default to blue team
+          if (selectedTeam == null) _selectTeam('blue');
         } else {
           selectedGameMode = '1v1';
         }
@@ -2044,21 +2136,24 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               _pointsAnimationController.forward(from: 0.0);
               _socketService.socket?.emit('drawer_earned_points', {'roomId': widget.roomId});
             }
-            // Show compliments only for drawer. When no one guessed (time up), wait for reveal phase duration so total time completes first.
+            // Show compliments for drawer. When drawer earned points, show compliments soon so they appear while points animate (~2s).
             if (_isDrawer) {
               final isTimeUp = _phaseTimeRemaining <= 2;
-              final revealDurationSec = _phaseTimeRemaining > 0 ? _phaseTimeRemaining : 1;
-              Future.delayed(Duration(seconds: revealDurationSec), () {
-                if (!mounted || _currentPhase != 'reveal') return;
-                _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
-              });
+              final drawerEarnedPoints = (selectedGameMode != 'team_vs_team' &&
+                  drawerReward != null && drawerReward > 0);
+              if (drawerEarnedPoints) {
+                Future.delayed(const Duration(milliseconds: 400), () {
+                  if (!mounted || _currentPhase != 'reveal') return;
+                  _announcementManager.startAnnouncementSequence(isTimeUp: false, showOverlay2Soon: true);
+                });
+              } else {
+                final revealDurationSec = _phaseTimeRemaining > 0 ? _phaseTimeRemaining : 1;
+                Future.delayed(Duration(seconds: revealDurationSec), () {
+                  if (!mounted || _currentPhase != 'reveal') return;
+                  _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
+                });
+              }
             }
-            // Show guess compliments (time up / well done / nice try) when entering reveal phase
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              final isTimeUp = _phaseTimeRemaining <= 2;
-              _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
-            });
             // DON'T clear canvas during reveal
           } else if (nextPhase == 'interval') {
             _announcementManager.clearSequence();
@@ -2249,6 +2344,29 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
     _socketService.onTimeUpdate((data) {
       if (mounted) {
+        _phaseTimeRemaining = data['remainingTime'] ?? 0;
+        final int rawRemaining = (data['remainingTime'] is int)
+          ? (data['remainingTime'] as int)
+          : (data['remainingTime'] as num?)?.round() ?? 0;
+
+        final int clampedRemaining = _phaseMaxTime > 0
+            ? math.max(0, math.min(rawRemaining, _phaseMaxTime))
+            : math.max(0, rawRemaining);
+
+        // #region agent log
+        developer.log(
+          'timeUpdate [H2/run1]', // The event name and logic tags
+          name: 'game_room_screen.dart:onTimeUpdate',
+          error: const JsonEncoder.withIndent('  ').convert({
+            'phase': _currentPhase,
+            'phaseMaxTime': _phaseMaxTime,
+            'rawRemaining': rawRemaining,
+            'clampedRemaining': clampedRemaining,
+            'previousPhaseTimeRemaining': _phaseTimeRemaining,
+          }),
+        );
+        // #endregion
+
         setState(() {
           _phaseTimeRemaining = data['remainingTime'] ?? 0;
           if (_phaseMaxTime > 0) {
@@ -2316,8 +2434,13 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _socketService.onGameEnded((data) {
       if (mounted) {
         _stopGameTimers(); // Stop all game timers so nothing runs in background
+        // Stop all phase videos and sounds (interval, reveal, etc.) for everyone (guesser and drawer)
+        _stopAllPhaseMedia();
         setState(() {
           _isGameEnded = true;
+          _wasDrawerWhenGameEnded = _isDrawer;
+          _lastRoundGuessedCount = _usersWhoAnswered.length;
+          _lastRoundTotalGuessers = _participants.length > 1 ? _participants.length - 1 : 0;
         });
         _resetTeamScoreboardAnimation();
         final rankings = data['rankings'] as List?;
@@ -2634,9 +2757,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           .toList();
       _room = RoomModel.fromJson(Map<String, dynamic>.from(data['room']));
       _currentPhase = _room?.roundPhase;
-      _phaseTimeRemaining = canvasData['remainingTime'];
+      _phaseTimeRemaining = canvasData['remainingTime'] is int
+          ? canvasData['remainingTime'] as int
+          : (canvasData['remainingTime'] as num?)?.round() ?? 0;
       if (mounted) {
         _strokes.value = history;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _phaseMaxTime <= 0) return;
+          final progress = (_phaseTimeRemaining / _phaseMaxTime).clamp(0.0, 1.0);
+          _updateProgressAnimation(progress);
+        });
       }
     });
     _socketService.onCanvasClear((data) {
@@ -2681,6 +2811,34 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             }
           });
         }
+      }
+    });
+
+    _socketService.onGameEndedInsufficientPlayers((data) {
+      if (mounted) {
+        _stopGameTimers();
+        final message = data['message'] ?? 'Not enough players. Exiting room.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) context.go('/home');
+        });
+      }
+    });
+
+    _socketService.onExitedDueToInactivity((data) {
+      if (mounted) {
+        _stopGameTimers();
+        final message = data['message'] ??
+            'Exited as you were not active for more than 90 seconds.';
+        _showCloseAdAndNavigate(
+          snackbarThenGoHome: message,
+        );
       }
     });
 
@@ -2750,7 +2908,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 details.isNotEmpty ? details : 'Insufficient coins to start';
             break;
           case 'both_teams_need_players':
-            errorMessage = 'Both teams need at least 2 player';
+            errorMessage = details.isNotEmpty
+                ? details
+                : 'Both teams need at least 2 players to start.';
+            break;
+          case 'not_all_ready':
+            errorMessage = details.isNotEmpty
+                ? details
+                : 'All players must tap Ready before the host can start.';
+            break;
+          case 'only_owner_can_remove':
+            errorMessage = 'Only the host can remove players.';
+            break;
+          case 'cannot_remove_during_game':
+            errorMessage = 'Cannot remove players during the game.';
             break;
           case 'not_team_mode':
             errorMessage = details.isNotEmpty
@@ -3143,6 +3314,32 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             ? (coinsWon as int? ?? 0) > 0
             : ((currentUserRanking['place'] as int? ?? 999) <= 3));
 
+    void proceedToCoinsAndLeaderboard() {
+      if (!mounted) return;
+      if (coinsWon > 0) {
+        _showCoinsThenLeaderboard(rankings!, coinsWon, isTeamMode, isWinner);
+      } else {
+        _showLeaderboardOnly(rankings!, isTeamMode, isWinner);
+      }
+    }
+
+    // Drawer: show guess compliments first, then coins (if any), then leaderboard
+    if (_wasDrawerWhenGameEnded &&
+        _lastRoundGuessedCount != null &&
+        _lastRoundTotalGuessers != null &&
+        _lastRoundTotalGuessers! > 0) {
+      _showDrawerEndComplimentDialog(
+        guessed: _lastRoundGuessedCount!,
+        isWinner: isWinner!,
+        onComplete: proceedToCoinsAndLeaderboard,
+      );
+    } else {
+      proceedToCoinsAndLeaderboard();
+    }
+  }
+
+  void _showCoinsThenLeaderboard(List rankings, int coinsWon, bool isTeamMode, bool isWinner) {
+    if (!mounted) return;
     if (coinsWon > 0) {
       // Flow: coins animation first, then leaderboard podium; Next on podium → ad → lobby
       CoinAnimationDialog.show(
@@ -3255,7 +3452,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                     insetPadding: const EdgeInsets.all(16),
                     child: TeamWinnerPopup(
                       teams: teams,
-                      isTeamvTeam: isTeamMode,
                       isWinner: isWinner,
                       onNext: () {
                         Navigator.of(dialogContext).pop(); // Close leaderboard podium
@@ -3272,12 +3468,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         },
       );
     } else {
-      // No coins won - show leaderboard without coin animation
-      List<Team> teams = [];
-      if (isTeamMode) {
-        // Team mode: Use rankings to determine team scores
-        Map<String, int> teamScores = {};
-        Map<String, String?> teamAvatars = {};
+      _showLeaderboardOnly(rankings, isTeamMode, isWinner);
+    }
+  }
+
+  void _showLeaderboardOnly(List rankings, bool isTeamMode, bool isWinner) {
+    if (!mounted) return;
+    List<Team> teams = [];
+    if (isTeamMode) {
+      Map<String, int> teamScores = {};
+      Map<String, String?> teamAvatars = {};
         
         for (var rank in rankings) {
           final team = rank['team'] as String?;
@@ -3363,7 +3563,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                 insetPadding: const EdgeInsets.all(16),
                 child: TeamWinnerPopup(
                   teams: teams,
-                  isTeamvTeam: isTeamMode,
                   isWinner: isWinner,
                   onNext: () {
                     Navigator.of(dialogContext).pop(); // Close popup
@@ -3377,7 +3576,70 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           },
         );
       }
+  }
+
+  void _showDrawerEndComplimentDialog({
+    required int guessed,
+    required bool isWinner,
+    required VoidCallback onComplete,
+  }) {
+    if (!mounted) return;
+    String complimentText;
+    // if (total < 1) {
+    //   complimentText = '👏 Good Job!';
+    // } else if (guessed > (total * 0.75)) {
+    //   complimentText = '🎉 Well Done!!!';
+    // } else if (guessed > (total * 0.5)) {
+    //   complimentText = '👏 Good Job!';
+    // } else if (guessed == 0) {
+    //   complimentText = "😢 Oops! Time's Up!";
+    // } else {
+    //   complimentText = '👌 Nice Try!';
+    // }
+    if (isWinner) {
+      complimentText = 'VICTORY 🎉';
+    } else {
+      complimentText = 'DEFEAT 😢';
     }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7537E0), Color(0xFF286FD3)],
+            ),
+            borderRadius: BorderRadius.circular(22.r),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                complimentText,
+                style: TextStyle(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              // SizedBox(height: 12.h),
+              // Text(
+              //   '$guessed/$total guessed',
+              //   style: TextStyle(color: Colors.white70, fontSize: 16.sp),
+              // ),
+              SizedBox(height: 20.h),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onComplete();
+                },
+                child: Text('Continue', style: TextStyle(color: Colors.white, fontSize: 18.sp)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadCloseRewardedAd() async {
@@ -3462,9 +3724,11 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   /// When [fromGameEndLeaderboard] is true, after ad we always go to lobby (ignore _shouldExitAfterAd).
+  /// When [snackbarThenGoHome] is set (e.g. exited due to inactivity), after ad we show that snackbar then go home.
   Future<void> _showCloseAdAndNavigate({
     bool shouldGoHome = false,
     bool fromGameEndLeaderboard = false,
+    String? snackbarThenGoHome,
   }) async {
     if (!mounted) return;
     final goToLobbyAfterAd = fromGameEndLeaderboard;
@@ -3530,6 +3794,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       });
     }
 
+    /// After game ad: everyone returns to the same room lobby (game room screen, same room code).
+    /// Do not direct users to home or join-room code dialog; we always go to /game-room/[roomId].
     /// Safely navigate to lobby: try returnToLobby(), then re-join and refetch so user appears in lobby list and state is like initial lobby (same room code).
     void _safeGoToLobbyAfterAd() {
       final rid = widget.roomId;
@@ -3655,7 +3921,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     // If ad is still null after waiting, proceed without ad
     if (_closeRewardedAd == null) {
       if (mounted) {
-        if (shouldGoHome) {
+        if (snackbarThenGoHome != null && snackbarThenGoHome.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(snackbarThenGoHome),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) context.go('/home');
+          });
+        } else if (shouldGoHome) {
           context.go('/home');
         } else {
           returnToLobby();
@@ -3681,7 +3958,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }, 'H1');
           // #endregion
           if (mounted) {
-            if (goToLobbyAfterAd) {
+            if (snackbarThenGoHome != null && snackbarThenGoHome.isNotEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(snackbarThenGoHome),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) context.go('/home');
+              });
+            } else if (goToLobbyAfterAd) {
               // Game ended -> leaderboard -> ad: always go to lobby (ignore room_closed)
               _shouldExitAfterAd = false;
               Future.delayed(const Duration(milliseconds: 500), () {
@@ -3710,7 +3998,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           failedAd.dispose();
           _preloadNextAd();
           if (mounted) {
-            if (goToLobbyAfterAd) {
+            if (snackbarThenGoHome != null && snackbarThenGoHome.isNotEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(snackbarThenGoHome),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) context.go('/home');
+              });
+            } else if (goToLobbyAfterAd) {
               _shouldExitAfterAd = false;
               Future.delayed(const Duration(milliseconds: 500), () {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3745,7 +4044,18 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       );
       _preloadNextAd();
       if (mounted) {
-        if (goToLobbyAfterAd) {
+        if (snackbarThenGoHome != null && snackbarThenGoHome.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(snackbarThenGoHome),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) context.go('/home');
+          });
+        } else if (goToLobbyAfterAd) {
           _shouldExitAfterAd = false;
           Future.delayed(const Duration(milliseconds: 500), () {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -5372,17 +5682,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                               ),
                             SizedBox(
                               width: controlWidth,
-                              child: CountryPickerWidget(
-                                selectedCountryCode: selectedCountry,
-                                onCountrySelected: isOwner
-                                    ? (countryCode) {
-                                        setState(() => selectedCountry = countryCode);
-                                        _updateSettings();
-                                      }
-                                    : (_) {}, // Provide empty function instead of null
-                                hintText: 'Country',
-                                icon: Icons.flag,
-                                isTablet: isTablet,
+                              child: IgnorePointer(
+                                ignoring: !isOwner, // Only host can change country
+                                child: CountryPickerWidget(
+                                  selectedCountryCode: selectedCountry,
+                                  onCountrySelected: isOwner
+                                      ? (countryCode) {
+                                          setState(() => selectedCountry = countryCode);
+                                          _updateSettings();
+                                        }
+                                      : (_) {},
+                                  hintText: 'Country',
+                                  icon: Icons.flag,
+                                  isTablet: isTablet,
+                                ),
                               ),
                             ),
                             _buildGradientDropdown(
@@ -5719,9 +6032,175 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                                   ),
                                                 ),
                                               ],
+                                              if (participant.ready == true) ...[
+                                                SizedBox(width: 6.w),
+                                                Icon(Icons.check_circle, size: 16.sp, color: Colors.green),
+                                              ],
                                             ],
                                           ),
                                         ),
+                                        if (isOwner && !isCurrentUser)
+                                          IconButton(
+                                            icon: Icon(Icons.person_remove, size: 20.sp, color: Colors.red.shade300),
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
+                                            // onPressed: () {
+                                            //   showDialog(
+                                            //     context: context,
+                                            //     builder: (ctx) => AlertDialog(
+                                            //       title: const Text('Remove player?'),
+                                            //       content: Text(
+                                            //         'Remove ${participant.user?.name ?? 'Guest'} from the room?',
+                                            //         overflow: TextOverflow.ellipsis,
+                                            //         maxLines: 2,
+                                            //       ),
+                                            //       actions: [
+                                            //         TextButton(
+                                            //           onPressed: () => Navigator.of(ctx).pop(),
+                                            //           child: const Text('Cancel'),
+                                            //         ),
+                                            //         TextButton(
+                                            //           onPressed: () {
+                                            //             Navigator.of(ctx).pop();
+                                            //             _socketService.removeParticipant(widget.roomId, participant.userId);
+                                            //           },
+                                            //           child: Text('Remove', style: TextStyle(color: Colors.red)),
+                                            //         ),
+                                            //       ],
+                                            //     ),
+                                            //   );
+                                            // },
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (ctx) {
+                                                  final mq = MediaQuery.of(ctx).size;
+                                                  final isTablet = mq.width > 600;
+
+                                                  return Dialog(
+                                                    backgroundColor: Colors.transparent,
+                                                    insetPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                                                    child: ConstrainedBox(
+                                                      constraints: BoxConstraints(
+                                                        maxWidth: isTablet ? 420.w : mq.width * 0.92,
+                                                      ),
+                                                      child: Container(
+                                                        padding: EdgeInsets.symmetric(
+                                                          horizontal: 20.w,
+                                                          vertical: 20.h,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          gradient: const LinearGradient(
+                                                            colors: [
+                                                              Color(0xFF1C1C30),
+                                                              Color(0xFF0E0E1A),
+                                                            ],
+                                                            begin: Alignment.topCenter,
+                                                            end: Alignment.bottomCenter,
+                                                          ),
+                                                          borderRadius: BorderRadius.circular(18.r),
+                                                          border: Border.all(
+                                                            color: Colors.blueAccent,
+                                                            width: 1.5,
+                                                          ),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.blueAccent.withOpacity(0.3),
+                                                              blurRadius: 12,
+                                                              spreadRadius: 1,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Column(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+
+                                                            /// Title
+                                                            Text(
+                                                              "REMOVE PLAYER",
+                                                              style: GoogleFonts.luckiestGuy(
+                                                                color: Colors.amber,
+                                                                fontSize: isTablet ? 22.sp : 18.sp,
+                                                              ),
+                                                            ),
+
+                                                            SizedBox(height: 18.h),
+
+                                                            /// Message
+                                                            Text(
+                                                              "Remove ${participant.user?.name ?? 'Guest'} from the room?",
+                                                              textAlign: TextAlign.center,
+                                                              maxLines: 2,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: GoogleFonts.lato(
+                                                                color: Colors.white,
+                                                                fontSize: isTablet ? 16.sp : 14.sp,
+                                                                fontWeight: FontWeight.w500,
+                                                              ),
+                                                            ),
+
+                                                            SizedBox(height: 26.h),
+
+                                                            /// Buttons
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: OutlinedButton(
+                                                                    onPressed: () => Navigator.of(ctx).pop(),
+                                                                    style: OutlinedButton.styleFrom(
+                                                                      side: const BorderSide(color: Colors.white54),
+                                                                      shape: RoundedRectangleBorder(
+                                                                        borderRadius: BorderRadius.circular(12.r),
+                                                                      ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      "CANCEL",
+                                                                      style: TextStyle(
+                                                                        color: Colors.white,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        fontSize: 14.sp,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                SizedBox(width: 12.w),
+                                                                Expanded(
+                                                                  child: ElevatedButton(
+                                                                    onPressed: () {
+                                                                      Navigator.of(ctx).pop();
+                                                                      _socketService.removeParticipant(
+                                                                        widget.roomId,
+                                                                        participant.userId,
+                                                                      );
+                                                                    },
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor: Colors.redAccent,
+                                                                      shape: RoundedRectangleBorder(
+                                                                        borderRadius: BorderRadius.circular(12.r),
+                                                                      ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      "REMOVE",
+                                                                      style: TextStyle(
+                                                                        color: Colors.white,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        fontSize: 14.sp,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
                                       ],
                                     ),
                                   );
@@ -5733,7 +6212,53 @@ class _GameRoomScreenState extends State<GameRoomScreen>
 
                     SizedBox(height: 10.h),
 
-                    // Start / Coins button (UI exact)
+                    // Ready button (non-host only; host has start power so no "Tap when ready". Tap again when ready to unready.)
+                    if (!isOwner)
+                      GestureDetector(
+                        onTap: () {
+                          if (_currentParticipant?.ready == true) {
+                            _socketService.setNotReady(widget.roomId);
+                          } else {
+                            _socketService.setReady(widget.roomId);
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 10.h),
+                          decoration: BoxDecoration(
+                            color: (_currentParticipant?.ready == true)
+                                ? Colors.green.withOpacity(0.3)
+                                : Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(30.r),
+                            border: Border.all(
+                              color: (_currentParticipant?.ready == true) ? Colors.green : Colors.white54,
+                              width: 2.w,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                (_currentParticipant?.ready == true) ? Icons.check_circle : Icons.touch_app,
+                                color: (_currentParticipant?.ready == true) ? Colors.green : Colors.white70,
+                                size: isTablet ? 24.sp : 20.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                (_currentParticipant?.ready == true) ? 'Ready ✓ (tap to unready)' : 'Tap when ready',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 18.sp : 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (!isOwner) SizedBox(height: 10.h),
+
+                    // Start / Coins button (UI exact) - only host can start; all must be ready
                     if (isOwner)
                       GestureDetector(
                         onTap: isOwner
@@ -5742,11 +6267,27 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                                 if (complete) {
                                   _startGame();
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content:
-                                            Text('Please fill all details')),
-                                  );
+                                  if (!_areAllParticipantsReady() && _participants.length >= 2) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('All players must tap Ready before start'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  } else if (selectedGameMode == 'team_vs_team' && !_hasEnoughPlayersForTeamMode()) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Both teams need at least 2 players'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please fill all details'),
+                                      ),
+                                    );
+                                  }
                                 }
                               }
                             : null,
@@ -5804,13 +6345,31 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
   }
 
+  bool _hasEnoughPlayersForTeamMode() {
+    if (selectedGameMode != 'team_vs_team') return true;
+    final blueCount = _participants.where((p) => p.team == 'blue' && p.team != null).length;
+    final orangeCount = _participants.where((p) => p.team == 'orange' && p.team != null).length;
+    return blueCount >= 2 && orangeCount >= 2;
+  }
+
+  bool _areAllParticipantsReady() {
+    if (_participants.length < 2) return false;
+    // Host is not shown "Tap when ready" and is treated as always ready
+    return _participants.every((p) =>
+        p.userId == _room?.ownerId || p.user?.id == _room?.ownerId || p.ready == true);
+  }
+
   bool _isLobbyFormComplete() {
-    return selectedLanguage != null &&
+    final formOk = selectedLanguage != null &&
         selectedScript != null &&
         selectedCountry != null &&
         selectedPoints != null &&
         selectedCategories.isNotEmpty &&
         (selectedGamePlay != null || selectedGameMode != null);
+    if (!formOk) return false;
+    if (!_areAllParticipantsReady()) return false;
+    if (selectedGameMode == 'team_vs_team' && !_hasEnoughPlayersForTeamMode()) return false;
+    return true;
   }
 
   Widget _buildCreateRoomTopStrip(bool isOwner) {
@@ -7288,17 +7847,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         Row(
           children: [
             Expanded(
-                child: CountryPickerWidget(
-              selectedCountryCode: selectedCountry,
-              onCountrySelected: isOwner
-                  ? (countryCode) {
-                      setState(() => selectedCountry = countryCode);
-                      _updateSettings();
-                    }
-                  : (_) {}, // Provide empty function instead of null
-              hintText: 'Country',
-              icon: Icons.flag,
-              isTablet: isTablet,
+                child: IgnorePointer(
+              ignoring: !isOwner, // Only host can change country
+              child: CountryPickerWidget(
+                selectedCountryCode: selectedCountry,
+                onCountrySelected: isOwner
+                    ? (countryCode) {
+                        setState(() => selectedCountry = countryCode);
+                        _updateSettings();
+                      }
+                    : (_) {},
+                hintText: 'Country',
+                icon: Icons.flag,
+                isTablet: isTablet,
+              ),
             )),
             SizedBox(width: 10.w),
             Expanded(
@@ -8299,6 +8861,16 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _retryTimers.clear();
   }
 
+  /// Stop all phase videos and sounds (interval, reveal, well done, etc.) when game ends.
+  void _stopAllPhaseMedia() {
+    _announcementManager.clearSequence();
+    _intervalVideoController?.pause();
+    _whosNextVideoController?.pause();
+    _welldoneVideoController?.pause();
+    _lostTurnVideoController?.pause();
+    _timeupVideoController?.pause();
+  }
+
   Future<void> _resetGameState() async {
     if (!mounted) return;
 
@@ -8306,6 +8878,9 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       // Reset game state
       _isGameEnded = false;
       _isDrawer = false;
+      _wasDrawerWhenGameEnded = false;
+      _lastRoundGuessedCount = null;
+      _lastRoundTotalGuessers = null;
       _currentWord = null;
       _currentWordForDashes = null;
       _waitingForPlayers = true;
@@ -8362,6 +8937,50 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     
   }
 
+  /// Remaining seconds from room.
+  ///
+  /// IMPORTANT: Prefer the backend-computed `roundRemainingTime` so the client
+  /// does not re-derive time using its own clock (which can drift from the
+  /// server and cause off-by-one / early-zero issues). Only fall back to
+  /// `roundPhaseEndTime` when `roundRemainingTime` is not available.
+  int? _remainingSecondsFromRoom(RoomModel? room) {
+    if (room == null) return null;
+    // 1. Trust backend's precomputed remaining time when present.
+    if (room.roundRemainingTime != null) {
+      return room.roundRemainingTime;
+    }
+    // 2. Fallback: derive from end time if needed.
+    if (room.roundPhaseEndTime != null) {
+      final ms = room.roundPhaseEndTime!.millisecondsSinceEpoch -
+          DateTime.now().millisecondsSinceEpoch;
+      return math.max(0, (ms / 1000).ceil());
+    }
+    return null;
+  }
+
+  int? _remainingSecondsFromRoomMap(Map<String, dynamic>? room) {
+    if (room == null) return null;
+    // 1. Prefer backend-computed remaining time.
+    final r = room['roundRemainingTime'];
+    if (r != null) {
+      return r is int ? r : (r as num).round();
+    }
+
+    // 2. Fallback: derive from end time if needed.
+    final endTime = room['roundPhaseEndTime'];
+    if (endTime != null) {
+      final DateTime? end = endTime is String
+          ? DateTime.tryParse(endTime as String)
+          : (endTime is DateTime ? endTime : null);
+      if (end != null) {
+        final ms =
+            end.millisecondsSinceEpoch - DateTime.now().millisecondsSinceEpoch;
+        return math.max(0, (ms / 1000).ceil());
+      }
+    }
+    return null;
+  }
+
   /// Sync with an already-playing game (e.g. after re-join or refetch when host started while we were in ad).
   /// Requests canvas data and sets phase/remaining time from room so UI matches server.
   void _syncWithPlayingRoom() {
@@ -8369,7 +8988,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     setState(() {
       _waitingForPlayers = false;
       _currentPhase = _room?.roundPhase ?? _currentPhase;
-      final rem = _room?.roundRemainingTime;
+      final rem = _remainingSecondsFromRoom(_room);
       if (rem != null) _phaseTimeRemaining = rem;
     });
     _socketService.socket?.emit('request_canvas_data', {'roomCode': _room!.code});
@@ -8429,6 +9048,37 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       name: _logTag,
     );
   }
+
+  // // #region agent log
+  // Future<void> _agentDebugLog(
+  //   String location,
+  //   String message,
+  //   Map<String, dynamic> data,
+  //   String hypothesisId,
+  //   String runId,
+  // ) async {
+  //   try {
+  //     final file = File(
+  //       'c:/Users/RAJU/Desktop/InkBattle/inkbattle_github/.cursor/debug.log',
+  //     );
+  //     await file.writeAsString(
+  //       '${jsonEncode({
+  //         'id':
+  //             'log_\${DateTime.now().millisecondsSinceEpoch}_\${location.replaceAll(':', '_')}',
+  //         'timestamp': DateTime.now().millisecondsSinceEpoch,
+  //         'location': location,
+  //         'message': message,
+  //         'data': data,
+  //         'runId': runId,
+  //         'hypothesisId': hypothesisId,
+  //       })}\n',
+  //       mode: FileMode.append,
+  //     );
+  //   } catch (_) {
+  //     // Swallow logging errors to avoid impacting gameplay.
+  //   }
+  // }
+  // // #endregion
 
   _DrawerMessageOption? _findDrawerMessageOption(String? key) {
     if (key == null) return null;
@@ -9815,7 +10465,6 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                         insetPadding: const EdgeInsets.all(16),
                         child: TeamWinnerPopup(
                           teams: teams,
-                          isTeamvTeam: isTeamMode,
                           onNext: () {
                             _toggleLeaderboard();
                           },
@@ -10554,6 +11203,22 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     if (progress <= 0) {
       indicatorColor = Colors.transparent;
     }
+
+    // #region agent log
+    developer.log(
+      'boardAreaTiming [H1/run1]',
+      name: 'game_room_screen.dart:_buildBoardArea',
+      error: const JsonEncoder.withIndent('  ').convert({
+        'phase': _currentPhase,
+        'phaseMaxTime': _phaseMaxTime,
+        'phaseTimeRemaining': _phaseTimeRemaining,
+        'remainingSeconds': remainingSeconds,
+        'progress': progress,
+        'indicatorColor': indicatorColor.value,
+        'isDrawingPhase': isDrawingPhase,
+      }),
+    );
+    // #endregion
 
     // Update animation smoothly when progress changes
     WidgetsBinding.instance.addPostFrameCallback((_) {

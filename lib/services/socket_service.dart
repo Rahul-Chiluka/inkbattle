@@ -132,6 +132,18 @@ class SocketService {
     _socket?.emit('start_game', {'roomId': roomId});
   }
 
+  void setReady(String roomId) {
+    _socket?.emit('set_ready', {'roomId': roomId});
+  }
+
+  void setNotReady(String roomId) {
+    _socket?.emit('set_not_ready', {'roomId': roomId});
+  }
+
+  void removeParticipant(String roomId, dynamic userId) {
+    _socket?.emit('remove_participant', {'roomId': roomId, 'userId': userId});
+  }
+
   void nextRound(String roomId) {
     _socket?.emit('next_round', {'roomId': roomId});
   }
@@ -178,6 +190,10 @@ class SocketService {
 
   void onPlayerLeft(Function(dynamic) callback) {
     _socket?.on('player_left', callback);
+  }
+
+  void onPlayerRemoved(Function(dynamic) callback) {
+    _socket?.on('player_removed', callback);
   }
   void onEliminatePlayer(Function(dynamic) callback){
     _socket?.on('eliminate_player',callback);
@@ -247,9 +263,6 @@ class SocketService {
   void onSkipTurn(Function(dynamic) callback) {
     _socket?.on('skip_turn', callback);
   }
-  void onPlayerRemoved(Function(dynamic) callback){
-    _socket?.on('player_removed',callback);
-  }
 
   void onLobbyTimeExceeded(Function(dynamic) callback) {
     /*{
@@ -293,12 +306,24 @@ class SocketService {
     _socket?.on('clear_chat', callback);
   }
 
+  // void onPrepareToLeavePermanently(Function(dynamic) callback) {
+  //   _socket?.on('prepare_to_leave_permanently', callback);
+  // }
+
   void onGameStarted(Function(dynamic) callback) {
     _socket?.on('game_started', callback);
   }
 
   void onGameEnded(Function(dynamic) callback) {
     _socket?.on('game_ended', callback);
+  }
+
+  void onGameEndedInsufficientPlayers(Function(dynamic) callback) {
+    _socket?.on('game_ended_insufficient_players', callback);
+  }
+
+  void onExitedDueToInactivity(Function(dynamic) callback) {
+    _socket?.on('exited_due_to_inactivity', callback);
   }
 
   void onRoomBackToLobby(Function(dynamic) callback) {
@@ -312,6 +337,11 @@ class SocketService {
   // Emit new events
   void updateSettings(String roomId, Map<String, dynamic> settings) {
     _socket?.emit('update_settings', {'roomId': roomId, 'settings': settings});
+  }
+
+  // Emits to server: "I'm leaving for real" (e.g. app detached / remove from recents). Server uses short grace (1s) instead of 90s.
+  void emitPrepareToLeavePermanently() {
+    _socket?.emit('prepare_to_leave_permanently');
   }
 
   void sendCanvasData(String roomCode, String targetSocketId,
@@ -343,6 +373,7 @@ class SocketService {
     _socket?.off('room_participants');
     _socket?.off('player_joined');
     _socket?.off('player_left');
+    _socket?.off('player_removed');
     _socket?.off('drawing_data');
     _socket?.off('clear_canvas');
     _socket?.off('canvas_cleared');
@@ -363,6 +394,8 @@ class SocketService {
     _socket?.off('time_update');
     _socket?.off('clear_chat');
     _socket?.off('game_ended');
+    _socket?.off('game_ended_insufficient_players');
+    _socket?.off('exited_due_to_inactivity');
     _socket?.off('server:restarting');
   }
 }

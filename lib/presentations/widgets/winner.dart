@@ -1,13 +1,11 @@
-import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dotlottie_flutter/dotlottie_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/constants/app_images.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 
-// --- Data Model ---
+// ---------------- DATA MODEL ----------------
 class Team {
   final String name;
   final int score;
@@ -22,18 +20,16 @@ class Team {
   });
 }
 
-// --- Main Popup Widget ---
+// ---------------- MAIN POPUP ----------------
 class TeamWinnerPopup extends StatefulWidget {
   final List<Team> teams;
-  final bool isTeamvTeam;
   final Function()? onNext;
   final bool isWinner;
 
   const TeamWinnerPopup({
     super.key,
-    this.onNext,
     required this.teams,
-    this.isTeamvTeam = false,
+    this.onNext,
     this.isWinner = false,
   });
 
@@ -75,9 +71,8 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
 
   @override
   Widget build(BuildContext context) {
-    ScreenUtil.init(context, designSize: const Size(360, 800));
-
-    final isTablet = MediaQuery.of(context).size.width > 600;
+    final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600;
 
     final sortedTeams = List<Team>.from(widget.teams)
       ..sort((a, b) => b.score.compareTo(a.score));
@@ -86,154 +81,163 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
     final second = sortedTeams.length > 1 ? sortedTeams[1] : null;
     final third = sortedTeams.length > 2 ? sortedTeams[2] : null;
 
-    final isTwoWinners = sortedTeams.length == 2;
+    final isTwoPlayers = sortedTeams.length == 2;
 
-    final double podiumHeight = isTablet ? 200.h : 160.h;
-    final double rank1Height = isTablet ? 150.h : 120.h;
-    final double rank2Height = isTablet ? 120.h : 95.h;
-    final double rank3Height = isTablet ? 90.h : 70.h;
-    final double ribbonHeight = isTablet ? 90.h : 70.h;
+    final modalHeightFactor = isTablet ? 0.65 : 0.8;
+    final maxWidth = isTablet ? 600.0 : double.infinity;
 
-    return Center(
+    final basePodiumHeight =
+        size.height * (isTablet ? 0.18 : 0.22);
+
+    final rank1Height = basePodiumHeight;
+    final rank2Height = basePodiumHeight * 0.8;
+    final rank3Height = basePodiumHeight * 0.6;
+
+    return WillPopScope(
+      onWillPop: () async => false,
       child: Stack(
-        alignment: Alignment.topCenter,
         children: [
-          // ---------------- MAIN CARD ----------------
-          Container(
-            width: 0.92.sw,
-            decoration: BoxDecoration(
-              color: const Color(0xFF101020),
-              borderRadius: BorderRadius.circular(18.r),
-              border: Border.all(color: Colors.blueAccent, width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blueAccent.withOpacity(0.3),
-                  blurRadius: 8.r,
-                  spreadRadius: 1,
-                )
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Ribbon
-                  Container(
-                    height: ribbonHeight,
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.redflg),
-                        fit: BoxFit.cover,
-                      ),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(18),
-                        topRight: Radius.circular(18),
-                      ),
+
+          Container(color: Colors.black.withOpacity(0.6)),
+
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: FractionallySizedBox(
+                heightFactor: modalHeightFactor,
+                widthFactor: isTablet ? 0.92 : 1.0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF1C1C30),
+                        Color(0xFF0E0E1A)
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.blueAccent,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blueAccent.withOpacity(0.3),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      )
+                    ],
                   ),
-
-                  SizedBox(height: 12.h),
-
-                  // Podium
-                  SizedBox(
-                    width: 280.w,
-                    height: podiumHeight,
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 12, vertical: 16),
+                    child: Column(
                       children: [
-                        if (isTwoWinners)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (first != null)
-                                _buildPodiumStep(
-                                  team: first,
-                                  rank: 1,
-                                  podiumHeight: rank1Height,
-                                  podiumAsset: AppImages.podium_1,
-                                  context: context,
-                                ),
-                              if (second != null)
-                                _buildPodiumStep(
-                                  team: second,
-                                  rank: 2,
-                                  podiumHeight: rank2Height,
-                                  podiumAsset: AppImages.podium_2,
-                                  context: context,
-                                ),
-                            ],
-                          )
-                        else
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _buildPodiumStep(
-                                team: second,
-                                rank: 2,
-                                podiumHeight: rank2Height,
-                                podiumAsset: AppImages.podium_2_left,
-                                context: context,
-                              ),
-                              _buildPodiumStep(
-                                team: first,
-                                rank: 1,
-                                podiumHeight: rank1Height,
-                                podiumAsset: AppImages.podium_1,
-                                context: context,
-                              ),
-                              _buildPodiumStep(
-                                team: third,
-                                rank: 3,
-                                podiumHeight: rank3Height,
-                                podiumAsset: AppImages.podium_3,
-                                context: context,
-                              ),
-                            ],
+
+                        // ---------- RIBBON ----------
+                        Container(
+                          height: isTablet ? 90 : 70,
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage(AppImages.redflg),
+                              fit: BoxFit.cover,
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(18),
+                              topRight: Radius.circular(18),
+                            ),
                           ),
+                          // alignment: Alignment.center,
+                          // child: Text(
+                          //   "LEADERBOARD",
+                          //   style: GoogleFonts.luckiestGuy(
+                          //     color: Colors.white,
+                          //     fontSize: isTablet ? 26 : 22,
+                          //   ),
+                          // ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // ---------- PODIUM WITH TEXT ON TOP ----------
+                        SizedBox(
+                          width: isTablet ? 340 : 300,
+                          height: basePodiumHeight + 90,
+                          child: isTwoPlayers
+                              ? Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.end,
+                                  children: [
+                                    if (first != null)
+                                      _buildPodiumWithInfo(
+                                          first, 1, rank1Height),
+                                    if (second != null)
+                                      _buildPodiumWithInfo(
+                                          second, 2, rank2Height),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.end,
+                                  children: [
+                                    _buildPodiumWithInfo(
+                                        second, 2, rank2Height),
+                                    _buildPodiumWithInfo(
+                                        first, 1, rank1Height),
+                                    _buildPodiumWithInfo(
+                                        third, 3, rank3Height),
+                                  ],
+                                ),
+                        ),
+
+                        const Spacer(),
+
+                        GestureDetector(
+                          onTap: () {
+                            widget.onNext?.call();
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            width: 180,
+                            height: 50,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.blueAccent,
+                                  Colors.lightBlue
+                                ],
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              "NEXT",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
-
-                  SizedBox(height: 18.h),
-
-                  // Next Button
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12.r),
-                      onTap: () {
-                        widget.onNext?.call();
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        width: 160.w,
-                        height: 52.h,
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(AppImages.winnernextbutton),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 12.h),
-                ],
+                ),
               ),
             ),
           ),
 
-          // ---------------- CELEBRATION OVERLAY ----------------
           if (widget.isWinner)
-            IgnorePointer(
-              ignoring: true,
-              child: SizedBox(
-                width: 0.92.sw,
-                height: podiumHeight + ribbonHeight + 60.h,
+            Positioned.fill(
+              child: IgnorePointer(
                 child: DotLottieView(
                   sourceType: 'url',
                   source: _celebrationLottieUrl,
@@ -247,142 +251,56 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
     );
   }
 
-  Widget _buildPodiumStep({
-    required Team? team,
-    required int rank,
-    required double podiumHeight,
-    required String podiumAsset,
-    required BuildContext context,
-  }) {
-    if (team == null) {
-      return const SizedBox(width: 90);
-    }
+  // ---------- PODIUM + NAME + SCORE ----------
+  Widget _buildPodiumWithInfo(
+      Team? team, int rank, double height) {
+    if (team == null) return const SizedBox(width: 80);
 
-    final isTablet = MediaQuery.of(context).size.width > 600;
-
-    final List<Color> colors = rank == 1
-        ? [const Color(0xFFEAB92D), const Color(0xFF363431)]
+    final asset = rank == 1
+        ? AppImages.podium_1
         : rank == 2
-            ? [const Color(0xFF9B9B9B), const Color(0xFF363431)]
-            : [const Color(0xFFBC6E45), const Color(0xFF363431)];
+            ? AppImages.podium_2_left
+            : AppImages.podium_3;
 
-    final double avatarYOffset =
-        rank == 1 ? -1 : rank == 2 ? -0.5 : 0;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
 
-    return SizedBox(
-      width: isTablet ? 70.w : 90.w,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          Align(
-            alignment: Alignment(0, avatarYOffset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: colors,
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: rank == 1 ? 25.r : 23.r,
-                    backgroundColor: Colors.black,
-                    backgroundImage: AssetImage(team.avatar),
-                  ),
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (team.isCurrentUser)
-                      Icon(Icons.star,
-                          size: 14.r, color: Colors.amber),
-                    Flexible(
-                      child: Text(
-                        team.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.lato(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: team.name == 'Team A'
-                              ? Colors.blue
-                              : Colors.orange,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  "${team.score}",
-                  style: GoogleFonts.inter(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber,
-                  ),
-                ),
-              ],
+        // Name + Score (always above podium)
+        Column(
+          children: [
+            CircleAvatar(
+              radius: rank == 1 ? 28 : 24,
+              backgroundImage: AssetImage(team.avatar),
             ),
-          ),
-          SizedBox(
-            height: podiumHeight,
-            child: Image.asset(
-              podiumAsset,
-              fit: BoxFit.fill,
+            const SizedBox(height: 6),
+            Text(
+              team.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
+            Text(
+              "${team.score}",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+
+        SizedBox(
+          width: 80,
+          height: height,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.fill,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-// --- Ribbon Painter (unchanged) ---
-class RibbonTextPainter extends CustomPainter {
-  final String text;
-  final TextStyle textStyle;
-
-  RibbonTextPainter({required this.text, required this.textStyle});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      text: TextSpan(text: text, style: textStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    const curveHeight = 20.0;
-    final charWidth = textPainter.width / text.length;
-
-    for (int i = 0; i < text.length; i++) {
-      final x = size.width / 2 -
-          textPainter.width / 2 +
-          i * charWidth +
-          charWidth / 2;
-      final y = size.height / 2 -
-          curveHeight +
-          curveHeight *
-              math.pow((i - text.length / 2) / (text.length / 2), 2);
-
-      final charPainter = TextPainter(
-        text: TextSpan(text: text[i], style: textStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      canvas.save();
-      canvas.translate(x, y);
-      charPainter.paint(
-        canvas,
-        Offset(-charPainter.width / 2, -charPainter.height / 2),
-      );
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

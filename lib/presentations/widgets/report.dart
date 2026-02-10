@@ -23,6 +23,10 @@ class ErrorPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String logTag = 'ReportPopupScreen';
+    developer.log(
+      'Report popup opened | roomId=$roomId participants=${participants.length} currentDrawerId=$currentDrawerId',
+      name: logTag,
+    );
     final mq = MediaQuery.of(context).size;
     final bool isTablet = mq.width > 600;
 
@@ -107,7 +111,7 @@ class ErrorPopup extends StatelessWidget {
                     imagePath: AppImages.reportmember,
                     onPressed: () {
                       developer.log(
-                        'Report Member button pressed',
+                        'Report Member | roomId=$roomId participants=${participants.length}',
                         name: logTag,
                       );
 
@@ -138,6 +142,10 @@ class ErrorPopup extends StatelessWidget {
                       );
 
                       if (currentDrawerId == null) {
+                        developer.log(
+                          'Report Drawing skipped: currentDrawerId is null',
+                          name: logTag,
+                        );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -153,6 +161,10 @@ class ErrorPopup extends StatelessWidget {
                       Navigator.pop(context);
 
                       final repo = UserRepository();
+                      developer.log(
+                        'Report Drawing API call | roomId=$roomId userToBlockId=$currentDrawerId',
+                        name: logTag,
+                      );
                       final result = await repo.reportUser(
                         roomId: roomId.toString(),
                         userToBlockId: currentDrawerId!,
@@ -163,11 +175,16 @@ class ErrorPopup extends StatelessWidget {
 
                       result.fold(
                         (failure) {
+                          developer.log(
+                            'Report Drawing failed: ${failure.message}',
+                            name: logTag,
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(failure.message)),
                           );
                         },
                         (_) {
+                          developer.log('Report Drawing success', name: logTag);
                           showDialog(
                             context: context,
                             builder: (context) =>

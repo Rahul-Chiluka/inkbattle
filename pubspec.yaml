@@ -112,7 +112,7 @@ flutter:
   assets:
     - asset/
     - asset/image/
-    - asset/flags/
+    # - asset/flags/
     - asset/svg/
     - asset/animationVideos/
     - sounds/

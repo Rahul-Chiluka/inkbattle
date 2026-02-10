@@ -23,9 +23,12 @@ class RoundAnnouncementManager {
 
   });
 
-  void startAnnouncementSequence({bool? isTimeUp}) {
+  /// When [showOverlay2Soon] is true (e.g. drawer earned points), show overlay2 (guess compliments) soon
+  /// so it appears while points are still animating (~2s), instead of after 2.5s.
+  void startAnnouncementSequence({bool? isTimeUp, bool showOverlay2Soon = false}) {
     clearSequence();
     final isTimeUpVal = isTimeUp == true;
+    final firstDelayMs = showOverlay2Soon ? 400 : 2500;
 
     final overlay = Overlay.of(context);
     if (isTimeUpVal && overlay1 != null) {
@@ -40,7 +43,7 @@ class RoundAnnouncementManager {
       }
     });
 
-    _sequenceTimer = Timer(const Duration(milliseconds: 2500), () {
+    _sequenceTimer = Timer(Duration(milliseconds: firstDelayMs), () {
       if (!context.mounted) {
         clearSequence();
         return;

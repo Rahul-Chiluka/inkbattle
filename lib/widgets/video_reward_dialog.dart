@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:video_player/video_player.dart';
 import 'package:inkbattle_frontend/constants/app_colors.dart';
+import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/widgets/text_widget.dart';
 import 'package:inkbattle_frontend/widgets/topCoins.dart';
 
@@ -74,6 +75,10 @@ class _VideoRewardDialogState extends State<VideoRewardDialog>
     );
 
     await _videoController!.initialize();
+
+    final volume = await LocalStorageUtils.getVolume();
+    await _videoController!.setVolume(volume.clamp(0.0, 1.0));
+
     _videoController!.setLooping(false);
     _videoController!.seekTo(Duration.zero);
     _videoController!.play();
@@ -106,10 +111,14 @@ class _VideoRewardDialogState extends State<VideoRewardDialog>
             child: _isVideoInitialized &&
                 _videoController != null &&
                 _videoController!.value.isInitialized
-                ? AspectRatio(
-              aspectRatio: _videoController!.value.aspectRatio,
-              child: VideoPlayer(_videoController!),
-            )
+                ? FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _videoController!.value.size.width,
+                    height: _videoController!.value.size.height,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                )
                 : const CircularProgressIndicator(color: Colors.white),
           ),
           // Overlay content

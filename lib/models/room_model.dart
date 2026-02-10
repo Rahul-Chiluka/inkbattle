@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'user_model.dart';
 
 RoomModel roomModelFromJson(String str) => RoomModel.fromJson(json.decode(str));
@@ -77,6 +78,20 @@ class RoomModel {
     this.updatedAt,
   });
 
+  static List<RoomParticipant>? _parseRoomParticipants(dynamic raw) {
+    if (raw == null || raw is! List) return null;
+    try {
+      return List<RoomParticipant>.from(
+        (raw as List<dynamic>).map((x) {
+          final m = x is Map<String, dynamic> ? x : Map<String, dynamic>.from(x as Map);
+          return RoomParticipant.fromJson(m);
+        }),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   factory RoomModel.fromJson(Map<String, dynamic> json) => RoomModel(
     id: json["id"],
     code: json["code"],
@@ -112,11 +127,7 @@ class RoomModel {
     // ------------------------------------
     participantCount: json["participantCount"],
     isFull: json["isFull"],
-    participants: json["RoomParticipants"] == null
-        ? null
-        : List<RoomParticipant>.from(
-            json["RoomParticipants"].map((x) => RoomParticipant.fromJson(x)),
-          ),
+    participants: _parseRoomParticipants(json["RoomParticipants"]),
     owner: json["owner"] == null ? null : UserModel.fromJson(json["owner"]),
     createdAt: json["createdAt"] == null
         ? null
@@ -172,6 +183,7 @@ class RoomParticipant {
   int? score;
   bool? isDrawer;
   bool? isActive;
+  bool? ready; // true when user has tapped Ready in lobby
   UserModel? user;
 
   RoomParticipant({
@@ -182,6 +194,7 @@ class RoomParticipant {
     this.score,
     this.isDrawer,
     this.isActive,
+    this.ready,
     this.user,
   });
 
@@ -189,8 +202,23 @@ class RoomParticipant {
     // Handle both formats: nested User object from API and flattened data from socket
     UserModel? user;
     if (json["User"] != null) {
-      // From API - nested User object
-      user = UserModel.fromJson(json["User"]);
+      // From API - nested User object (capital U)
+      try {
+        user = UserModel.fromJson(json["User"] is Map<String, dynamic>
+            ? json["User"] as Map<String, dynamic>
+            : Map<String, dynamic>.from(json["User"] as Map));
+      } catch (_) {
+        user = null;
+      }
+    } else if (json["user"] != null) {
+      // From API - Sequelize uses lowercase "user" when serializing include
+      try {
+        user = UserModel.fromJson(json["user"] is Map<String, dynamic>
+            ? json["user"] as Map<String, dynamic>
+            : Map<String, dynamic>.from(json["user"] as Map));
+      } catch (_) {
+        user = null;
+      }
     } else if (json["name"] != null) {
       // From socket - flattened data
       user = UserModel(
@@ -209,6 +237,7 @@ class RoomParticipant {
       score: json["score"] ?? 0,
       isDrawer: json["isDrawer"] ?? false,
       isActive: json["isActive"] ?? true,
+      ready: json["ready"] == true,
       user: user,
     );
   }
@@ -221,6 +250,7 @@ class RoomParticipant {
     "score": score,
     "isDrawer": isDrawer,
     "isActive": isActive,
+    "ready": ready,
     "User": user?.toJson(),
   };
 }
@@ -264,16 +294,26 @@ class RoomListResponse {
   List<RoomModel>? rooms;
 
   RoomListResponse({this.success, this.rooms});
-
-  factory RoomListResponse.fromJson(Map<String, dynamic> json) =>
-      RoomListResponse(
-        success: json["success"],
-        rooms: json["rooms"] == null
-            ? null
-            : List<RoomModel>.from(
-                json["rooms"].map((x) => RoomModel.fromJson(x)),
-              ),
-      );
+  // developer.log('RoomListResponse: ${rooms?.length ?? 0} rooms. $rooms', name: 'RoomListResponse');
+  factory RoomListResponse.fromJson(Map<String, dynamic> json) {
+    final roomsRaw = json["rooms"];
+    List<RoomModel>? rooms;
+    if (roomsRaw != null && roomsRaw is List) {
+      try {
+        rooms = List<RoomModel>.from(
+          (roomsRaw as List<dynamic>).map((x) {
+            if (x is Map<String, dynamic>) {
+              return RoomModel.fromJson(x);
+            }
+            return RoomModel.fromJson(Map<String, dynamic>.from(x as Map));
+          }),
+        );
+      } catch (e) {
+        rooms = [];
+      }
+    }
+    return RoomListResponse(success: json["success"], rooms: rooms);
+  }
 
   Map<String, dynamic> toJson() => {
     "success": success,

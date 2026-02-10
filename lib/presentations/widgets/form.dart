@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/presentations/game/widgets/submitted.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
+import 'dart:developer' as developer;
 
 class FormPopup extends StatefulWidget {
   List<RoomParticipant> participants;
@@ -169,29 +170,61 @@ class _FormPopupState extends State<FormPopup> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.r)),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        final userToBlockId =
-                            _selectedUser!.userId ??
-                                _selectedUser!.user?.id ??
-                                _selectedUser!.id;
+                    onPressed: () async {
+                      if (!_formKey.currentState!.validate()) return;
+                      const logTag = 'ReportMemberForm';
+                      final userToBlockId =
+                          _selectedUser!.userId ??
+                              _selectedUser!.user?.id ??
+                              _selectedUser!.id;
 
-                        if (userToBlockId != null) {
-                          _userRepository.reportUser(
-                            roomId: widget.roomId.toString(),
-                            userToBlockId: userToBlockId,
-                            reportType: 'user',
+                      if (userToBlockId == null) {
+                        developer.log(
+                          'Report Member skipped: userToBlockId is null for selected user',
+                          name: logTag,
+                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Could not get user id. Please try another member.')),
                           );
+                        }
+                        return;
+                      }
 
+                      developer.log(
+                        'Report Member API call | roomId=${widget.roomId} userToBlockId=$userToBlockId reportType=user',
+                        name: logTag,
+                      );
+                      final result = await _userRepository.reportUser(
+                        roomId: widget.roomId.toString(),
+                        userToBlockId: userToBlockId,
+                        reportType: 'user',
+                      );
+
+                      if (!mounted) return;
+
+                      result.fold(
+                        (failure) {
+                          developer.log(
+                            'Report Member failed: ${failure.message}',
+                            name: logTag,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(failure.message)),
+                          );
+                        },
+                        (_) {
+                          developer.log('Report Member success', name: logTag);
                           Navigator.pop(context);
-
                           showDialog(
                             context: context,
                             builder: (context) =>
                                 const SubmittedPopup(),
                           );
-                        }
-                      }
+                        },
+                      );
                     },
                     child: const Text(
                       'Submit',

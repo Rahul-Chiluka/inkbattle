@@ -132,6 +132,17 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     try {
       final categoriesToSend =
         selectedCategories.isEmpty ? null : selectedCategories;
+      // // If user has selected all categories, don't send category filter at all.
+      // // This avoids over-filtering when rooms may have slightly different / mixed categories,
+      // // and lets the backend return any category that matches the other filters.
+      // final bool allCategoriesSelected =
+      //     selectedCategories.isNotEmpty &&
+      //     categories.isNotEmpty &&
+      //     selectedCategories.length == categories.length;
+
+      // final categoriesToSend = (selectedCategories.isEmpty || allCategoriesSelected)
+      //     ? null
+      //     : selectedCategories;
       final result = await _roomRepository.listRooms(
           language: selectedLanguage,
           gameMode: selectedGameMode,
@@ -146,13 +157,16 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
           developer.log(
             'Failed to load rooms: ${failure.message}',
             name: _logTag,
-            error: failure,
           );
         },
         (roomListResponse) {
           if (mounted) {
             setState(() {
               final rooms = roomListResponse.rooms ?? [];
+              developer.log(
+                'Loaded ${rooms.length} rooms from server', 
+                name: _logTag,
+              );
               // Sort rooms by fill percentage (most filled first)
               // Fill percentage = participantCount / maxPlayers
               _rooms = rooms

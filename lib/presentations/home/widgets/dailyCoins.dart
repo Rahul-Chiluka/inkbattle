@@ -6,6 +6,7 @@ import 'package:inkbattle_frontend/repositories/user_repository.dart';
 import 'package:inkbattle_frontend/widgets/video_reward_dialog.dart';
 import 'package:dotlottie_flutter/dotlottie_flutter.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:inkbattle_frontend/config/environment.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 
 class DailyCoinsPopup extends StatefulWidget {
@@ -24,9 +25,12 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
   bool _isLoading = true;
   bool _canClaim = false;
   int _hoursRemaining = 0;
-  int _coinsToAward = 1000;
+  int _coinsToAward = Environment.dailyCoinsAwarded;
   bool _claimed = false;
   bool _playedOpenSound = false;
+
+  static const String _lottieUrl =
+      "https://lottie.host/c6429905-79d9-4218-89cc-c93d0ebe73a0/y2D2C9kxM4.lottie";
 
   @override
   void initState() {
@@ -34,8 +38,6 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
     _checkDailyBonusStatus();
     _playOpenSound();
   }
-
-  // ================= SOUND =================
 
   Future<void> _playOpenSound() async {
     if (_playedOpenSound) return;
@@ -66,8 +68,6 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
     _soundPlayer.dispose();
     super.dispose();
   }
-
-  // ================= API =================
 
   Future<void> _checkDailyBonusStatus() async {
     final result = await _userRepository.getDailyBonusStatus();
@@ -108,7 +108,7 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
       },
       (data) async {
         if (mounted) {
-          const coinsAwarded = 1000;
+          final coinsAwarded = Environment.dailyCoinsAwarded;
           _coinsToAward = coinsAwarded;
           _claimed = true;
 
@@ -125,25 +125,22 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
     );
   }
 
-  // ================= UI =================
-
-  double _animationHeight(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
+  double _dialogHeightFactor(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final isTablet = w > 600;
-    double base;
-    if (isTablet) base = h * 0.30;
-    else if (h < 700) base = h * 0.32;
-    else base = h * 0.35;
-    final size = base * 3; // 3x size for visibility
-    return size.clamp(0, h * 0.7); // cap at 70% of screen
+    return w > 600 ? 0.58 : 0.72;
   }
 
   double _dialogWidth(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    if (w > 900) return w * 0.45;       // large tablet
-    if (w > 600) return w * 0.65;       // tablet
-    return w * 0.92;                    // phone
+    if (w > 900) return 500;
+    if (w > 600) return 420;
+    return w * 0.92;
+  }
+
+  double _animationHeight(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery.of(context).size.width;
+    return w > 600 ? h * 0.22 : h * 0.25;
   }
 
   @override
@@ -155,77 +152,106 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
     }
 
     return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: _dialogWidth(context),
-        ),
-        child: AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22.r),
+      child: FractionallySizedBox(
+        heightFactor: _dialogHeightFactor(context),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: _dialogWidth(context),
           ),
-          backgroundColor: Colors.black,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 18.w,
-            vertical: 22.h,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-
-              /// ===== BIGGER LOTTIE =====
-              SizedBox(
-                height: _animationHeight(context),
-                width: double.infinity,
-                child: DotLottieView(
-                  sourceType: 'url',
-                  source:
-                      'https://lottie.host/5b680b27-3ad1-4101-a9a9-0a85fac47ede/XJlDHgYasP.lottie',
-                  autoplay: true,
-                  loop: true,
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF1C1C30),
+                  Color(0xFF0E0E1A),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-
-              SizedBox(height: 18.h),
-
-              if (_claimed) ...[
-                _title("YOU GOT", Colors.blue, isTablet),
-                _title("$_coinsToAward COINS!", Colors.yellow, isTablet),
-              ] else if (_canClaim) ...[
-                _title("DAILY BONUS", Colors.blue, isTablet),
-                _title("1000 COINS!", Colors.yellow, isTablet),
-              ] else ...[
-                _title("COME BACK IN", Colors.blue, isTablet),
-                _title("$_hoursRemaining HOURS", Colors.orange, isTablet),
+              borderRadius: BorderRadius.circular(22.r),
+              border: Border.all(
+                color: Colors.blueAccent,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blueAccent.withOpacity(0.3),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
               ],
-
-              SizedBox(height: 26.h),
-
-              /// ===== BUTTON =====
-              SizedBox(
-                width: double.infinity,
-                height: isTablet ? 70.h : 60.h,
-                child: ElevatedButton(
-                  onPressed: _claimed
-                      ? () => Navigator.pop(context)
-                      : (_canClaim
-                          ? _claimDailyBonus
-                          : () => Navigator.pop(context)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff2a6bff),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                  ),
-                  child: Text(
-                    _claimed ? "AWESOME!" : (_canClaim ? "CLAIM NOW!" : "OK"),
-                    style: TextStyle(
-                      fontSize: isTablet ? 22.sp : 20.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 20.w,
+                vertical: 18.h,
               ),
-            ],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+
+                  // LOTTIE
+                  SizedBox(
+                    height: _animationHeight(context),
+                    child: DotLottieView(
+                      sourceType: 'url',
+                      source: _lottieUrl,
+                      autoplay: true,
+                      loop: true,
+                    ),
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  // TEXT
+                  if (_claimed) ...[
+                    _title("YOU GOT", Colors.blue, isTablet),
+                    _title("$_coinsToAward COINS!", Colors.yellow, isTablet),
+                  ] else if (_canClaim) ...[
+                    _title("DAILY BONUS", Colors.blue, isTablet),
+                    _title("1000 COINS!", Colors.yellow, isTablet),
+                  ] else ...[
+                    _title("COME BACK IN", Colors.blue, isTablet),
+                    _title("$_hoursRemaining HOURS", Colors.orange, isTablet),
+                  ],
+
+                  SizedBox(height: 22.h),
+
+                  // BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: isTablet ? 60.h : 52.h,
+                    child: ElevatedButton(
+                      onPressed: _claimed
+                          ? () => Navigator.pop(context)
+                          : (_canClaim
+                              ? _claimDailyBonus
+                              : () => Navigator.pop(context)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff2a6bff),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28.r),
+                        ),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _claimed
+                              ? "AWESOME!"
+                              : (_canClaim ? "CLAIM NOW!" : "OK"),
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -239,7 +265,7 @@ class _DailyCoinsPopupState extends State<DailyCoinsPopup> {
         text,
         textAlign: TextAlign.center,
         style: GoogleFonts.luckiestGuy(
-          fontSize: isTablet ? 26.sp : 24.sp,
+          fontSize: isTablet ? 24.sp : 20.sp,
           color: color,
         ),
       ),
