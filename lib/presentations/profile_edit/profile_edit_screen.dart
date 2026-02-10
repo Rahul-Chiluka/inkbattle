@@ -1432,57 +1432,100 @@ class _TabletAvatarSelectionSheetState extends State<_TabletAvatarSelectionSheet
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: const Color(0xFFE5E5E5),
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(20.r), topRight: Radius.circular(20.r)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
+        ),
       ),
       child: Column(
         children: [
-          SizedBox(height: 16.h),
-          Row(
-            children: [
-              SizedBox(width: 8.w),
-              IconButton(
-                onPressed: widget.onBack,
-                icon: Icon(Icons.chevron_left, color: Colors.black, size: 24.sp),
-              ),
-              Text(
-                'Choose Avatar',
-                style: TextStyle(color: Colors.black87, fontSize: 20.sp, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _tabIndex = 0),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                    decoration: BoxDecoration(
-                      color: _tabIndex == 0 ? Colors.black : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8.r),
+          SizedBox(height: 12.h),
+          // Back text aligned to top-right (matches guest_signup)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+            child: Row(
+              children: [
+                const Spacer(),
+                GestureDetector(
+                  onTap: widget.onBack,
+                  child: Text(
+                    'Back',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
                     ),
-                    child: Center(child: Text('Avatars', style: TextStyle(color: _tabIndex == 0 ? Colors.white : Colors.black87, fontSize: 16.sp, fontWeight: FontWeight.w600))),
                   ),
                 ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _tabIndex = 1),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                    decoration: BoxDecoration(
-                      color: _tabIndex == 1 ? Colors.black : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8.r),
+              ],
+            ),
+          ),
+          SizedBox(height: 4.h),
+          // Tabs row (Avatars / Choose photos) centered under back
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tabIndex = 0),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: _tabIndex == 0 ? Colors.black : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Avatars',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _tabIndex == 0 ? Colors.white : Colors.black87,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
-                    child: Center(child: Text('Choose photos', style: TextStyle(color: _tabIndex == 1 ? Colors.white : Colors.black87, fontSize: 16.sp, fontWeight: FontWeight.w600))),
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tabIndex = 1),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: _tabIndex == 1 ? Colors.black : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Choose photos',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _tabIndex == 1 ? Colors.white : Colors.black87,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 4.h),
+          // Divider under tabs
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            height: 1.h,
+            color: Colors.black26,
           ),
           SizedBox(height: 16.h),
+          // Content area
           Expanded(
             child: _tabIndex == 0
                 ? Padding(
@@ -1503,13 +1546,21 @@ class _TabletAvatarSelectionSheetState extends State<_TabletAvatarSelectionSheet
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12.r),
-                              border: isSelected ? Border.all(color: const Color(0xFF09BDFF), width: 3) : null,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: const Color(0xFF09BDFF),
+                                      width: 3,
+                                    )
+                                  : null,
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10.r),
                               child: Padding(
                                 padding: EdgeInsets.all(8.w),
-                                child: Image.asset(widget.avatarsURLs[index], fit: BoxFit.contain),
+                                child: Image.asset(
+                                  widget.avatarsURLs[index],
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
@@ -1521,13 +1572,26 @@ class _TabletAvatarSelectionSheetState extends State<_TabletAvatarSelectionSheet
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.photo_library_outlined, size: 48.sp, color: Colors.grey),
+                        Icon(
+                          Icons.photo_library_outlined,
+                          size: 48.sp,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 12.h),
-                        Text('Choose from gallery', style: TextStyle(fontSize: 16.sp, color: Colors.black87)),
+                        Text(
+                          'Choose from gallery',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.black87,
+                          ),
+                        ),
                         SizedBox(height: 16.h),
                         TextButton(
                           onPressed: widget.onChoosePhoto,
-                          child: Text('Open gallery', style: TextStyle(fontSize: 16.sp)),
+                          child: Text(
+                            'Open gallery',
+                            style: TextStyle(fontSize: 16.sp),
+                          ),
                         ),
                       ],
                     ),

@@ -103,7 +103,7 @@ class CountryPickerWidget extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(13.r),
-                color: Colors.black,
+                color: Colors.black.withOpacity(0.7),
               ),
               child: Row(
                 children: [
@@ -164,9 +164,9 @@ class CountryPickerWidget extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.only(right: 12.w),
                     child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 24.sp,
-                      color: Colors.white70,
+                      Icons.arrow_drop_down,
+                      size: 26.sp,
+                      color: const Color(0xFF09BDFF),
                     ),
                   ),
                 ],

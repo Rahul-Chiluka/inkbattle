@@ -33,6 +33,7 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
   int? selectedTargetPoints;
   bool voiceEnabled = false;
   bool _isLoading = false;
+  bool _showFieldErrors = false;
 
   // REMOVED: Ad variables
   // BannerAd? _bannerAd;
@@ -141,13 +142,25 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
         selectedCountry == null ||
         selectedCategory == null ||
         selectedTargetPoints == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.pleaseSelectAllFields),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          _showFieldErrors = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.pleaseSelectAllFields),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _showFieldErrors = false;
+      });
     }
 
     setState(() {
@@ -459,107 +472,101 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Use LayoutBuilder to determine layout based on width
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              // If width is large enough (tablet/desktop), use 2-column grid
-                              if (constraints.maxWidth > 600) {
-                                return Column(
+                          // Single-column layout for both mobile and tablet with inline validation
+                          Column(
+                            children: [
+                              _buildGradientDropdown(
+                                hint: AppLocalizations.selectLanguage,
+                                value: selectedLanguage,
+                                items: languages,
+                                iconData: Icons.language,
+                                onChanged: (v) => setState(() => selectedLanguage = v),
+                              ),
+                              if (_showFieldErrors && selectedLanguage == null) ...[
+                                SizedBox(height: 4.h),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildGradientDropdown(
-                                            hint: AppLocalizations.selectLanguage,
-                                            value: selectedLanguage,
-                                            items: languages,
-                                            iconData: Icons.language,
-                                            onChanged: (v) => setState(() => selectedLanguage = v),
-                                          ),
-                                        ),
-                                        SizedBox(width: 20.w),
-                                        Expanded(
-                                          child: CountryPickerWidget(
-                                            selectedCountryCode: selectedCountry,
-                                            onCountrySelected: (code) => setState(() => selectedCountry = code),
-                                            hintText: AppLocalizations.country,
-                                            icon: Icons.public,
-                                            iconColor: const Color(0xFF09BDFF),
-                                            useGradientDesign: true,
-                                            height: 58.h,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 20.h),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildGradientDropdown(
-                                            hint: AppLocalizations.selectCategory,
-                                            value: selectedCategory,
-                                            items: categories,
-                                            iconData: Icons.grid_view_rounded,
-                                            onChanged: (v) => setState(() => selectedCategory = v),
-                                          ),
-                                        ),
-                                        SizedBox(width: 20.w),
-                                        Expanded(
-                                          child: _buildGradientDropdown(
-                                            hint: AppLocalizations.selectTargetPoints,
-                                            value: selectedTargetPoints?.toString(),
-                                            items: targetPoints.map((e) => e.toString()).toList(),
-                                            iconData: Icons.ads_click,
-                                            onChanged: (v) => setState(() =>
-                                            selectedTargetPoints = int.tryParse(v ?? '100')),
-                                          ),
-                                        ),
-                                      ],
+                                    Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Please select any language',
+                                      style: TextStyle(color: Colors.red, fontSize: 12.sp),
                                     ),
                                   ],
-                                );
-                              } else {
-                                // Mobile layout (Single Column)
-                                return Column(
+                                ),
+                              ],
+                              SizedBox(height: 20.h),
+                              CountryPickerWidget(
+                                selectedCountryCode: selectedCountry,
+                                onCountrySelected: (code) => setState(() => selectedCountry = code),
+                                hintText: AppLocalizations.country,
+                                icon: Icons.public,
+                                iconColor: const Color(0xFF09BDFF),
+                                useGradientDesign: true,
+                                height: 58.h,
+                              ),
+                              if (_showFieldErrors && selectedCountry == null) ...[
+                                SizedBox(height: 4.h),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _buildGradientDropdown(
-                                      hint: AppLocalizations.selectLanguage,
-                                      value: selectedLanguage,
-                                      items: languages,
-                                      iconData: Icons.language,
-                                      onChanged: (v) => setState(() => selectedLanguage = v),
-                                    ),
-                                    SizedBox(height: 20.h),
-                                    CountryPickerWidget(
-                                      selectedCountryCode: selectedCountry,
-                                      onCountrySelected: (code) => setState(() => selectedCountry = code),
-                                      hintText: AppLocalizations.country,
-                                      icon: Icons.public,
-                                      iconColor: const Color(0xFF09BDFF),
-                                      useGradientDesign: true,
-                                      height: 58.h,
-                                    ),
-                                    SizedBox(height: 20.h),
-                                    _buildGradientDropdown(
-                                      hint: AppLocalizations.selectCategory,
-                                      value: selectedCategory,
-                                      items: categories,
-                                      iconData: Icons.grid_view_rounded,
-                                      onChanged: (v) => setState(() => selectedCategory = v),
-                                    ),
-                                    SizedBox(height: 20.h),
-                                    _buildGradientDropdown(
-                                      hint: AppLocalizations.selectTargetPoints,
-                                      value: selectedTargetPoints?.toString(),
-                                      items: targetPoints.map((e) => e.toString()).toList(),
-                                      iconData: Icons.ads_click,
-                                      onChanged: (v) => setState(() =>
-                                      selectedTargetPoints = int.tryParse(v ?? '100')),
+                                    Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Please select any country',
+                                      style: TextStyle(color: Colors.red, fontSize: 12.sp),
                                     ),
                                   ],
-                                );
-                              }
-                            },
+                                ),
+                              ],
+                              SizedBox(height: 20.h),
+                              _buildGradientDropdown(
+                                hint: AppLocalizations.selectCategory,
+                                value: selectedCategory,
+                                items: categories,
+                                iconData: Icons.grid_view_rounded,
+                                onChanged: (v) => setState(() => selectedCategory = v),
+                              ),
+                              if (_showFieldErrors && selectedCategory == null) ...[
+                                SizedBox(height: 4.h),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Please select any category',
+                                      style: TextStyle(color: Colors.red, fontSize: 12.sp),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              SizedBox(height: 20.h),
+                              _buildGradientDropdown(
+                                hint: AppLocalizations.selectTargetPoints,
+                                value: selectedTargetPoints?.toString(),
+                                items: targetPoints.map((e) => e.toString()).toList(),
+                                iconData: Icons.ads_click,
+                                onChanged: (v) => setState(
+                                  () => selectedTargetPoints = int.tryParse(v ?? '100'),
+                                ),
+                              ),
+                              if (_showFieldErrors && selectedTargetPoints == null) ...[
+                                SizedBox(height: 4.h),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Please select target points',
+                                      style: TextStyle(color: Colors.red, fontSize: 12.sp),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
 
                           SizedBox(height: 40.h),
