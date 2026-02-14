@@ -8,7 +8,7 @@ import 'package:inkbattle_frontend/utils/routes/routes.dart';
 import 'package:inkbattle_frontend/widgets/backgroun_scafold.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
-import 'dart:developer' as developer;
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -58,10 +58,10 @@ class _SplashScreenState extends State<SplashScreen> {
         result.fold(
           (failure) {
             // Token invalid or expired, clear it and go to sign in
-            developer.log(
+            NativeLogService.log(
               'Token validation failed: ${failure.message}',
-              name: _logTag,
-              error: failure,
+              tag: _logTag,
+              level: 'error',
             );
             if (mounted) {
               LocalStorageUtils.clear();
@@ -70,26 +70,28 @@ class _SplashScreenState extends State<SplashScreen> {
           },
           (user) {
             // Token valid, go to home
-            developer.log(
+            NativeLogService.log(
               'User authenticated, navigating to home',
-              name: _logTag,
+              tag: _logTag,
+              level: 'debug',
             );
             if (mounted) context.go(Routes.homeScreen);
           },
         );
       } else {
         // No token, go to sign in
-        developer.log(
+        NativeLogService.log(
           'No token found, navigating to sign in',
-          name: _logTag,
+          tag: _logTag,
+          level: 'debug',
         );
         if (mounted) context.go(Routes.signInScreen);
       }
     } catch (e) {
-      developer.log(
+      NativeLogService.log(
         'Error checking auth: $e',
-        name: _logTag,
-        error: e,
+        tag: _logTag,
+        level: 'error',
       );
       // On error, go to sign in
       if (mounted) context.go(Routes.signInScreen);

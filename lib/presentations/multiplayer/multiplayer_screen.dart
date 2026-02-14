@@ -201,17 +201,18 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
       (failure) => room,
       (roomModel) => roomModel,
     );
+    final categoriesPath = _encodeCategoriesForPath(_roomCategoriesList(room));
     room.gameMode == 'team' || room.gameMode == 'team_vs_team'
         ? context.push(
-            "/teamvsteam/${room.id}/${room.category}/${room.entryPoints}",
+            "/teamvsteam/${room.id}/$categoriesPath/${room.entryPoints}",
             extra: {
                 "roomModel": updatedRoom,
                 // Removed passing bannerAd as it is now persistent
               })
         : context.push(
-            "/onevsone/${room.id}/${room.category}/${room.entryPoints}",
+            "/onevsone/${room.id}/$categoriesPath/${room.entryPoints}",
             extra: {
-                "roomModel": room,
+                "roomModel": updatedRoom,
                 // Removed passing bannerAd as it is now persistent
               });
   }
@@ -751,8 +752,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
     final displayText = selectedValues.isEmpty
         ? hintText
         : selectedValues.length == 1
-            ? selectedValues.first
-            : '${selectedValues.length} selected';
+            ? AppLocalizations.oneCategorySelected
+            : '${selectedValues.length} ${AppLocalizations.categoriesSelected}';
 
     return Container(
       height: isTablet ? 65.0 : 45.h, // Increased height
@@ -959,7 +960,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                 ),
                 child: Center(
                   child: Image.asset(
-                    _getCategoryIcon(room.category ?? 'Animals'),
+                    _getCategoryIcon(_roomCategoryString(room)),
                     width: isTablet ? 74.0 : 53.w,
                     height: isTablet ? 78.0 : 57.h,
                     errorBuilder: (_, __, ___) => Icon(
@@ -1068,8 +1069,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                             color: Color.fromRGBO(132, 156, 206, 1),
                             thickness: 1),
                         _buildBadge(
-                            room.script?.substring(0, 2).toUpperCase() ?? 'TE', isTablet: isTablet),
-                      ],
+                            room.script?.substring(0, 2).toUpperCase() ?? 'EN', isTablet: isTablet),
+                      ], 
                     ),
                   ),
                 ],
@@ -1134,6 +1135,36 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
       // selectedCountry != null && // Country is optional
       selectedPoints != null &&
       selectedCategories.isNotEmpty;
+
+  /// Delimiter for encoding multiple categories in route path (must match routes.dart parsing).
+  static const String _categoriesPathDelimiter = ',';
+
+  /// Normalizes RoomModel's dynamic category (String or List from API) to a list of category strings.
+  List<String> _roomCategoriesList(RoomModel room) {
+    final c = room.category;
+    if (c == null) return ['Animals'];
+    if (c is String) return c.isNotEmpty ? [c] : ['Animals'];
+    if (c is List && c.isNotEmpty) {
+      return c
+          .map((e) => e is String ? e : e?.toString())
+          .where((s) => s != null && s.isNotEmpty)
+          .cast<String>()
+          .toList();
+    }
+    return ['Animals'];
+  }
+
+  /// Single category string for display (e.g. icon); uses first category.
+  String _roomCategoryString(RoomModel room) {
+    final list = _roomCategoriesList(room);
+    return list.isNotEmpty ? list.first : 'Animals';
+  }
+
+  /// Encodes categories for route path (comma-separated).
+  String _encodeCategoriesForPath(List<String> categories) {
+    if (categories.isEmpty) return 'Animals';
+    return categories.join(_categoriesPathDelimiter);
+  }
 
   String _getCategoryIcon(String category) {
     switch (category) {

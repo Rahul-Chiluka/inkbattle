@@ -328,7 +328,7 @@ class _RoomPreferencesScreenState extends State<RoomPreferencesScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _createPublicRoom();
+              context.push('/create-room');
             },
             child: TextWidget(
               text: AppLocalizations.createRoom,

@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:inkbattle_frontend/constants/app_colors.dart';
@@ -16,6 +15,7 @@ import 'package:video_player/video_player.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/widgets/country_picker_widget.dart';
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 class GuestSignUpScreen extends StatefulWidget {
   const GuestSignUpScreen({super.key});
@@ -864,29 +864,16 @@ final List<String> languages = [
       result.fold(
         (failure) {
           if (!mounted) return;
-          developer.log('Guest signup failed: ${failure.message}', name: _logTag);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
+          NativeLogService.log('Guest signup failed: ${failure.message}', tag: _logTag, level: 'error');
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
         },
         (authResponse) {
           if (!mounted) return;
-          _pageController.nextPage(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
+          NativeLogService.log('Guest signup success', tag: _logTag, level: 'debug');
+          _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
         },
       );
-    } catch (e) {
-      if (mounted) {
-        developer.log('Guest signup error: $e', name: _logTag);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppLocalizations.error}: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    } catch (e) {}
   }
 
   Widget _buildGradientDropdown({

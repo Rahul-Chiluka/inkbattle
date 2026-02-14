@@ -51,11 +51,22 @@ void main() async {
   // Initialize app language
   final savedLanguage = LocalStorageUtils.getLanguage();
   AppLocalizations.setLanguage(savedLanguage);
-  
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+    // To remove the white edge gap at corners for the app 
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
 
   runApp(
     MultiBlocProvider(

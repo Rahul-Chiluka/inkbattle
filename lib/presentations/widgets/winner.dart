@@ -61,9 +61,7 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
       await _soundPlayer.setVolume(volume.clamp(0.0, 1.0));
       await _soundPlayer.play(
         AssetSource(
-          widget.isWinner
-              ? 'sounds/winner-sound.mp3'
-              : 'sounds/lose-sound.mp3',
+          widget.isWinner ? 'sounds/winner-sound.mp3' : 'sounds/lose-sound.mp3',
         ),
       );
     } catch (_) {}
@@ -74,6 +72,7 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 
+    // Sort teams by score
     final sortedTeams = List<Team>.from(widget.teams)
       ..sort((a, b) => b.score.compareTo(a.score));
 
@@ -83,36 +82,35 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
 
     final isTwoPlayers = sortedTeams.length == 2;
 
-    final modalHeightFactor = isTablet ? 0.65 : 0.8;
+    final modalHeightFactor = isTablet ? 0.65 : 0.85;
     final maxWidth = isTablet ? 600.0 : double.infinity;
 
-    final basePodiumHeight =
-        size.height * (isTablet ? 0.18 : 0.22);
-
+    // Dynamic heights based on screen size
+    final basePodiumHeight = size.height * (isTablet ? 0.18 : 0.20);
     final rank1Height = basePodiumHeight;
-    final rank2Height = basePodiumHeight * 0.8;
-    final rank3Height = basePodiumHeight * 0.6;
+    final rank2Height = basePodiumHeight * 0.75; // More distinct difference
+    final rank3Height = basePodiumHeight * 0.55;
+
+    // Dynamic widths to prevent overflow on small screens
+    // We reserve some padding, then split remaining space
+    final availableWidth = isTablet ? 550.0 : size.width * 0.9;
+    final podiumWidth = availableWidth / 3.2; 
 
     return WillPopScope(
       onWillPop: () async => false,
       child: Stack(
         children: [
-
           Container(color: Colors.black.withOpacity(0.6)),
-
           Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: FractionallySizedBox(
                 heightFactor: modalHeightFactor,
-                widthFactor: isTablet ? 0.92 : 1.0,
+                widthFactor: isTablet ? 0.92 : 0.95,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1C1C30),
-                        Color(0xFF0E0E1A)
-                      ],
+                      colors: [Color(0xFF1C1C30), Color(0xFF0E0E1A)],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -130,10 +128,10 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
                     ],
                   ),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 12, vertical: 16),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? 16 : 8, vertical: 16),
                     child: Column(
                       children: [
-
                         // ---------- RIBBON ----------
                         Container(
                           height: isTablet ? 90 : 70,
@@ -148,55 +146,40 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
                               topRight: Radius.circular(18),
                             ),
                           ),
-                          // alignment: Alignment.center,
-                          // child: Text(
-                          //   "LEADERBOARD",
-                          //   style: GoogleFonts.luckiestGuy(
-                          //     color: Colors.white,
-                          //     fontSize: isTablet ? 26 : 22,
-                          //   ),
-                          // ),
                         ),
 
-                        const SizedBox(height: 30),
+                        // Use Spacer to push podiums to the visually correct spot
+                        const Spacer(), 
 
-                        // ---------- PODIUM WITH TEXT ON TOP ----------
+                        // ---------- PODIUM ROW ----------
+                        // CrossAxisAlignment.end ensures they all start from the same Y-axis bottom
                         SizedBox(
-                          width: isTablet ? 340 : 300,
-                          height: basePodiumHeight + 90,
-                          child: isTwoPlayers
-                              ? Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
-                                  children: [
-                                    if (first != null)
-                                      _buildPodiumWithInfo(
-                                          first, 1, rank1Height),
-                                    if (second != null)
-                                      _buildPodiumWithInfo(
-                                          second, 2, rank2Height),
-                                  ],
-                                )
-                              : Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
-                                  children: [
-                                    _buildPodiumWithInfo(
-                                        second, 2, rank2Height),
-                                    _buildPodiumWithInfo(
-                                        first, 1, rank1Height),
-                                    _buildPodiumWithInfo(
-                                        third, 3, rank3Height),
-                                  ],
-                                ),
+                          width: double.infinity,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (isTwoPlayers) ...[
+                                _buildPodiumColumn(second, 2, rank2Height,
+                                    podiumWidth, isTablet),
+                                SizedBox(width: isTablet ? 20 : 10),
+                                _buildPodiumColumn(first, 1, rank1Height,
+                                    podiumWidth, isTablet),
+                              ] else ...[
+                                _buildPodiumColumn(second, 2, rank2Height,
+                                    podiumWidth, isTablet),
+                                _buildPodiumColumn(first, 1, rank1Height,
+                                    podiumWidth, isTablet),
+                                _buildPodiumColumn(third, 3, rank3Height,
+                                    podiumWidth, isTablet),
+                              ]
+                            ],
+                          ),
                         ),
 
                         const Spacer(),
 
+                        // ---------- NEXT BUTTON ----------
                         GestureDetector(
                           onTap: () {
                             widget.onNext?.call();
@@ -213,19 +196,18 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
                                   Colors.lightBlue
                                 ],
                               ),
-                              borderRadius:
-                                  BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
                               "NEXT",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
+                                fontSize: 16,
                               ),
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 12),
                       ],
                     ),
@@ -234,7 +216,6 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
               ),
             ),
           ),
-
           if (widget.isWinner)
             Positioned.fill(
               child: IgnorePointer(
@@ -251,10 +232,16 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
     );
   }
 
-  // ---------- PODIUM + NAME + SCORE ----------
-  Widget _buildPodiumWithInfo(
-      Team? team, int rank, double height) {
-    if (team == null) return const SizedBox(width: 80);
+  // ---------- HELPER: SINGLE PODIUM COLUMN ----------
+  Widget _buildPodiumColumn(
+    Team? team,
+    int rank,
+    double height,
+    double width,
+    bool isTablet,
+  ) {
+    // If we have a slot but no player (rare edge case), return empty space
+    if (team == null) return SizedBox(width: width);
 
     final asset = rank == 1
         ? AppImages.podium_1
@@ -262,45 +249,72 @@ class _TeamWinnerPopupState extends State<TeamWinnerPopup> {
             ? AppImages.podium_2_left
             : AppImages.podium_3;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-
-        // Name + Score (always above podium)
-        Column(
-          children: [
-            CircleAvatar(
-              radius: rank == 1 ? 28 : 24,
-              backgroundImage: AssetImage(team.avatar),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              team.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              "${team.score}",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.amber,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-
-        SizedBox(
-          width: 80,
-          height: height,
-          child: Image.asset(
-            asset,
-            fit: BoxFit.fill,
+    return SizedBox(
+      width: width,
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Shrink wrap vertically
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // 1. AVATAR
+          CircleAvatar(
+            radius: isTablet ? (rank == 1 ? 35 : 28) : (rank == 1 ? 28 : 22),
+            backgroundImage: AssetImage(team.avatar),
+            backgroundColor: Colors.grey.shade800,
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+
+          // 2. NAME + STAR (Current User)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  team.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.lato(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    fontSize: isTablet ? 16 : 13,
+                  ),
+                ),
+              ),
+              if (team.isCurrentUser) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                  size: isTablet ? 18 : 14,
+                ),
+              ]
+            ],
+          ),
+
+          // 3. SCORE
+          Text(
+            "${team.score}",
+            style: GoogleFonts.lato(
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+              fontSize: isTablet ? 18 : 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // 4. PODIUM IMAGE (The Step)
+          // This sits at the bottom of the column.
+          // Because the parent Row is CrossAxis.end, these images align.
+          SizedBox(
+            height: height,
+            width: width, // Fill the calculated width
+            child: Image.asset(
+              asset,
+              fit: BoxFit.fill,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

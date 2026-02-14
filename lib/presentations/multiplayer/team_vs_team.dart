@@ -12,20 +12,17 @@ import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class TeamVsTeamScreen extends StatefulWidget {
-  final String category;
+  final List<String> categories;
   final int points;
   final String roomId;
-  final RoomModel roomModel;
-  
-  // REMOVED: final BannerAd? bannerAd;
-  
+  final RoomModel? roomModel;
+
   const TeamVsTeamScreen({
     super.key,
-    required this.category,
+    required this.categories,
     required this.points,
     required this.roomId,
-    required this.roomModel,
-    // REMOVED: this.bannerAd
+    this.roomModel,
   });
 
   @override
@@ -33,20 +30,18 @@ class TeamVsTeamScreen extends StatefulWidget {
 }
 
 class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
-  // bool isMicEnabled = true;
   bool isButtonPressed = false;
   String? selectedTeam;
 
-  // REMOVED: Ad variables
-  // BannerAd? _bannerAd;
-  // bool _isBannerAdLoaded = false;
-  
   final RoomRepository _roomRepository = RoomRepository();
   final UserRepository _userRepository = UserRepository();
   final TextEditingController _codeController = TextEditingController();
 
   bool _isLoading = false;
   bool showTeamSelection = false;
+
+  /// Current room data (refreshed on init so participantCount and targetPoints are up to date).
+  RoomModel? _roomModel;
 
   Future<void> _handleJoinRoom(String code) async {
     try {
@@ -104,21 +99,33 @@ class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
   @override
   void initState() {
     super.initState();
-    // REMOVED: _loadBannerAd();
+    _roomModel = widget.roomModel;
+    _refreshRoom();
   }
 
-  // REMOVED: _loadBannerAd() function
+  Future<void> _refreshRoom() async {
+    if (widget.roomId.isEmpty || widget.roomId == 'Unknown') return;
+    final result = await _roomRepository.getRoomDetails(roomId: widget.roomId);
+    result.fold(
+      (_) {},
+      (room) {
+        if (mounted) setState(() => _roomModel = room);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Calculate team counts
+    final room = _roomModel ?? widget.roomModel;
+    // Calculate team counts (Team A = blue, Team B = orange)
     int teamACount = 0;
     int teamBCount = 0;
-    int maxPlayersPerTeam = widget.roomModel.maxPlayers! ~/ 2;
-    if (widget.roomModel.participants != null) {
+    final maxPlayers = room?.maxPlayers ?? 2;
+    int maxPlayersPerTeam = maxPlayers ~/ 2;
+    if (room?.participants != null) {
       teamACount =
-          widget.roomModel.participants!.where((p) => p.team == 'blue').length;
-      teamBCount = widget.roomModel.participants!
+          room!.participants!.where((p) => p.team == 'blue').length;
+      teamBCount = room.participants!
           .where((p) => p.team == 'orange')
           .length;
     }
@@ -166,14 +173,21 @@ class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
                           radius: 50.r,
                           backgroundColor: Colors.white.withOpacity(0.1),
                           child: Image.asset(
-                            _getCategoryIcon(widget.category),
+                            _getCategoryIcon(
+                                widget.categories.isNotEmpty
+                                    ? widget.categories.first
+                                    : 'Animals'),
                             width: 70.w,
                             height: 70.h,
                           ),
                         ),
                         SizedBox(height: 16.h),
                         Text(
-                          widget.category,
+                          widget.categories.isEmpty
+                              ? 'Animals'
+                              : widget.categories.length == 1
+                                  ? widget.categories.first
+                                  : widget.categories.join(', '),
                           style: GoogleFonts.lato(
                             color: Colors.white,
                             fontSize: 32.sp,
@@ -364,7 +378,7 @@ class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
                                 ),
                                 SizedBox(width: 8.w),
                                 Text(
-                                  "Total Players: ${widget.roomModel.participantCount}/${widget.roomModel.maxPlayers}",
+                                  "Total Players: ${(_roomModel ?? widget.roomModel)?.participantCount ?? 0}/${(_roomModel ?? widget.roomModel)?.maxPlayers ?? 0}",
                                   style: GoogleFonts.lato(
                                     color: const Color(0xFFB9C7E7),
                                     fontSize: 16.sp,
@@ -388,7 +402,9 @@ class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
                                         color: Colors.white, size: 28.sp),
                                     SizedBox(width: isTablet ? 6.w : 4.w),
                                     Text(
-                                      "EN",
+                                      (_roomModel ?? widget.roomModel)?.language?.isNotEmpty == true
+                                          ? (_roomModel ?? widget.roomModel)!.language!
+                                          : 'EN',
                                       style: GoogleFonts.lato(
                                         color: Colors.white,
                                         fontSize: isTablet ? 18.sp : 15.sp,
@@ -409,11 +425,36 @@ class _TeamVsTeamScreenState extends State<TeamVsTeamScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.star,
-                                        color: Colors.yellow, size: 21.sp),
+                                    Icon(Icons.people,
+                                        color: Colors.white, size: 21.sp),
                                     SizedBox(width: isTablet ? 6.w : 4.w),
                                     Text(
-                                      "${widget.points}",
+                                      "${(_roomModel ?? widget.roomModel)?.participantCount ?? 0}/${(_roomModel ?? widget.roomModel)?.maxPlayers ?? 0}",
+                                      style: GoogleFonts.lato(
+                                        color: Colors.white,
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                            Container(
+                              height: 25.h,
+                              width: 1.w,
+                              color: Colors.white.withOpacity(0.5),
+                              margin: EdgeInsets.symmetric(horizontal: 16.w),
+                            ),
+                            Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.flag,
+                                        color: Colors.amber, size: 21.sp),
+                                    SizedBox(width: isTablet ? 6.w : 4.w),
+                                    Text(
+                                      "${(_roomModel ?? widget.roomModel)?.pointsTarget ?? 100}",
                                       style: GoogleFonts.lato(
                                         color: Colors.white,
                                         fontSize: 15.sp,

@@ -17,7 +17,7 @@ import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 import 'package:inkbattle_frontend/services/notification_service.dart';
 import '../../../widgets/video_reward_dialog.dart';
-import 'dart:developer' as developer;
+import '../../../services/native_log_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -110,10 +110,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final result = await _userRepository.getMe();
         result.fold(
           (failure) {
-            developer.log(
+            NativeLogService.log(
               'Failed to load user data: ${failure.message}',
-              name: _logTag,
-              error: failure,
+              tag: _logTag,
+              level: 'error',
             );
             if (mounted) {
               setState(() {
@@ -135,10 +135,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final result = await _userRepository.getMe();
         result.fold(
           (failure) {
-            developer.log(
+            NativeLogService.log(
               'Failed to load user data: ${failure.message}',
-              name: _logTag,
-              error: failure,
+              tag: _logTag,
+              level: 'error',
             );
             if (mounted) {
               setState(() {
@@ -157,10 +157,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
     } catch (e) {
-      developer.log(
+      NativeLogService.log(
         'Error loading user data: $e',
-        name: _logTag,
-        error: e,
+        tag: _logTag,
+        level: 'error',
       );
       if (mounted) {
         setState(() {
@@ -364,9 +364,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                                       context,
                                                       coinsAwarded: coins,
                                                       onComplete: () {
-                                                        developer.log(
+                                                        NativeLogService.log(
                                                           'Video animation completed after ad watched',
-                                                          name: _logTag,
+                                                          tag: _logTag,
+                                                          level: 'debug',
                                                         );
                                                       },
                                                     );

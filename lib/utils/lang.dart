@@ -260,6 +260,8 @@ class AppLocalizations {
       'buy_coins': 'Buy Coins',
       'no_rooms_available': 'No Rooms Available',
       'select_all_filters_to_view_rooms': 'Select all filters to view rooms',
+      'one_category_selected': '1 category selected',
+      'categories_selected': 'categories selected',
       'no_matches_found': 'No Matches Found',
       'no_matches_message':
           'No public rooms match your preferences. Try different settings or create a new room.',
@@ -4340,6 +4342,8 @@ class AppLocalizations {
   static String get script => translate('script');
   static String get noRoomsAvailable => translate('no_rooms_available');
   static String get selectAllFiltersToViewRooms => translate('select_all_filters_to_view_rooms');
+  static String get oneCategorySelected => translate('one_category_selected');
+  static String get categoriesSelected => translate('categories_selected');
   static String get noMatchesFound => translate('no_matches_found');
   static String get noMatchesMessage => translate('no_matches_message');
   static String get tryAgain => translate('try_again');

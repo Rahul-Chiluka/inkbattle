@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageUtils {
@@ -11,13 +11,13 @@ class LocalStorageUtils {
 
   static Future<void> saveUserDetails(String token) async {
     await instance.setString("token", token);
-    log("Token saved!");
+    NativeLogService.log("Token saved!", tag: 'LocalStorageUtils', level: 'debug');
   }
 
   static Future<void> saveGeoLocation(double lat, double lon) async {
     await instance.setDouble("latitude", lat);
     await instance.setDouble("longitude", lon);
-    log("Geo Location Saved");
+    NativeLogService.log("Geo Location Saved", tag: 'LocalStorageUtils', level: 'debug');
   }
 
   static double? getLatitude() {
@@ -27,7 +27,7 @@ class LocalStorageUtils {
 
   static Future<void> setDistance(double distance) async {
     await instance.setDouble("distance", distance);
-    log("Distace Saved $distance");
+    NativeLogService.log("Distace Saved $distance", tag: 'LocalStorageUtils', level: 'debug');
   }
 
   static double? getDistance() {
@@ -48,10 +48,10 @@ class LocalStorageUtils {
       if (token == null || token.isEmpty) {
         return null;
       }
-      print(token);
+      NativeLogService.log(token, tag: 'LocalStorageUtils', level: 'debug');
       return token;
     } catch (e) {
-      log('Error fetching token: $e');
+      NativeLogService.log('Error fetching token: $e', tag: 'LocalStorageUtils', level: 'error');
       return null;
     }
   }
@@ -66,28 +66,32 @@ class LocalStorageUtils {
   }
 
   static Future<void> setTutorialShown(bool shown) async {
-    print('Tutorial shown status updated to $shown');
+    NativeLogService.log('Tutorial shown status updated to $shown', tag: 'LocalStorageUtils', level: 'debug');
     await instance.setBool('tutorialShown', shown);
   }
 
   static Future<double> setVolume(double vol) async {
+    NativeLogService.log('Volume saved: $vol', tag: 'LocalStorageUtils', level: 'debug');
     await instance.setDouble('volume', vol);
     return vol;
   }
 
   static Future<double> getVolume() async {
     final vol = instance.getDouble('volume') ?? 1;
+    NativeLogService.log('Volume fetched: $vol', tag: 'LocalStorageUtils', level: 'debug');
     return vol;
   }
 
   // Language storage
   static Future<void> saveLanguage(String languageCode) async {
     await instance.setString('app_language', languageCode);
-    log('Language saved: $languageCode');
+    NativeLogService.log('Language saved: $languageCode', tag: 'LocalStorageUtils', level: 'debug');
   }
 
   static String getLanguage() {
-    return instance.getString('app_language') ?? 'en';
+    final language = instance.getString('app_language') ?? 'en';
+    NativeLogService.log('Language fetched: $language', tag: 'LocalStorageUtils', level: 'debug');
+    return language;
   }
 
   // static JwtTokeResponseModel userData() {

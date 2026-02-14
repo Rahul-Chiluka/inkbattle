@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/presentations/game/widgets/submitted.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
-import 'dart:developer' as developer;
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 class FormPopup extends StatefulWidget {
   List<RoomParticipant> participants;
@@ -179,9 +179,10 @@ class _FormPopupState extends State<FormPopup> {
                               _selectedUser!.id;
 
                       if (userToBlockId == null) {
-                        developer.log(
+                        NativeLogService.log(
                           'Report Member skipped: userToBlockId is null for selected user',
-                          name: logTag,
+                          tag: logTag,
+                          level: 'debug',
                         );
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -193,9 +194,10 @@ class _FormPopupState extends State<FormPopup> {
                         return;
                       }
 
-                      developer.log(
+                      NativeLogService.log(
                         'Report Member API call | roomId=${widget.roomId} userToBlockId=$userToBlockId reportType=user',
-                        name: logTag,
+                        tag: logTag,
+                        level: 'debug',
                       );
                       final result = await _userRepository.reportUser(
                         roomId: widget.roomId.toString(),
@@ -207,16 +209,17 @@ class _FormPopupState extends State<FormPopup> {
 
                       result.fold(
                         (failure) {
-                          developer.log(
+                          NativeLogService.log(
                             'Report Member failed: ${failure.message}',
-                            name: logTag,
+                            tag: logTag,
+                            level: 'error',
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(failure.message)),
                           );
                         },
                         (_) {
-                          developer.log('Report Member success', name: logTag);
+                          NativeLogService.log('Report Member success', tag: logTag, level: 'debug');
                           Navigator.pop(context);
                           showDialog(
                             context: context,

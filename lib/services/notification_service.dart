@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:inkbattle_frontend/utils/routes/routes.dart';
-import 'dart:developer' as developer;
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 /// Top-level background handler for FCM messages.
 /// Must be a global function and annotated as an entry-point so it works
@@ -17,9 +17,10 @@ const String _logTag = 'NotificationService';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  developer.log(
+  NativeLogService.log(
     'Background message: ${message.messageId}, data: ${message.data}',
-    name: _logTag,
+    tag: _logTag,
+    level: 'debug',
   );
 }
 
@@ -66,9 +67,10 @@ class NotificationService {
       // Handle notification taps when app is opened from terminated state
       _messaging.getInitialMessage().then((RemoteMessage? message) {
         if (message != null) {
-          developer.log(
+          NativeLogService.log(
             'App opened from notification: ${message.messageId}',
-            name: _logTag,
+            tag: _logTag,
+            level: 'debug',
           );
           _navigateToHome();
         }
@@ -76,9 +78,10 @@ class NotificationService {
 
       // Handle notification taps when app is in background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        developer.log(
+        NativeLogService.log(
           'Notification tapped (background): ${message.messageId}',
-          name: _logTag,
+          tag: _logTag,
+          level: 'debug',
         );
         _navigateToHome();
       });
@@ -86,19 +89,20 @@ class NotificationService {
       // Log and expose the FCM token
       // The white screen often happens here if entitlements are missing
       final token = await _messaging.getToken();
-      developer.log(
+      NativeLogService.log(
         'FCM Device Token: $token',
-        name: _logTag,
+        tag: _logTag,
+        level: 'debug',
       );
 
       // Listen for foreground messages
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     } catch (e) {
       // This catch block prevents the "White Screen" by allowing main() to finish
-      developer.log(
+      NativeLogService.log(
         'Notification initialization failed: $e',
-        name: _logTag,
-        error: e,
+        tag: _logTag,
+        level: 'error',
       );
     }
   }
@@ -128,9 +132,10 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: 'local_reminder', // Payload to identify local notifications
     );
-    developer.log(
+    NativeLogService.log(
       'Reminder scheduled for: $scheduledDate',
-      name: _logTag,
+      tag: _logTag,
+      level: 'debug',
     );
   }
 
@@ -166,9 +171,10 @@ class NotificationService {
 
     // Handle notification taps (both local and push notifications)
     void onDidReceiveNotificationResponse(NotificationResponse response) {
-      developer.log(
+      NativeLogService.log(
         'Notification tapped: ${response.id} - ${response.payload}',
-        name: _logTag,
+        tag: _logTag,
+        level: 'debug',
       );
       _navigateToHome();
     }
@@ -189,9 +195,10 @@ class NotificationService {
     // Try using GoRouter first (preferred method)
     if (_router != null) {
       _router!.go(Routes.homeScreen);
-      developer.log(
+      NativeLogService.log(
         'Navigated to home via GoRouter successfully',
-        name: _logTag,
+        tag: _logTag,
+        level: 'debug',
       );
       return;
     }
@@ -201,17 +208,19 @@ class NotificationService {
       final context = _navigatorKey!.currentContext!;
       if (context.mounted) {
         context.go(Routes.homeScreen);
-        developer.log(
+        NativeLogService.log(
           'Navigated to home via Navigator context successfully',
-          name: _logTag,
+          tag: _logTag,
+          level: 'debug',
         );
         return;
       }
     }
     
-    developer.log(
+    NativeLogService.log(
       'Router/Navigator not set, cannot navigate to home successfully',
-      name: _logTag,
+      tag: _logTag,
+      level: 'warning',
     );
   }
 
@@ -247,9 +256,10 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      developer.log(
+      NativeLogService.log(
         'Foreground message: ${notification.title} - ${notification.body}',
-        name: _logTag,
+        tag: _logTag,
+        level: 'debug',
       );
     }
   }

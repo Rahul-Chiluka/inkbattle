@@ -87,7 +87,13 @@ class Routes {
       GoRoute(
         path: onevsone,
         builder: (context, state) {
-          final category = state.pathParameters['category'] ?? 'Unknown';
+          final categoryParam = state.pathParameters['category'] ?? 'Animals';
+          final categories = categoryParam
+              .split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
+          final categoriesList = categories.isEmpty ? ['Animals'] : categories;
           final pointsStr = state.pathParameters['points'] ?? '0';
           final roomId = state.pathParameters['roomId'] ?? 'Unknown';
           final points = int.tryParse(pointsStr) ?? 0;
@@ -95,7 +101,7 @@ class Routes {
               roomModel: state.extra != null
                   ? (state.extra as Map<String, dynamic>?)!["roomModel"]
                   : null,
-              category: category,
+              categories: categoriesList,
               points: points,
               roomId: roomId);
         },
@@ -103,7 +109,13 @@ class Routes {
       GoRoute(
         path: teamvsteam,
         builder: (context, state) {
-          final category = state.pathParameters['category'] ?? 'Unknown';
+          final categoryParam = state.pathParameters['category'] ?? 'Animals';
+          final categories = categoryParam
+              .split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
+          final categoriesList = categories.isEmpty ? ['Animals'] : categories;
           final pointsStr = state.pathParameters['points'] ?? '0';
           final roomId = state.pathParameters['roomId'] ?? 'Unknown';
           final points = int.tryParse(pointsStr) ?? 0;
@@ -111,7 +123,7 @@ class Routes {
               roomModel: state.extra != null
                   ? (state.extra as Map<String, dynamic>?)!["roomModel"]
                   : null,
-              category: category,
+              categories: categoriesList,
               points: points,
               roomId: roomId);
         },

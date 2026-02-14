@@ -6,6 +6,7 @@ import 'package:inkbattle_frontend/models/room_model.dart';
 import 'package:inkbattle_frontend/presentations/widgets/form.dart';
 import 'package:inkbattle_frontend/presentations/widgets/submitted.dart';
 import 'package:inkbattle_frontend/repositories/user_repository.dart';
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 import 'dart:developer' as developer;
 
 class ErrorPopup extends StatelessWidget {
@@ -23,9 +24,10 @@ class ErrorPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String logTag = 'ReportPopupScreen';
-    developer.log(
+    NativeLogService.log(
       'Report popup opened | roomId=$roomId participants=${participants.length} currentDrawerId=$currentDrawerId',
-      name: logTag,
+      tag: logTag,
+      level: 'debug',
     );
     final mq = MediaQuery.of(context).size;
     final bool isTablet = mq.width > 600;
@@ -110,9 +112,10 @@ class ErrorPopup extends StatelessWidget {
                         'Report inappropriate chat, name, or behavior',
                     imagePath: AppImages.reportmember,
                     onPressed: () {
-                      developer.log(
+                      NativeLogService.log(
                         'Report Member | roomId=$roomId participants=${participants.length}',
-                        name: logTag,
+                        tag: logTag,
+                        level: 'debug',
                       );
 
                       Navigator.pop(context);
@@ -136,15 +139,17 @@ class ErrorPopup extends StatelessWidget {
                         'Report if someone draws answers or offensive content',
                     imagePath: AppImages.reportdrawing,
                     onPressed: () async {
-                      developer.log(
+                      NativeLogService.log(
                         'Report Drawing button pressed',
-                        name: logTag,
+                        tag: logTag,
+                        level: 'debug',
                       );
 
                       if (currentDrawerId == null) {
-                        developer.log(
+                        NativeLogService.log(
                           'Report Drawing skipped: currentDrawerId is null',
-                          name: logTag,
+                          tag: logTag,
+                          level: 'debug',
                         );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -161,9 +166,10 @@ class ErrorPopup extends StatelessWidget {
                       Navigator.pop(context);
 
                       final repo = UserRepository();
-                      developer.log(
+                      NativeLogService.log(
                         'Report Drawing API call | roomId=$roomId userToBlockId=$currentDrawerId',
-                        name: logTag,
+                        tag: logTag,
+                        level: 'debug',
                       );
                       final result = await repo.reportUser(
                         roomId: roomId.toString(),
@@ -175,16 +181,17 @@ class ErrorPopup extends StatelessWidget {
 
                       result.fold(
                         (failure) {
-                          developer.log(
+                          NativeLogService.log(
                             'Report Drawing failed: ${failure.message}',
-                            name: logTag,
+                            tag: logTag,
+                            level: 'debug',
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(failure.message)),
                           );
                         },
                         (_) {
-                          developer.log('Report Drawing success', name: logTag);
+                          NativeLogService.log('Report Drawing success', tag: logTag, level: 'debug');
                           showDialog(
                             context: context,
                             builder: (context) =>

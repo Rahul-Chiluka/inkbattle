@@ -1,8 +1,8 @@
 import 'dart:async'; // Required for Timer
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:dotlottie_flutter/dotlottie_flutter.dart';
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 class CoinAnimationDialog extends StatefulWidget {
   static const String _logTag = 'CoinAnimationDialog';
@@ -20,7 +20,7 @@ class CoinAnimationDialog extends StatefulWidget {
     required int coinsAwarded,
     VoidCallback? onComplete,
   }) {
-    developer.log('Showing rewarded animation dialog', name: _logTag);
+    NativeLogService.log('Showing rewarded animation dialog', tag: _logTag, level: 'debug');
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -59,7 +59,7 @@ class _CoinAnimationDialogState extends State<CoinAnimationDialog> {
   void _close() {
     if (_isClosing || !mounted) return;
     _isClosing = true;
-    developer.log('Closing dialog automatically or by tap', name: CoinAnimationDialog._logTag);
+    NativeLogService.log('Closing dialog automatically or by tap', tag: CoinAnimationDialog._logTag, level: 'debug');
     
     Navigator.of(context, rootNavigator: true).pop();
     widget.onComplete?.call();

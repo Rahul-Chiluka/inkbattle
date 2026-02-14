@@ -12,20 +12,17 @@ import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
 
 class OneVsOneScreen extends StatefulWidget {
-  final String category;
+  final List<String> categories;
   final int points;
   final String roomId;
-  final RoomModel roomModel;
-  
-  // REMOVED: final BannerAd? bannerAd;
-  
+  final RoomModel? roomModel;
+
   const OneVsOneScreen({
     super.key,
-    required this.category,
+    required this.categories,
     required this.points,
     required this.roomId,
-    required this.roomModel,
-    // REMOVED: this.bannerAd,
+    this.roomModel,
   });
 
   @override
@@ -33,19 +30,12 @@ class OneVsOneScreen extends StatefulWidget {
 }
 
 class _OneVsOneScreenState extends State<OneVsOneScreen> {
-  // bool isMicEnabled = true;
-  
-  // REMOVED: Ad variables
-  // BannerAd? _bannerAd;
-  // bool _isBannerAdLoaded = false;
-
   bool isButtonPressed = false;
   Color gradientStartColor =
       const Color.fromRGBO(110, 136, 206, 1); // rgba(110, 136, 206, 1)
   Color gradientEndColor =
       const Color.fromRGBO(44, 61, 106, 1); // rgba(44, 61, 106, 1)
 
-  // The thickness of the gradient border
   double borderWidth = 1.2;
 
   final RoomRepository _roomRepository = RoomRepository();
@@ -53,8 +43,11 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
   final TextEditingController _codeController = TextEditingController();
 
   bool _isLoading = false;
-  String? selectedTeam; // For team rooms
+  String? selectedTeam;
   bool showTeamSelection = false;
+
+  /// Current room data (refreshed on init so participantCount and targetPoints are up to date).
+  RoomModel? _roomModel;
 
   Future<void> _handleJoinRoom(String code) async {
     try {
@@ -111,10 +104,20 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
   @override
   void initState() {
     super.initState();
-    // REMOVED: _loadBannerAd();
+    _roomModel = widget.roomModel;
+    _refreshRoom();
   }
 
-  // REMOVED: _loadBannerAd() function
+  Future<void> _refreshRoom() async {
+    if (widget.roomId.isEmpty || widget.roomId == 'Unknown') return;
+    final result = await _roomRepository.getRoomDetails(roomId: widget.roomId);
+    result.fold(
+      (_) {},
+      (room) {
+        if (mounted) setState(() => _roomModel = room);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +175,10 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                           backgroundColor: const Color.fromRGBO(26, 42, 81, 1),
                           radius: 50.r,
                           child: Image.asset(
-                            _getCategoryIcon(widget.category),
+                            _getCategoryIcon(
+                                widget.categories.isNotEmpty
+                                    ? widget.categories.first
+                                    : 'Animals'),
                             width: 70.w,
                             height: 70.h,
                           ),
@@ -180,7 +186,11 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                       ),
                       SizedBox(height: 16.h),
                       Text(
-                        widget.category,
+                        widget.categories.isEmpty
+                            ? 'Animals'
+                            : widget.categories.length == 1
+                                ? widget.categories.first
+                                : widget.categories.join(', '),
                         style: GoogleFonts.lato(
                           color: Colors.white,
                           fontSize: 32.sp,
@@ -204,7 +214,7 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                           Icon(Icons.person, color: Colors.white, size: 25.sp),
                           SizedBox(width: 6.w),
                           Text(
-                            "${widget.roomModel.participantCount}/${widget.roomModel.maxPlayers}",
+                            "${(_roomModel ?? widget.roomModel)?.participantCount ?? 0}/${(_roomModel ?? widget.roomModel)?.maxPlayers ?? 0}",
                             style: GoogleFonts.lato(
                               color: const Color(0xFFB9C7E5),
                               fontSize: 24.sp,
@@ -218,11 +228,6 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Column(
-                            children: [
-                              // Mic controls commented out in original code
-                            ],
-                          ),
                           Column(
                             children: [
                               Row(children: [
@@ -230,7 +235,9 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                                     color: Colors.white, size: 28.sp),
                                 SizedBox(width: isTablet ? 6.w : 4.w),
                                 Text(
-                                  "EN",
+                                  (_roomModel ?? widget.roomModel)?.language?.isNotEmpty == true
+                                      ? (_roomModel ?? widget.roomModel)!.language!
+                                      : 'EN',
                                   style: GoogleFonts.lato(
                                     color: Colors.white,
                                     fontSize: isTablet ? 18.sp : 15.sp,
@@ -249,11 +256,34 @@ class _OneVsOneScreenState extends State<OneVsOneScreen> {
                           Column(
                             children: [
                               Row(children: [
-                                Icon(Icons.star,
-                                    color: Colors.yellow, size: 21.sp),
+                                Icon(Icons.people,
+                                    color: Colors.white, size: 21.sp),
                                 SizedBox(width: isTablet ? 6.w : 4.w),
                                 Text(
-                                  "${widget.points}",
+                                  "${(_roomModel ?? widget.roomModel)?.participantCount ?? 0}/${(_roomModel ?? widget.roomModel)?.maxPlayers ?? 0}",
+                                  style: GoogleFonts.lato(
+                                    color: Colors.white,
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ]),
+                            ],
+                          ),
+                          Container(
+                            height: 50.h,
+                            width: 1.w,
+                            color: Colors.white.withOpacity(0.5),
+                            margin: EdgeInsets.symmetric(horizontal: 16.w),
+                          ),
+                          Column(
+                            children: [
+                              Row(children: [
+                                Icon(Icons.flag,
+                                    color: Colors.amber, size: 21.sp),
+                                SizedBox(width: isTablet ? 6.w : 4.w),
+                                Text(
+                                  "${(_roomModel ?? widget.roomModel)?.pointsTarget ?? 100}",
                                   style: GoogleFonts.lato(
                                     color: Colors.white,
                                     fontSize: 15.sp,

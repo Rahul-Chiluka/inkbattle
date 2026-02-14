@@ -6,7 +6,7 @@ import 'package:inkbattle_frontend/utils/preferences/local_preferences.dart';
 import 'package:inkbattle_frontend/widgets/custom_svg.dart';
 import 'package:inkbattle_frontend/utils/lang.dart';
 import 'package:inkbattle_frontend/widgets/persistent_banner_ad_widget.dart';
-import 'dart:developer' as developer;
+import 'package:inkbattle_frontend/services/native_log_service.dart';
 
 class InstructionsScreen extends StatefulWidget {
   const InstructionsScreen({super.key});
@@ -129,7 +129,7 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                               onPressed: () {
                                 setState(() {
                                   isToggleOn = !isToggleOn;
-                                  developer.log('Toggle status changed: $isToggleOn', name: _logTag);
+                                  NativeLogService.log('Toggle status changed: $isToggleOn', tag: _logTag, level: 'debug');
                                   LocalStorageUtils.setTutorialShown(isToggleOn);
                                 });
                               },

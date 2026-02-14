@@ -92,6 +92,12 @@ class RoomModel {
     }
   }
 
+  static int? _participantCountFromJson(Map<String, dynamic> json) {
+    final list = json["RoomParticipants"] ?? json["participants"];
+    if (list is List) return list.length;
+    return null;
+  }
+
   factory RoomModel.fromJson(Map<String, dynamic> json) => RoomModel(
     id: json["id"],
     code: json["code"],
@@ -125,9 +131,9 @@ class RoomModel {
     roundRemainingTime: json["roundRemainingTime"],
 
     // ------------------------------------
-    participantCount: json["participantCount"],
+    participantCount: json["participantCount"] ?? _participantCountFromJson(json),
     isFull: json["isFull"],
-    participants: _parseRoomParticipants(json["RoomParticipants"]),
+    participants: _parseRoomParticipants(json["RoomParticipants"] ?? json["participants"]),
     owner: json["owner"] == null ? null : UserModel.fromJson(json["owner"]),
     createdAt: json["createdAt"] == null
         ? null

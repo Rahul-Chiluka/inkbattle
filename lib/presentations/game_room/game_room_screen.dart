@@ -299,6 +299,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   bool _isLeaderboardVisible = false;
   bool _showPencilTools = false;
   bool _isGameEnded = false;
+  bool _isPostGameTransition = false; // Loading overlay from game end → coins → leaderboard → ad → lobby
   bool _shouldExitAfterAd = false;
   bool _isShowingAd = false;
   bool _isWaitingForHostOrMembers = false; // Track if we're waiting for host/members after returning to lobby
@@ -405,6 +406,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   int _phaseTimeRemaining = 0;
   int _phaseMaxTime = 60; // Store max time for border calculation
   List<String>? _wordOptions;
+
+  // State-based join dedupe: skip join only when we're still in this room (haven't left)
+  String? _lastJoinRoomId;
+  bool _hasLeftCurrentRoom = true; // true until we've joined; after leave, true again
 
   // Animation for smooth timer border
   late AnimationController _progressAnimationController;
@@ -752,11 +757,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       _handleAppResumed();
     } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       // Pause phase videos when app goes to background so interval/phase sound doesn't keep playing
-      _intervalVideoController?.pause();
-      _whosNextVideoController?.pause();
-      _welldoneVideoController?.pause();
-      _timeupVideoController?.pause();
-      _lostTurnVideoController?.pause();
+      _stopAllPhaseMedia();
     }
   }
 
@@ -766,25 +767,31 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     // Clear past overlays and stop any phase video/sound so we don't show or hear past state
     ScaffoldMessenger.of(context).clearSnackBars();
     _announcementManager.clearSequence();
-    _intervalVideoController?.pause();
-    _whosNextVideoController?.pause();
-    _welldoneVideoController?.pause();
-    _timeupVideoController?.pause();
-    _lostTurnVideoController?.pause();
+    _stopAllPhaseMedia();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
+        _stopAllPhaseMedia();
       }
     });
     Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _stopAllPhaseMedia();
+      }
     });
     Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _stopAllPhaseMedia();
+      }
     });
     Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _stopAllPhaseMedia();
+      }
     });
 
     // Don't check room status if game has ended and we're showing ad/leaderboard
@@ -818,28 +825,26 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           "Socket disconnected, attempting to reconnect...",
           name: _logTag,
         );
-      
+        // Allow join after reconnect: we "left" from server's perspective when socket dropped
+        _markLeftCurrentRoom();
+
         // Fetch token and properly reconnect
         final token = await LocalStorageUtils.fetchToken();
         if (token != null && token.isNotEmpty) {
           _socketService.connect(token);
-          
+
           // Wait for connection with timeout
           int attempts = 0;
           while (attempts < 10 && (_socketService.socket?.connected != true)) {
             await Future.delayed(const Duration(milliseconds: 200));
             attempts++;
           }
-          
+
           if (_socketService.socket?.connected == true) {
             // Wait a bit more to ensure socket is fully authenticated before joining
             await Future.delayed(const Duration(milliseconds: 300));
-            _socketService.joinRoom(
-              widget.roomId,
-              team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
-                  ? widget.selectedTeam
-                  : null,
-            );
+            if (!mounted) return;
+            _joinRoomIfNotRecent();
           } else {
             developer.log(
               "Failed to reconnect socket after resume",
@@ -848,15 +853,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           }
         }
       } else {
-        // Even if connected, re-join to ensure we're still registered in the room
-        // Add small delay to ensure socket is fully ready
+        // Even if connected, re-join to ensure we're still registered in the room (deduped to avoid double join)
         await Future.delayed(const Duration(milliseconds: 300));
-        _socketService.joinRoom(
-          widget.roomId,
-          team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
-              ? widget.selectedTeam
-              : null,
-        );
+        if (!mounted) return;
+        _joinRoomIfNotRecent();
       }
       
       // Try to validate room status; short timeout so participant doesn't get stuck
@@ -972,17 +972,20 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           _isResuming = false;
           if (room.status == 'lobby' || room.status == 'waiting') {
             _isGameEnded = false;
+            _isPostGameTransition = false;
             _isWaitingForHostOrMembers = true;
           }
           if (room.status == 'closed' || room.status == 'inactive') {
             _waitingForPlayers = true;
             _isGameEnded = false;
+            _isPostGameTransition = false;
           }
           // Sync current phase from server so we show current state (drawing/interval/etc.), not stale
           if (room.status == 'playing' && room.roundPhase != null) {
             _currentPhase = room.roundPhase;
-            final rem = _remainingSecondsFromRoom(room);
-            if (rem != null) _phaseTimeRemaining = rem;
+            // final rem = _remainingSecondsFromRoom(room);
+            // if (rem != null) _phaseTimeRemaining = rem;
+            _phaseTimeRemaining = 0;
             _waitingForPlayers = false;
           }
         });
@@ -1312,17 +1315,38 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     return _speakingInGameUserIds.contains(agoraUid);
   }
 
-  Future<void> _connectSocket() async {
-    final token = await LocalStorageUtils.fetchToken();
-    if (token == null || token.isEmpty) return;
-
-    _socketService.connect(token);
+  /// Emit join_room only when we're not already in this room (state-based: skip if same room and we haven't left).
+  /// Backend also treats same socket+room as idempotent, so duplicate join is safe but we avoid duplicate events.
+  void _joinRoomIfNotRecent() {
+    if (_lastJoinRoomId == widget.roomId && !_hasLeftCurrentRoom) {
+      developer.log(
+        'Skipping duplicate join_room for ${widget.roomId} (already in room, no leave since join)',
+        name: _logTag,
+      );
+      return;
+    }
+    _lastJoinRoomId = widget.roomId;
+    _hasLeftCurrentRoom = false;
     _socketService.joinRoom(
       widget.roomId,
       team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
           ? widget.selectedTeam
           : null,
     );
+  }
+
+  /// Marks that we left the current room so the next join is allowed (not skipped as duplicate).
+  /// Called on: explicit leave (_leaveRoom), dispose, and on app resume when socket was disconnected.
+  void _markLeftCurrentRoom() {
+    _hasLeftCurrentRoom = true;
+  }
+
+  Future<void> _connectSocket() async {
+    final token = await LocalStorageUtils.fetchToken();
+    if (token == null || token.isEmpty) return;
+
+    _socketService.connect(token);
+    _joinRoomIfNotRecent();
 
     _socketService.onRoomJoined((data) {
       if (mounted) {
@@ -1343,29 +1367,32 @@ class _GameRoomScreenState extends State<GameRoomScreen>
             if (_room != null) _room!.status = roomStatus;
             if (roomStatus == 'lobby' || roomStatus == 'waiting') {
               _isGameEnded = false;
+              _isPostGameTransition = false;
               _isWaitingForHostOrMembers = true;
               _isResuming = false; // Clear resume overlay so lobby works after user resumes app
             }
             if (isResuming && (roomStatus == 'lobby' || roomStatus == 'waiting')) {
               _isGameEnded = false;
+              _isPostGameTransition = false;
               _isWaitingForHostOrMembers = true;
             }
             if (roomStatus == 'playing') {
               _waitingForPlayers = false;
               // Sync current phase from server; remaining from roundPhaseEndTime when present (backend no-per-second DB)
               final roundPhase = room['roundPhase'] as String?;
-              final roundRemaining = _remainingSecondsFromRoomMap(room is Map<String, dynamic> ? room : null);
+              // final roundRemaining = _remainingSecondsFromRoomMap(room is Map<String, dynamic> ? room : null);
+              final roundRemaining = 0;
               if (roundPhase != null) _currentPhase = roundPhase;
               if (roundRemaining != null) _phaseTimeRemaining = roundRemaining;
             }
           }
         });
-        // Sync progress animation to current remaining so no glitch (full then correct) on resume
+        // Sync progress animation immediately to current remaining so no full-then-animate on resume
         if (room != null && room['status'] == 'playing' && _phaseMaxTime > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             final progress = (_phaseTimeRemaining / _phaseMaxTime).clamp(0.0, 1.0);
-            _updateProgressAnimation(progress);
+            _updateProgressAnimation(progress, immediate: true);
           });
         }
         // If room is already playing (e.g. host started while we were in ad, or after resume), sync canvas and phase
@@ -2141,18 +2168,21 @@ class _GameRoomScreenState extends State<GameRoomScreen>
               final isTimeUp = _phaseTimeRemaining <= 2;
               final drawerEarnedPoints = (selectedGameMode != 'team_vs_team' &&
                   drawerReward != null && drawerReward > 0);
-              if (drawerEarnedPoints) {
+              // if (drawerEarnedPoints) {
+              //   Future.delayed(const Duration(milliseconds: 400), () {
+              //     if (!mounted || _currentPhase != 'reveal') return;
+              //     _announcementManager.startAnnouncementSequence(isTimeUp: false, showOverlay2Soon: true);
+              //   });
+              // } else {
+              //   // Even when the drawer does not earn points (e.g. nobody guessed),
+              //   // still show the time-up / compliment sequence promptly so they
+              //   // see feedback for their drawing.
                 Future.delayed(const Duration(milliseconds: 400), () {
                   if (!mounted || _currentPhase != 'reveal') return;
+                  // _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
                   _announcementManager.startAnnouncementSequence(isTimeUp: false, showOverlay2Soon: true);
                 });
-              } else {
-                final revealDurationSec = _phaseTimeRemaining > 0 ? _phaseTimeRemaining : 1;
-                Future.delayed(Duration(seconds: revealDurationSec), () {
-                  if (!mounted || _currentPhase != 'reveal') return;
-                  _announcementManager.startAnnouncementSequence(isTimeUp: isTimeUp);
-                });
-              }
+              // }
             }
             // DON'T clear canvas during reveal
           } else if (nextPhase == 'interval') {
@@ -2313,6 +2343,8 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           : 'Player';
 
       setState(() {
+        // Advance phase so UI does not stay stuck on choosing_word (e.g. drawer had no socket).
+        _currentPhase = 'selecting_drawer';
         if (skipped is Map<String, dynamic> &&
             skipped['id'] == _currentUser?.id) {
           _isDrawer = false;
@@ -2343,38 +2375,21 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     });
 
     _socketService.onTimeUpdate((data) {
-      if (mounted) {
-        _phaseTimeRemaining = data['remainingTime'] ?? 0;
-        final int rawRemaining = (data['remainingTime'] is int)
+      if (!mounted) return;
+
+      final int rawRemaining = (data['remainingTime'] is int)
           ? (data['remainingTime'] as int)
           : (data['remainingTime'] as num?)?.round() ?? 0;
 
-        final int clampedRemaining = _phaseMaxTime > 0
-            ? math.max(0, math.min(rawRemaining, _phaseMaxTime))
-            : math.max(0, rawRemaining);
+      final int clampedRemaining = _phaseMaxTime > 0
+          ? math.max(0, math.min(rawRemaining, _phaseMaxTime))
+          : math.max(0, rawRemaining);
 
-        // #region agent log
-        developer.log(
-          'timeUpdate [H2/run1]', // The event name and logic tags
-          name: 'game_room_screen.dart:onTimeUpdate',
-          error: const JsonEncoder.withIndent('  ').convert({
-            'phase': _currentPhase,
-            'phaseMaxTime': _phaseMaxTime,
-            'rawRemaining': rawRemaining,
-            'clampedRemaining': clampedRemaining,
-            'previousPhaseTimeRemaining': _phaseTimeRemaining,
-          }),
-        );
-        // #endregion
+      if (clampedRemaining == _phaseTimeRemaining) return;
 
-        setState(() {
-          _phaseTimeRemaining = data['remainingTime'] ?? 0;
-          if (_phaseMaxTime > 0) {
-            final double progress = _phaseTimeRemaining / _phaseMaxTime;
-            _updateProgressAnimation(progress);
-          }
-        });
-      }
+      setState(() {
+        _phaseTimeRemaining = clampedRemaining;
+      });
     });
 
     _socketService.onClearChat((data) {
@@ -2438,6 +2453,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         _stopAllPhaseMedia();
         setState(() {
           _isGameEnded = true;
+          _isPostGameTransition = true;
           _wasDrawerWhenGameEnded = _isDrawer;
           _lastRoundGuessedCount = _usersWhoAnswered.length;
           _lastRoundTotalGuessers = _participants.length > 1 ? _participants.length - 1 : 0;
@@ -2476,12 +2492,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
           attempts++;
         }
         if (mounted && _socketService.socket?.connected == true) {
-          _socketService.joinRoom(
-            widget.roomId,
-            team: widget.selectedTeam != null && selectedGameMode == 'team_vs_team'
-                ? widget.selectedTeam
-                : null,
-          );
+          _joinRoomIfNotRecent();
         }
       } catch (_) {}
       if (mounted) setState(() => _isReconnecting = false);
@@ -2494,6 +2505,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (_isGameEnded) return; // Stay on game-end screen; lobby transition happens after ad/leaderboard
       setState(() {
         _isGameEnded = false;
+        _isPostGameTransition = false;
         _isLeaderboardVisible = false;
         if (_room != null) _room!.status = 'lobby';
         _waitingForPlayers = true;
@@ -2765,7 +2777,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || _phaseMaxTime <= 0) return;
           final progress = (_phaseTimeRemaining / _phaseMaxTime).clamp(0.0, 1.0);
-          _updateProgressAnimation(progress);
+          _updateProgressAnimation(progress, immediate: true);
         });
       }
     });
@@ -3144,6 +3156,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
   }
 
   void _leaveRoom() async {
+    _markLeftCurrentRoom();
     await _roomRepository.leaveRoom(roomId: widget.roomId);
     _socketService.leaveRoom(widget.roomId);
     _socketService.removeAllListeners();
@@ -3771,6 +3784,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       if (!mounted) return;
       setState(() {
         _isGameEnded = false;
+        _isPostGameTransition = false;
         _isLeaderboardVisible = false;
         if (_room != null) {
           _room!.status = 'lobby';
@@ -4221,6 +4235,7 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     _lostTurnVideoController?.pause();
     _lostTurnVideoController?.dispose();
 
+    _markLeftCurrentRoom();
     _socketService.leaveRoom(widget.roomId);
     _socketService.removeAllListeners();
     // _voiceService.cleanUp();
@@ -4392,6 +4407,14 @@ class _GameRoomScreenState extends State<GameRoomScreen>
                   ),
                 ),
               ),
+            if (_isPostGameTransition)
+              Container(
+                key: const ValueKey('post_game_transition_overlay'),
+                color: Colors.black54,
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.cyan),
+                ),
+              ),
           ],
         );
       });
@@ -4451,10 +4474,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
     );
   }
 
-  void _updateProgressAnimation(double targetProgress) {
+  void _updateProgressAnimation(double targetProgress, {bool immediate = false}) {
     final double clampedProgress = targetProgress.clamp(0.0, 1.0);
     _progressAnimation = Tween<double>(
-      begin: _progressAnimation.value,
+      begin: immediate ? clampedProgress : _progressAnimation.value,
       end: clampedProgress,
     ).animate(
       CurvedAnimation(
@@ -8991,6 +9014,10 @@ class _GameRoomScreenState extends State<GameRoomScreen>
       final rem = _remainingSecondsFromRoom(_room);
       if (rem != null) _phaseTimeRemaining = rem;
     });
+    if (_phaseMaxTime > 0) {
+      final progress = (_phaseTimeRemaining / _phaseMaxTime).clamp(0.0, 1.0);
+      _updateProgressAnimation(progress, immediate: true);
+    }
     _socketService.socket?.emit('request_canvas_data', {'roomCode': _room!.code});
   }
 
