@@ -19,7 +19,11 @@ import os.log
           binaryMessenger: controller.binaryMessenger
         )
         channel.setMethodCallHandler { (call, result) in
-          guard call.method == "log" else { result.notImplemented(); return }
+          // guard call.method == "log" else { result.notImplemented(); return }
+          guard call.method == "log" else { 
+            result(FlutterMethodNotImplemented) 
+            return
+          }
           let args = call.arguments as? [String: Any]
           let message = args?["message"] as? String ?? ""
           let tag = args?["tag"] as? String ?? "InkBattle"
